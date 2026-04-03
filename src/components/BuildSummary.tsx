@@ -96,10 +96,10 @@ export default function BuildSummary({
           <span className="text-zinc-400">Items equipped</span>
           <span
             className={
-              equippedCount >= 7 ? "text-emerald-400" : equippedCount >= 4 ? "text-yellow-400" : "text-zinc-200"
+              equippedCount >= 8 ? "text-emerald-400" : equippedCount >= 5 ? "text-yellow-400" : "text-zinc-200"
             }
           >
-            {equippedCount} / 9
+            {equippedCount} / 10
           </span>
         </div>
         <div className="flex justify-between">

@@ -37,11 +37,13 @@ export default function BattleDemoPage() {
   const [plannerSnapshot, setPlannerSnapshot] = useState<StoredPlannerPayload | null>(null);
 
   useEffect(() => {
-    const snap = loadStoredPlanner();
-    setPlannerSnapshot(snap);
-    if (snap && plannerHasUsefulData(snap)) {
-      setPresetId(PLANNER_PRESET_ID);
-    }
+    queueMicrotask(() => {
+      const snap = loadStoredPlanner();
+      setPlannerSnapshot(snap);
+      if (snap && plannerHasUsefulData(snap)) {
+        setPresetId(PLANNER_PRESET_ID);
+      }
+    });
   }, []);
 
   const buildFromPlanner = plannerSnapshot && presetId === PLANNER_PRESET_ID;

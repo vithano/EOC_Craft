@@ -1,10 +1,12 @@
 import type { BuildConfig } from "../data/gameStats";
+import type { InventoryStack } from "../data/equipment";
 
 export const EOC_BUILD_STORAGE_KEY = "eocCraftBuild";
 
 /** Persisted payload: build math + equipment slot ids for the planner UI. */
 export type StoredPlannerPayload = BuildConfig & {
   equipped?: Record<string, string>;
+  inventory?: InventoryStack[];
 };
 
 export function loadStoredPlanner(): StoredPlannerPayload | null {
@@ -18,6 +20,8 @@ export function loadStoredPlanner(): StoredPlannerPayload | null {
       data.equipped && typeof data.equipped === "object"
         ? data.equipped
         : undefined;
+    const hasInventoryKey = Object.prototype.hasOwnProperty.call(data, "inventory");
+    const inventory = hasInventoryKey ? normalizeInventory(data.inventory) : undefined;
     return {
       upgradeLevels:
         data.upgradeLevels && typeof data.upgradeLevels === "object"
@@ -25,6 +29,7 @@ export function loadStoredPlanner(): StoredPlannerPayload | null {
           : {},
       equipmentModifiers: normalizeEquipment(data.equipmentModifiers),
       ...(equipped ? { equipped } : {}),
+      ...(inventory !== undefined ? { inventory } : {}),
     };
   } catch {
     return null;
@@ -48,6 +53,22 @@ export function saveStoredPlanner(payload: StoredPlannerPayload): void {
 
 export function saveStoredBuild(config: BuildConfig): void {
   saveStoredPlanner(config);
+}
+
+function normalizeInventory(raw: unknown): InventoryStack[] {
+  if (!Array.isArray(raw)) return [];
+  const out: InventoryStack[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const o = row as Record<string, unknown>;
+    const id = typeof o.id === "string" ? o.id : "";
+    const slot = typeof o.slot === "string" ? o.slot : "";
+    const itemId = typeof o.itemId === "string" ? o.itemId : "";
+    const qty = Math.max(0, Math.floor(Number(o.qty)));
+    if (!id || !slot || !itemId || qty < 1) continue;
+    out.push({ id, slot, itemId, qty });
+  }
+  return out;
 }
 
 function normalizeEquipment(

@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import BuildSummary from "../components/BuildSummary";
 import EocClassesPanel from "../components/EocClassesPanel";
 import EocStatsPanel from "../components/EocStatsPanel";
 import EquipmentPanel from "../components/EquipmentPanel";
 import FormulaViewer from "../components/FormulaViewer";
-import { EQUIPMENT_SLOTS, EQUIPMENT_ITEMS } from "../data/equipment";
-import type { ItemModifiers } from "../data/equipment";
+import { DEFAULT_INVENTORY, EQUIPMENT_ITEMS, EQUIPMENT_SLOTS } from "../data/equipment";
+import type { InventoryStack, ItemModifiers } from "../data/equipment";
 import { aggregateItemModifiers, computeBuildStats } from "../data/gameStats";
 import { loadStoredPlanner, saveStoredPlanner } from "../lib/eocBuildStorage";
 import { NEXUS_TIER_ROWS } from "../data/nexusEnemyScaling";
@@ -22,20 +22,51 @@ function itemModifiersFromEquipped(equipped: Record<string, string>) {
   return aggregateItemModifiers(equippedItems);
 }
 
+function addOrMergeStack(
+  inv: InventoryStack[],
+  slot: string,
+  itemId: string,
+  qty: number
+): InventoryStack[] {
+  const merge = inv.find((s) => s.slot === slot && s.itemId === itemId);
+  if (merge) {
+    return inv.map((s) => (s.id === merge.id ? { ...s, qty: s.qty + qty } : s));
+  }
+  const id =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? `st-${crypto.randomUUID()}`
+      : `st-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  return [...inv, { id, slot, itemId, qty }];
+}
+
 export default function BuildPlanner() {
   const [upgradeLevels, setUpgradeLevels] = useState<Record<string, number>>({});
   const [equipped, setEquipped] = useState<Record<string, string>>({});
+  const [inventory, setInventory] = useState<InventoryStack[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const equipStateRef = useRef({ equipped, inventory });
+  useLayoutEffect(() => {
+    equipStateRef.current = { equipped, inventory };
+  }, [equipped, inventory]);
   const [incomingDamage, setIncomingDamage] = useState(100);
   const [nexusTier, setNexusTier] = useState(0);
 
   useEffect(() => {
-    const saved = loadStoredPlanner();
-    if (saved) {
-      setUpgradeLevels(saved.upgradeLevels);
-      if (saved.equipped) setEquipped(saved.equipped);
-    }
-    setHydrated(true);
+    queueMicrotask(() => {
+      const saved = loadStoredPlanner();
+      if (saved) {
+        setUpgradeLevels(saved.upgradeLevels);
+        if (saved.equipped) setEquipped(saved.equipped);
+        if (Object.prototype.hasOwnProperty.call(saved, "inventory")) {
+          setInventory(saved.inventory ?? []);
+        } else {
+          setInventory(DEFAULT_INVENTORY.map((s) => ({ ...s })));
+        }
+      } else {
+        setInventory(DEFAULT_INVENTORY.map((s) => ({ ...s })));
+      }
+      setHydrated(true);
+    });
   }, []);
 
   const equipmentModifiers = useMemo(() => itemModifiersFromEquipped(equipped), [equipped]);
@@ -49,8 +80,41 @@ export default function BuildPlanner() {
 
   useEffect(() => {
     if (!hydrated) return;
-    saveStoredPlanner({ ...buildConfig, equipped });
-  }, [buildConfig, equipped, hydrated]);
+    saveStoredPlanner({ ...buildConfig, equipped, inventory });
+  }, [buildConfig, equipped, inventory, hydrated]);
+
+  const equipFromStack = useCallback((stackId: string) => {
+    const { equipped: e, inventory: inv } = equipStateRef.current;
+    const stack = inv.find((s) => s.id === stackId);
+    if (!stack || stack.qty < 1) return;
+    const { slot, itemId } = stack;
+    const prevId = e[slot] ?? "none";
+    let nextInv = inv
+      .map((s) => (s.id === stackId ? { ...s, qty: s.qty - 1 } : s))
+      .filter((s) => s.qty > 0);
+    if (prevId !== "none") {
+      nextInv = addOrMergeStack(nextInv, slot, prevId, 1);
+    }
+    setEquipped({ ...e, [slot]: itemId });
+    setInventory(nextInv);
+  }, []);
+
+  const unequipSlot = useCallback((slot: string) => {
+    const { equipped: e, inventory: inv } = equipStateRef.current;
+    const id = e[slot] ?? "none";
+    if (id === "none") return;
+    setEquipped({ ...e, [slot]: "none" });
+    setInventory(addOrMergeStack(inv, slot, id, 1));
+  }, []);
+
+  const extractStack = useCallback((stackId: string) => {
+    setInventory((inv) => inv.filter((s) => s.id !== stackId));
+  }, []);
+
+  const extractAll = useCallback(() => {
+    if (typeof window !== "undefined" && !window.confirm("Remove every item from your bag?")) return;
+    setInventory([]);
+  }, []);
 
   const upgradeTotalPoints = useMemo(
     () => Object.values(upgradeLevels).reduce((a, b) => a + b, 0),
@@ -67,7 +131,7 @@ export default function BuildPlanner() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
+      <header id="planner-top" className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-xl font-bold text-zinc-100">EOC Craft ⚙️</h1>
@@ -161,20 +225,32 @@ export default function BuildPlanner() {
             />
           )}
         </div>
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="flex flex-col gap-4 min-w-0">
-            <EquipmentPanel equipped={equipped} onEquip={(slot, id) => setEquipped((p) => ({ ...p, [slot]: id }))} />
-          </div>
-          <div className="flex flex-col gap-4 min-w-0">
-            <EocStatsPanel stats={stats} incomingDamage={incomingDamage} nexusTier={nexusTier} />
-          </div>
-          <div className="flex flex-col gap-4 min-w-0">
-            <BuildSummary
+        <div className="max-w-7xl mx-auto px-4 flex flex-col gap-4">
+          <div className="min-w-0 w-full">
+            <EquipmentPanel
               equipped={equipped}
-              upgradeTotalPoints={upgradeTotalPoints}
-              classesWithPoints={classesWithPoints}
+              inventory={inventory}
+              onEquipStack={equipFromStack}
+              onUnequipSlot={unequipSlot}
+              onExtractStack={extractStack}
+              onExtractAll={extractAll}
               stats={stats}
+              incomingDamage={incomingDamage}
+              nexusTier={nexusTier}
             />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="min-w-0 lg:col-span-2">
+              <EocStatsPanel stats={stats} incomingDamage={incomingDamage} nexusTier={nexusTier} />
+            </div>
+            <div className="min-w-0">
+              <BuildSummary
+                equipped={equipped}
+                upgradeTotalPoints={upgradeTotalPoints}
+                classesWithPoints={classesWithPoints}
+                stats={stats}
+              />
+            </div>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 mt-4">

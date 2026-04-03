@@ -1,0 +1,1451 @@
+Item Slot,Item Type,Name,Required Level,Required Strength,Required Dexerity,Required Intelligence,Innate Stat,Enhancement Bonus,Line 1,Line 2,Line 3,Line 4,Line 5,Line 6,Discord Pretty Print,Copy/Paste Friendly Pretty Print
+Weapon,Mace,Steelfeather,25,39,,,Hits Ignore 30% of Enemy Armor,3%,Increased Local Attack Speed (80 to 140),(400 to 700) To Accuracy Rating,(4 to 7)% Local Base Critical Hit Chance,(-40% to -20)% reduced mana cost of abilities,,,"***Steelfeather*** (Mace - Req. Level: ***25***; Req. Str ***39***;)
+- Innate: Hits Ignore 30% of Enemy Armor
+  - Increased Local Attack Speed (80 to 140)
+  - (400 to 700) To Accuracy Rating
+  - (4 to 7)% Local Base Critical Hit Chance
+  - (-40% to -20)% reduced mana cost of abilities","***Steelfeather*** (Mace - Req. Level: ***25***; Req. Str ***39***;)
+- Innate: Hits Ignore 30% of Enemy Armor
+  - Increased Local Attack Speed (80 to 140)
+  - (400 to 700) To Accuracy Rating
+  - (4 to 7)% Local Base Critical Hit Chance
+  - (-40% to -20)% reduced mana cost of abilities"
+Weapon,Mace,Skysplitter,49,117,,,+8% chance to deal double damage with attacks,0.80%,(-60 to -40)% less energy shield,Hits penetrate 10% of lighting resistance,Abilities gain additional base mana cost equal to 4% of maximum energy,Adds 1-5 local lightning damage per 10 maximum energy shield,,,"***Skysplitter*** (Mace - Req. Level: ***49***; Req. Str ***117***;)
+- Innate: +8% chance to deal double damage with attacks
+  - (-60 to -40)% less energy shield
+  - Hits penetrate 10% of lighting resistance
+  - Abilities gain additional base mana cost equal to 4% of maximum energy
+  - Adds 1-5 local lightning damage per 10 maximum energy shield","***Skysplitter*** (Mace - Req. Level: ***49***; Req. Str ***117***;)
+- Innate: +8% chance to deal double damage with attacks
+  - (-60 to -40)% less energy shield
+  - Hits penetrate 10% of lighting resistance
+  - Abilities gain additional base mana cost equal to 4% of maximum energy
+  - Adds 1-5 local lightning damage per 10 maximum energy shield"
+Weapon,Mace,Rimefrost,49,117,,,+8% chance to deal double damage with attacks,0.80%,Adds (80 to 120) to (160 to 240) local cold damage,+(8 to 14)% local base critical hit chance,+50% chance to inflict chill,+2% chance to deal double damage with attacks per 1% effect of chill applied to enemies,Enemies are unaffected by chill,,"***Rimefrost*** (Mace - Req. Level: ***49***; Req. Str ***117***;)
+- Innate: +8% chance to deal double damage with attacks
+  - Adds (80 to 120) to (160 to 240) local cold damage
+  - +(8 to 14)% local base critical hit chance
+  - +50% chance to inflict chill
+  - +2% chance to deal double damage with attacks per 1% effect of chill applied to enemies
+  - Enemies are unaffected by chill","***Rimefrost*** (Mace - Req. Level: ***49***; Req. Str ***117***;)
+- Innate: +8% chance to deal double damage with attacks
+  - Adds (80 to 120) to (160 to 240) local cold damage
+  - +(8 to 14)% local base critical hit chance
+  - +50% chance to inflict chill
+  - +2% chance to deal double damage with attacks per 1% effect of chill applied to enemies
+  - Enemies are unaffected by chill"
+Weapon,Warhammer,Tested Faith,28,44,,,+12% chance to deal double damage with attacks,1.30%,+50% chance to deal double damage with attacks,"When you would deal double damage, 50% chance to deal triple damage instead","When you would deal triple damage, 50% chance to deal quadruple damage instead",Adds 4 to 6 local fire damage per 10 strength,,,"***Tested Faith*** (Warhammer - Req. Level: ***28***; Req. Str ***44***;)
+- Innate: +12% chance to deal double damage with attacks
+  - +50% chance to deal double damage with attacks
+  - When you would deal double damage, 50% chance to deal triple damage instead
+  - When you would deal triple damage, 50% chance to deal quadruple damage instead
+  - Adds 4 to 6 local fire damage per 10 strength","***Tested Faith*** (Warhammer - Req. Level: ***28***; Req. Str ***44***;)
+- Innate: +12% chance to deal double damage with attacks
+  - +50% chance to deal double damage with attacks
+  - When you would deal double damage, 50% chance to deal triple damage instead
+  - When you would deal triple damage, 50% chance to deal quadruple damage instead
+  - Adds 4 to 6 local fire damage per 10 strength"
+Weapon,Warhammer,Hemophage,46,102,,,32% increased melee physical damage,3.20%,(10 to 50)% increased life,50% of your dexterity and intelligence is converted to strength,Take physical damage equal to 20% of your maximum life when you attack,Adds 4 to 6 local physical damage per 40 maximum life,,,"***Hemophage*** (Warhammer - Req. Level: ***46***; Req. Str ***102***;)
+- Innate: 32% increased melee physical damage
+  - (10 to 50)% increased life
+  - 50% of your dexterity and intelligence is converted to strength
+  - Take physical damage equal to 20% of your maximum life when you attack
+  - Adds 4 to 6 local physical damage per 40 maximum life","***Hemophage*** (Warhammer - Req. Level: ***46***; Req. Str ***102***;)
+- Innate: 32% increased melee physical damage
+  - (10 to 50)% increased life
+  - 50% of your dexterity and intelligence is converted to strength
+  - Take physical damage equal to 20% of your maximum life when you attack
+  - Adds 4 to 6 local physical damage per 40 maximum life"
+Weapon,Warhammer,Shimori Ori,56,450,,,32% Increased Melee Physical Damage,3.20%,(500 to 800) increased local physical damage,(-60 to -40)% reduced local attack speed,200% increased attribute requirements,+1% chance to deal double damage with attacks per 10 strength,,,"***Shimori Ori*** (Warhammer - Req. Level: ***56***; Req. Str ***450***;)
+- Innate: 32% Increased Melee Physical Damage
+  - (500 to 800) increased local physical damage
+  - (-60 to -40)% reduced local attack speed
+  - 200% increased attribute requirements
+  - +1% chance to deal double damage with attacks per 10 strength","***Shimori Ori*** (Warhammer - Req. Level: ***56***; Req. Str ***450***;)
+- Innate: 32% Increased Melee Physical Damage
+  - (500 to 800) increased local physical damage
+  - (-60 to -40)% reduced local attack speed
+  - 200% increased attribute requirements
+  - +1% chance to deal double damage with attacks per 10 strength"
+Weapon,Sword,The Redblade,21,20,20,,6% increased attack speed,0.60%,Gain 8 life on hit,(80 to 120)% more bleed damage,(30 to 50)% increased local attack speed,+50% chance to inflict bleeding with attacks,,,"***The Redblade*** (Sword - Req. Level: ***21***; Req. Str ***20***;Req. Dex ***20***;)
+- Innate: 6% increased attack speed
+  - Gain 8 life on hit
+  - (80 to 120)% more bleed damage
+  - (30 to 50)% increased local attack speed
+  - +50% chance to inflict bleeding with attacks","***The Redblade*** (Sword - Req. Level: ***21***; Req. Str ***20***;Req. Dex ***20***;)
+- Innate: 6% increased attack speed
+  - Gain 8 life on hit
+  - (80 to 120)% more bleed damage
+  - (30 to 50)% increased local attack speed
+  - +50% chance to inflict bleeding with attacks"
+Weapon,Sword,Honored Vow,39,45,45,,18% increased accuracy rating,1.80%,(30 to 50)% increased defences,+(10 to 30)% to chaos resistance,Adds (24 to 32) to (80 to 120) local lightning damage,+(10 to 20)% chance to block,,,"***Honored Vow*** (Sword - Req. Level: ***39***; Req. Str ***45***;Req. Dex ***45***;)
+- Innate: 18% increased accuracy rating
+  - (30 to 50)% increased defences
+  - +(10 to 30)% to chaos resistance
+  - Adds (24 to 32) to (80 to 120) local lightning damage
+  - +(10 to 20)% chance to block","***Honored Vow*** (Sword - Req. Level: ***39***; Req. Str ***45***;Req. Dex ***45***;)
+- Innate: 18% increased accuracy rating
+  - (30 to 50)% increased defences
+  - +(10 to 30)% to chaos resistance
+  - Adds (24 to 32) to (80 to 120) local lightning damage
+  - +(10 to 20)% chance to block"
+Weapon,Sword,Shard of Entropy,56,90,90,,12% increased attack speed,1.20%,(120 to 240)% increased local physical damage,(30 to 60)% increased local attack speed,Convert 100% of your physical damage to a random damage type on hit,Attacks have a 100% chance to inflict ailments,,,"***Shard of Entropy*** (Sword - Req. Level: ***56***; Req. Str ***90***;Req. Dex ***90***;)
+- Innate: 12% increased attack speed
+  - (120 to 240)% increased local physical damage
+  - (30 to 60)% increased local attack speed
+  - Convert 100% of your physical damage to a random damage type on hit
+  - Attacks have a 100% chance to inflict ailments","***Shard of Entropy*** (Sword - Req. Level: ***56***; Req. Str ***90***;Req. Dex ***90***;)
+- Innate: 12% increased attack speed
+  - (120 to 240)% increased local physical damage
+  - (30 to 60)% increased local attack speed
+  - Convert 100% of your physical damage to a random damage type on hit
+  - Attacks have a 100% chance to inflict ailments"
+Weapon,Greatsword,Seversting,46,61,61,,24% increased attack speed,2.40%,(80 to 140)% increased local physical damage,(20 to 40)% increased local attack speed,(600 to 1200) to accuracy rating,Hits ignore 50% of enemy armor,,,"***Seversting*** (Greatsword - Req. Level: ***46***; Req. Str ***61***;Req. Dex ***61***;)
+- Innate: 24% increased attack speed
+  - (80 to 140)% increased local physical damage
+  - (20 to 40)% increased local attack speed
+  - (600 to 1200) to accuracy rating
+  - Hits ignore 50% of enemy armor","***Seversting*** (Greatsword - Req. Level: ***46***; Req. Str ***61***;Req. Dex ***61***;)
+- Innate: 24% increased attack speed
+  - (80 to 140)% increased local physical damage
+  - (20 to 40)% increased local attack speed
+  - (600 to 1200) to accuracy rating
+  - Hits ignore 50% of enemy armor"
+Weapon,Greatsword,Gorefeast,46,61,61,,24% increased attack speed,2.40%,Lose 20 life on hit,Leech (4 to 6)% of physical hit damage from attacks as life,(30 to 50)% increased local attack speed,Enemies left below (20 to 40)% of max life with hits are executed,Adds 4 to 6 physical damage to attacks per 40 missing life,,"***Gorefeast*** (Greatsword - Req. Level: ***46***; Req. Str ***61***;Req. Dex ***61***;)
+- Innate: 24% increased attack speed
+  - Lose 20 life on hit
+  - Leech (4 to 6)% of physical hit damage from attacks as life
+  - (30 to 50)% increased local attack speed
+  - Enemies left below (20 to 40)% of max life with hits are executed
+  - Adds 4 to 6 physical damage to attacks per 40 missing life","***Gorefeast*** (Greatsword - Req. Level: ***46***; Req. Str ***61***;Req. Dex ***61***;)
+- Innate: 24% increased attack speed
+  - Lose 20 life on hit
+  - Leech (4 to 6)% of physical hit damage from attacks as life
+  - (30 to 50)% increased local attack speed
+  - Enemies left below (20 to 40)% of max life with hits are executed
+  - Adds 4 to 6 physical damage to attacks per 40 missing life"
+Weapon,Greatsword,Galesong,56,90,90,,24% increased attack speed,2.40%,+(40 to 80) to dexterity,Adds (40 to 60) to (240 to 360) local lightning damage,Adds (100 to 150) to (200 to 300) local cold damage,4% increased strikes per attack with strike abilities per 10 dexterity,,,"***Galesong*** (Greatsword - Req. Level: ***56***; Req. Str ***90***;Req. Dex ***90***;)
+- Innate: 24% increased attack speed
+  - +(40 to 80) to dexterity
+  - Adds (40 to 60) to (240 to 360) local lightning damage
+  - Adds (100 to 150) to (200 to 300) local cold damage
+  - 4% increased strikes per attack with strike abilities per 10 dexterity","***Galesong*** (Greatsword - Req. Level: ***56***; Req. Str ***90***;Req. Dex ***90***;)
+- Innate: 24% increased attack speed
+  - +(40 to 80) to dexterity
+  - Adds (40 to 60) to (240 to 360) local lightning damage
+  - Adds (100 to 150) to (200 to 300) local cold damage
+  - 4% increased strikes per attack with strike abilities per 10 dexterity"
+Weapon,Hand Crossbow,Siegebreaker,31,,53,,18% increased attack rating,1.80%,100% less attack speed,Hits penetrate (10 to 30)% of enemy fire resistance,+(10 to 30)% chance to block,"When you block a hit, gain local fire damage qual to 50% of total prevented damage, then perform a counter attack",,,"***Siegebreaker*** (Hand Crossbow - Req. Level: ***31***; Req. Dex ***53***;)
+- Innate: 18% increased attack rating
+  - 100% less attack speed
+  - Hits penetrate (10 to 30)% of enemy fire resistance
+  - +(10 to 30)% chance to block
+  - When you block a hit, gain local fire damage qual to 50% of total prevented damage, then perform a counter attack","***Siegebreaker*** (Hand Crossbow - Req. Level: ***31***; Req. Dex ***53***;)
+- Innate: 18% increased attack rating
+  - 100% less attack speed
+  - Hits penetrate (10 to 30)% of enemy fire resistance
+  - +(10 to 30)% chance to block
+  - When you block a hit, gain local fire damage qual to 50% of total prevented damage, then perform a counter attack"
+Weapon,Hand Crossbow,Lornfell,46,,102,,32% increased attack critical hit chance,3.20%,Adds (10 to 20) to (70 to 140) local lightning damage,Adds(20 to 40) to (60 to 120) local cold damage,Adds (20 to 40) to (60 to 120) local fire damage,(10 to 30)% increased local attack speed,,,"***Lornfell*** (Hand Crossbow - Req. Level: ***46***; Req. Dex ***102***;)
+- Innate: 32% increased attack critical hit chance
+  - Adds (10 to 20) to (70 to 140) local lightning damage
+  - Adds(20 to 40) to (60 to 120) local cold damage
+  - Adds (20 to 40) to (60 to 120) local fire damage
+  - (10 to 30)% increased local attack speed","***Lornfell*** (Hand Crossbow - Req. Level: ***46***; Req. Dex ***102***;)
+- Innate: 32% increased attack critical hit chance
+  - Adds (10 to 20) to (70 to 140) local lightning damage
+  - Adds(20 to 40) to (60 to 120) local cold damage
+  - Adds (20 to 40) to (60 to 120) local fire damage
+  - (10 to 30)% increased local attack speed"
+Weapon,Hand Crossbow,Against the Darkness,56,,150,,12% increased attack speed,1.20%,(140 to 220)% increased local physical damage,(30 to 50)% increased local attack speed,Hits ignore (40 to 80)% of enemy armour,Your hits cannot be evaded,,,"***Against the Darkness*** (Hand Crossbow - Req. Level: ***56***; Req. Dex ***150***;)
+- Innate: 12% increased attack speed
+  - (140 to 220)% increased local physical damage
+  - (30 to 50)% increased local attack speed
+  - Hits ignore (40 to 80)% of enemy armour
+  - Your hits cannot be evaded","***Against the Darkness*** (Hand Crossbow - Req. Level: ***56***; Req. Dex ***150***;)
+- Innate: 12% increased attack speed
+  - (140 to 220)% increased local physical damage
+  - (30 to 50)% increased local attack speed
+  - Hits ignore (40 to 80)% of enemy armour
+  - Your hits cannot be evaded"
+Weapon,Bow,Splinterrain,21,,35,,12% increased attack speed,1.20%,Adds (20 to 30) to (40 to 60) local physical damage,(100 to 200)% increased local attack speed,75% less accuracy rating,Gain (10 to 30)% of physical damage as extra lightning damage,,,"***Splinterrain*** (Bow - Req. Level: ***21***; Req. Dex ***35***;)
+- Innate: 12% increased attack speed
+  - Adds (20 to 30) to (40 to 60) local physical damage
+  - (100 to 200)% increased local attack speed
+  - 75% less accuracy rating
+  - Gain (10 to 30)% of physical damage as extra lightning damage","***Splinterrain*** (Bow - Req. Level: ***21***; Req. Dex ***35***;)
+- Innate: 12% increased attack speed
+  - Adds (20 to 30) to (40 to 60) local physical damage
+  - (100 to 200)% increased local attack speed
+  - 75% less accuracy rating
+  - Gain (10 to 30)% of physical damage as extra lightning damage"
+Weapon,Bow,Fated Winds,49,,117,,64% increased attack critical hit chance,6.40%,(140 to 220)% increased local physical damage,+(600 to 900) to accuracy rating,+(10 to 20)% local base critical hit chance,Convert 50% of your physical damage to cold damage,,,"***Fated Winds*** (Bow - Req. Level: ***49***; Req. Dex ***117***;)
+- Innate: 64% increased attack critical hit chance
+  - (140 to 220)% increased local physical damage
+  - +(600 to 900) to accuracy rating
+  - +(10 to 20)% local base critical hit chance
+  - Convert 50% of your physical damage to cold damage","***Fated Winds*** (Bow - Req. Level: ***49***; Req. Dex ***117***;)
+- Innate: 64% increased attack critical hit chance
+  - (140 to 220)% increased local physical damage
+  - +(600 to 900) to accuracy rating
+  - +(10 to 20)% local base critical hit chance
+  - Convert 50% of your physical damage to cold damage"
+Weapon,Bow,Blackflame,49,,117,,48% increased accuracy rating,4.80%,Adds (120 to 180) to (360 to 540) local chaos damage,(10-30)% increased local attack speed,+50% chance to inflict ignite,Ignite effects that you inflict randomly gain between 50% less and 100% more duration,Your chaos damage can ignite,,"***Blackflame*** (Bow - Req. Level: ***49***; Req. Dex ***117***;)
+- Innate: 48% increased accuracy rating
+  - Adds (120 to 180) to (360 to 540) local chaos damage
+  - (10-30)% increased local attack speed
+  - +50% chance to inflict ignite
+  - Ignite effects that you inflict randomly gain between 50% less and 100% more duration
+  - Your chaos damage can ignite","***Blackflame*** (Bow - Req. Level: ***49***; Req. Dex ***117***;)
+- Innate: 48% increased accuracy rating
+  - Adds (120 to 180) to (360 to 540) local chaos damage
+  - (10-30)% increased local attack speed
+  - +50% chance to inflict ignite
+  - Ignite effects that you inflict randomly gain between 50% less and 100% more duration
+  - Your chaos damage can ignite"
+Weapon,Bow,Titansbane,56,200,150,,48% increased accuracy rating,4.80%,(200 to 300)% increased local physical damage,+(20 to 40)% chance to deal double damage with attacks,+200 to strength requirement,2% increased range attack damage per 10 strength,,,"***Titansbane*** (Bow - Req. Level: ***56***; Req. Str ***200***;Req. Dex ***150***;)
+- Innate: 48% increased accuracy rating
+  - (200 to 300)% increased local physical damage
+  - +(20 to 40)% chance to deal double damage with attacks
+  - +200 to strength requirement
+  - 2% increased range attack damage per 10 strength","***Titansbane*** (Bow - Req. Level: ***56***; Req. Str ***200***;Req. Dex ***150***;)
+- Innate: 48% increased accuracy rating
+  - (200 to 300)% increased local physical damage
+  - +(20 to 40)% chance to deal double damage with attacks
+  - +200 to strength requirement
+  - 2% increased range attack damage per 10 strength"
+Weapon,Bow,Heavensreach,56,,150,,64% increased attack critical hit chance,6.40%,Adds (100 to 150) to (1000 to 1500) local lightning damage,25% reduced local attack speed,+(6 to 12) local base critical hit chance,Your hits cannot be evaded,,,"***Heavensreach*** (Bow - Req. Level: ***56***; Req. Dex ***150***;)
+- Innate: 64% increased attack critical hit chance
+  - Adds (100 to 150) to (1000 to 1500) local lightning damage
+  - 25% reduced local attack speed
+  - +(6 to 12) local base critical hit chance
+  - Your hits cannot be evaded","***Heavensreach*** (Bow - Req. Level: ***56***; Req. Dex ***150***;)
+- Innate: 64% increased attack critical hit chance
+  - Adds (100 to 150) to (1000 to 1500) local lightning damage
+  - 25% reduced local attack speed
+  - +(6 to 12) local base critical hit chance
+  - Your hits cannot be evaded"
+Weapon,Dagger,Basilisk Fang,11,,12,12,Gain 6 life on hit,+0.6,(10 to 30)% increased local attack speed,+((2-5)% local base critical hit chance,50% chance to inflict poison with attacks,Adds 8-12 local chaos damage per poison applied to enemies,,,"***Basilisk Fang*** (Dagger - Req. Level: ***11***; Req. Dex ***12***;Req. Int ***12***;)
+- Innate: Gain 6 life on hit
+  - (10 to 30)% increased local attack speed
+  - +((2-5)% local base critical hit chance
+  - 50% chance to inflict poison with attacks
+  - Adds 8-12 local chaos damage per poison applied to enemies","***Basilisk Fang*** (Dagger - Req. Level: ***11***; Req. Dex ***12***;Req. Int ***12***;)
+- Innate: Gain 6 life on hit
+  - (10 to 30)% increased local attack speed
+  - +((2-5)% local base critical hit chance
+  - 50% chance to inflict poison with attacks
+  - Adds 8-12 local chaos damage per poison applied to enemies"
+Weapon,Dagger,Devouring Blade,39,,45,45,Gain 9 life on hit,0.9,Leech (6 to 12)% of hit damage from attacks as life,(120 to 180)% increased local physical damage,(30 to 50)% increased local attack speed,Excess recovery from life leech is applied to your energy shield instead,,,"***Devouring Blade*** (Dagger - Req. Level: ***39***; Req. Dex ***45***;Req. Int ***45***;)
+- Innate: Gain 9 life on hit
+  - Leech (6 to 12)% of hit damage from attacks as life
+  - (120 to 180)% increased local physical damage
+  - (30 to 50)% increased local attack speed
+  - Excess recovery from life leech is applied to your energy shield instead","***Devouring Blade*** (Dagger - Req. Level: ***39***; Req. Dex ***45***;Req. Int ***45***;)
+- Innate: Gain 9 life on hit
+  - Leech (6 to 12)% of hit damage from attacks as life
+  - (120 to 180)% increased local physical damage
+  - (30 to 50)% increased local attack speed
+  - Excess recovery from life leech is applied to your energy shield instead"
+Weapon,Dagger,Darkloom,49,,70,70,+24% to critical damage multiplier,2.40%,Adds (120 to 180) to (240 to 320) local chaos damage,+(60 to 120) to critical damage multiplier,"While your off-hand is empty, your first attack during an encounter is always a critical hit","While your off-hand is empty, your action bar is set to 100% at the begninning of an encounter",,,"***Darkloom*** (Dagger - Req. Level: ***49***; Req. Dex ***70***;Req. Int ***70***;)
+- Innate: +24% to critical damage multiplier
+  - Adds (120 to 180) to (240 to 320) local chaos damage
+  - +(60 to 120) to critical damage multiplier
+  - While your off-hand is empty, your first attack during an encounter is always a critical hit
+  - While your off-hand is empty, your action bar is set to 100% at the begninning of an encounter","***Darkloom*** (Dagger - Req. Level: ***49***; Req. Dex ***70***;Req. Int ***70***;)
+- Innate: +24% to critical damage multiplier
+  - Adds (120 to 180) to (240 to 320) local chaos damage
+  - +(60 to 120) to critical damage multiplier
+  - While your off-hand is empty, your first attack during an encounter is always a critical hit
+  - While your off-hand is empty, your action bar is set to 100% at the begninning of an encounter"
+Weapon,Wand,Ancestral Echo,28,,,44,12% increased spell damage,1.20%,+(10 to 20)% to chaos resistance,(-50 to -30)% less cast speed,+(1 to 2) to the level of all abilities,"When you cast a spell, it is repeated once without cost",,,"***Ancestral Echo*** (Wand - Req. Level: ***28***; Req. Int ***44***;)
+- Innate: 12% increased spell damage
+  - +(10 to 20)% to chaos resistance
+  - (-50 to -30)% less cast speed
+  - +(1 to 2) to the level of all abilities
+  - When you cast a spell, it is repeated once without cost","***Ancestral Echo*** (Wand - Req. Level: ***28***; Req. Int ***44***;)
+- Innate: 12% increased spell damage
+  - +(10 to 20)% to chaos resistance
+  - (-50 to -30)% less cast speed
+  - +(1 to 2) to the level of all abilities
+  - When you cast a spell, it is repeated once without cost"
+Weapon,Wand,Lumaris,28,,,44,12% increased spell damage,1.30%,+(30 to 50) to maximum life,Regenerate (1 to 3)% of life per second,Hits penetrate (10 to 30)% of enemy elemental resistances,Gain (6 to 12)% of life as extra base energy shield,,,"***Lumaris*** (Wand - Req. Level: ***28***; Req. Int ***44***;)
+- Innate: 12% increased spell damage
+  - +(30 to 50) to maximum life
+  - Regenerate (1 to 3)% of life per second
+  - Hits penetrate (10 to 30)% of enemy elemental resistances
+  - Gain (6 to 12)% of life as extra base energy shield","***Lumaris*** (Wand - Req. Level: ***28***; Req. Int ***44***;)
+- Innate: 12% increased spell damage
+  - +(30 to 50) to maximum life
+  - Regenerate (1 to 3)% of life per second
+  - Hits penetrate (10 to 30)% of enemy elemental resistances
+  - Gain (6 to 12)% of life as extra base energy shield"
+Weapon,Wand,Sealing Pact,35,,,63,12% increased spell damage,1.20%,+(1 to 3) to the level of all abilities,You cannot deal critical hits,Your hits cannot inflict elemental ailments,Abilities have no cost,,,"***Sealing Pact*** (Wand - Req. Level: ***35***; Req. Int ***63***;)
+- Innate: 12% increased spell damage
+  - +(1 to 3) to the level of all abilities
+  - You cannot deal critical hits
+  - Your hits cannot inflict elemental ailments
+  - Abilities have no cost","***Sealing Pact*** (Wand - Req. Level: ***35***; Req. Int ***63***;)
+- Innate: 12% increased spell damage
+  - +(1 to 3) to the level of all abilities
+  - You cannot deal critical hits
+  - Your hits cannot inflict elemental ailments
+  - Abilities have no cost"
+Weapon,Wand,Soulpierce,39,,,75,12% increased spell damage,1.20%,(30 to 60)% increased spell damage,(160 to 240)% increased spell critical hit chance,Enemies left below (20-30)% of maximum life with hits are executed,Your hits cannot be evaded,,,"***Soulpierce*** (Wand - Req. Level: ***39***; Req. Int ***75***;)
+- Innate: 12% increased spell damage
+  - (30 to 60)% increased spell damage
+  - (160 to 240)% increased spell critical hit chance
+  - Enemies left below (20-30)% of maximum life with hits are executed
+  - Your hits cannot be evaded","***Soulpierce*** (Wand - Req. Level: ***39***; Req. Int ***75***;)
+- Innate: 12% increased spell damage
+  - (30 to 60)% increased spell damage
+  - (160 to 240)% increased spell critical hit chance
+  - Enemies left below (20-30)% of maximum life with hits are executed
+  - Your hits cannot be evaded"
+Weapon,Wand,Riftshaper,42,,,88,12% increased cast speed,1.20%,25% less damage,(20 to 50)% increased cast speed,(-30% to -10%) reduced mana cost of abilities,"After you cast a spell, your action bar is set to 50%",,,"***Riftshaper*** (Wand - Req. Level: ***42***; Req. Int ***88***;)
+- Innate: 12% increased cast speed
+  - 25% less damage
+  - (20 to 50)% increased cast speed
+  - (-30% to -10%) reduced mana cost of abilities
+  - After you cast a spell, your action bar is set to 50%","***Riftshaper*** (Wand - Req. Level: ***42***; Req. Int ***88***;)
+- Innate: 12% increased cast speed
+  - 25% less damage
+  - (20 to 50)% increased cast speed
+  - (-30% to -10%) reduced mana cost of abilities
+  - After you cast a spell, your action bar is set to 50%"
+Weapon,Magestave,Salvation,21,,,35,16 increased mana,1.60%,(10 to 20)% increased mana,(20 to 50)% increased cast speed,(20 to 50)% increased mana cost of abilities,"When you cast a spell, recover life equal to its cost",,,"***Salvation*** (Magestave - Req. Level: ***21***; Req. Int ***35***;)
+- Innate: 16 increased mana
+  - (10 to 20)% increased mana
+  - (20 to 50)% increased cast speed
+  - (20 to 50)% increased mana cost of abilities
+  - When you cast a spell, recover life equal to its cost","***Salvation*** (Magestave - Req. Level: ***21***; Req. Int ***35***;)
+- Innate: 16 increased mana
+  - (10 to 20)% increased mana
+  - (20 to 50)% increased cast speed
+  - (20 to 50)% increased mana cost of abilities
+  - When you cast a spell, recover life equal to its cost"
+Weapon,Magestave,Frostspire,39,,,75,24% increased spell damage,2.40%,+(2-4) to the level of cold abilities,(-60 to -40)% less chill effect,Enemies left below a percentage of maximum life with hits equal to the effect of chill inflicted are executed,Chill effects you inflict have infinite duration,,,"***Frostspire*** (Magestave - Req. Level: ***39***; Req. Int ***75***;)
+- Innate: 24% increased spell damage
+  - +(2-4) to the level of cold abilities
+  - (-60 to -40)% less chill effect
+  - Enemies left below a percentage of maximum life with hits equal to the effect of chill inflicted are executed
+  - Chill effects you inflict have infinite duration","***Frostspire*** (Magestave - Req. Level: ***39***; Req. Int ***75***;)
+- Innate: 24% increased spell damage
+  - +(2-4) to the level of cold abilities
+  - (-60 to -40)% less chill effect
+  - Enemies left below a percentage of maximum life with hits equal to the effect of chill inflicted are executed
+  - Chill effects you inflict have infinite duration"
+Weapon,Magestave,Ashen Fate,42,,,88,32% increased spell damage,3.20%,75% less damage,(800 to 1400)% more ignite damage,+(10 to 30)% chance to deal double damage with attacks,(20 to 40)% increase ailment duration,,,"***Ashen Fate*** (Magestave - Req. Level: ***42***; Req. Int ***88***;)
+- Innate: 32% increased spell damage
+  - 75% less damage
+  - (800 to 1400)% more ignite damage
+  - +(10 to 30)% chance to deal double damage with attacks
+  - (20 to 40)% increase ailment duration","***Ashen Fate*** (Magestave - Req. Level: ***42***; Req. Int ***88***;)
+- Innate: 32% increased spell damage
+  - 75% less damage
+  - (800 to 1400)% more ignite damage
+  - +(10 to 30)% chance to deal double damage with attacks
+  - (20 to 40)% increase ailment duration"
+Weapon,Magestave,Leyweve,46,,,102,24% increased cast speed,2.40%,+(40 to 80) to dexterity,+(400 to 800) to accuracy rating,(160 to 240)% increased spell critical hit chance,+1% to critical damage multiplier per 20 accuracy rating,,,"***Leyweve*** (Magestave - Req. Level: ***46***; Req. Int ***102***;)
+- Innate: 24% increased cast speed
+  - +(40 to 80) to dexterity
+  - +(400 to 800) to accuracy rating
+  - (160 to 240)% increased spell critical hit chance
+  - +1% to critical damage multiplier per 20 accuracy rating","***Leyweve*** (Magestave - Req. Level: ***46***; Req. Int ***102***;)
+- Innate: 24% increased cast speed
+  - +(40 to 80) to dexterity
+  - +(400 to 800) to accuracy rating
+  - (160 to 240)% increased spell critical hit chance
+  - +1% to critical damage multiplier per 20 accuracy rating"
+Weapon,Magestave,Tide of Corruption,49,,,117,% increased cast speed,,Leech (4 to 8)% of hit damage from spells as energy shield,(60 to 120)% increased cast speed,(60 to 120)% increased spell critical hit chance,Hits penetrate (10 to 30)% of enemy chaos resistance,,,"***Tide of Corruption*** (Magestave - Req. Level: ***49***; Req. Int ***117***;)
+- Innate: % increased cast speed
+  - Leech (4 to 8)% of hit damage from spells as energy shield
+  - (60 to 120)% increased cast speed
+  - (60 to 120)% increased spell critical hit chance
+  - Hits penetrate (10 to 30)% of enemy chaos resistance","***Tide of Corruption*** (Magestave - Req. Level: ***49***; Req. Int ***117***;)
+- Innate: % increased cast speed
+  - Leech (4 to 8)% of hit damage from spells as energy shield
+  - (60 to 120)% increased cast speed
+  - (60 to 120)% increased spell critical hit chance
+  - Hits penetrate (10 to 30)% of enemy chaos resistance"
+Weapon,Magestave,Annihilation,56,,,450,32% increased spell damage,3.20%,+(40 to 60)% chance to deal double damage with spells,+(4 to 8) to the level of all abilities,200% increased attribute requirements,Take chaos damage equal to 400% of ability cost when you cast a spell,,,"***Annihilation*** (Magestave - Req. Level: ***56***; Req. Int ***450***;)
+- Innate: 32% increased spell damage
+  - +(40 to 60)% chance to deal double damage with spells
+  - +(4 to 8) to the level of all abilities
+  - 200% increased attribute requirements
+  - Take chaos damage equal to 400% of ability cost when you cast a spell","***Annihilation*** (Magestave - Req. Level: ***56***; Req. Int ***450***;)
+- Innate: 32% increased spell damage
+  - +(40 to 60)% chance to deal double damage with spells
+  - +(4 to 8) to the level of all abilities
+  - 200% increased attribute requirements
+  - Take chaos damage equal to 400% of ability cost when you cast a spell"
+Weapon,Battlestave,Skyward,21,20,,20,32% increased attack critical hit chance,3.20%,+(2 to 5)% local base critical hit chance,Hits penetrate (10 to 20)% of lightning resistance,(10 to 30)% increased experience gain,Adds 1 to 4 local lightning damage per character level,,,"***Skyward*** (Battlestave - Req. Level: ***21***; Req. Str ***20***;Req. Int ***20***;)
+- Innate: 32% increased attack critical hit chance
+  - +(2 to 5)% local base critical hit chance
+  - Hits penetrate (10 to 20)% of lightning resistance
+  - (10 to 30)% increased experience gain
+  - Adds 1 to 4 local lightning damage per character level","***Skyward*** (Battlestave - Req. Level: ***21***; Req. Str ***20***;Req. Int ***20***;)
+- Innate: 32% increased attack critical hit chance
+  - +(2 to 5)% local base critical hit chance
+  - Hits penetrate (10 to 20)% of lightning resistance
+  - (10 to 30)% increased experience gain
+  - Adds 1 to 4 local lightning damage per character level"
+Weapon,Battlestave,Apotheosis,25,23,,23,+18% chance to block,1.80%,(10 to 30)% increased attributes,6% increased attack damage per 10 strength,4% increased attack speed per 10 dexterity,12% increased melee critical hit chance per 10 intelligence,,,"***Apotheosis*** (Battlestave - Req. Level: ***25***; Req. Str ***23***;Req. Int ***23***;)
+- Innate: +18% chance to block
+  - (10 to 30)% increased attributes
+  - 6% increased attack damage per 10 strength
+  - 4% increased attack speed per 10 dexterity
+  - 12% increased melee critical hit chance per 10 intelligence","***Apotheosis*** (Battlestave - Req. Level: ***25***; Req. Str ***23***;Req. Int ***23***;)
+- Innate: +18% chance to block
+  - (10 to 30)% increased attributes
+  - 6% increased attack damage per 10 strength
+  - 4% increased attack speed per 10 dexterity
+  - 12% increased melee critical hit chance per 10 intelligence"
+Weapon,Battlestave,Enigmatic Rod,46,61,,61,24% chance to block,2.40%,+(-30 to 30)% to all elemental resistances,(180 to 240)% increased local physical damage,Convert (0 to 100)% of your physical damage to lightning damage,Convert (0 to 100)% of your physical damage to cold damage,Convert (0 to 100)% of your physical damage to fire damage,,"***Enigmatic Rod*** (Battlestave - Req. Level: ***46***; Req. Str ***61***;Req. Int ***61***;)
+- Innate: 24% chance to block
+  - +(-30 to 30)% to all elemental resistances
+  - (180 to 240)% increased local physical damage
+  - Convert (0 to 100)% of your physical damage to lightning damage
+  - Convert (0 to 100)% of your physical damage to cold damage
+  - Convert (0 to 100)% of your physical damage to fire damage","***Enigmatic Rod*** (Battlestave - Req. Level: ***46***; Req. Str ***61***;Req. Int ***61***;)
+- Innate: 24% chance to block
+  - +(-30 to 30)% to all elemental resistances
+  - (180 to 240)% increased local physical damage
+  - Convert (0 to 100)% of your physical damage to lightning damage
+  - Convert (0 to 100)% of your physical damage to cold damage
+  - Convert (0 to 100)% of your physical damage to fire damage"
+Weapon,Battlestave,Echoing Conviction,49,70,,70,64% increased attack critical hit chance,6.40%,Adds (80 to 120) to (300 to 500) local lightning damage,+(5 to 8)% local base critical hit chance,Hits penetrate (10 to 30)% of enemy elemental resistances,"When you deal a critical hit, perform an additional hit with a 50% chance",,,"***Echoing Conviction*** (Battlestave - Req. Level: ***49***; Req. Str ***70***;Req. Int ***70***;)
+- Innate: 64% increased attack critical hit chance
+  - Adds (80 to 120) to (300 to 500) local lightning damage
+  - +(5 to 8)% local base critical hit chance
+  - Hits penetrate (10 to 30)% of enemy elemental resistances
+  - When you deal a critical hit, perform an additional hit with a 50% chance","***Echoing Conviction*** (Battlestave - Req. Level: ***49***; Req. Str ***70***;Req. Int ***70***;)
+- Innate: 64% increased attack critical hit chance
+  - Adds (80 to 120) to (300 to 500) local lightning damage
+  - +(5 to 8)% local base critical hit chance
+  - Hits penetrate (10 to 30)% of enemy elemental resistances
+  - When you deal a critical hit, perform an additional hit with a 50% chance"
+Weapon,Battlestave,Solspire,49,70,,70,32% increased mana,3.20%,+(100 to 200) to maximum mana,recover (5 to 10)% of mana on block,1% chance to block per 100 maximum mana,"When you attack while your mana is above 50% of maximum mana, sacrifice all mana to deal 6 to 9 additional fire damage per 10 mana sacrificed this way",,,"***Solspire*** (Battlestave - Req. Level: ***49***; Req. Str ***70***;Req. Int ***70***;)
+- Innate: 32% increased mana
+  - +(100 to 200) to maximum mana
+  - recover (5 to 10)% of mana on block
+  - 1% chance to block per 100 maximum mana
+  - When you attack while your mana is above 50% of maximum mana, sacrifice all mana to deal 6 to 9 additional fire damage per 10 mana sacrificed this way","***Solspire*** (Battlestave - Req. Level: ***49***; Req. Str ***70***;Req. Int ***70***;)
+- Innate: 32% increased mana
+  - +(100 to 200) to maximum mana
+  - recover (5 to 10)% of mana on block
+  - 1% chance to block per 100 maximum mana
+  - When you attack while your mana is above 50% of maximum mana, sacrifice all mana to deal 6 to 9 additional fire damage per 10 mana sacrificed this way"
+Weapon,Battlestave,Divinarius,56,90,,90,24% chance to block,2.40%,+(30 to 50) to all attributes,(30 to 50)% increased recovery from all sources,Adds (160 to 240) to (320 to 480) local fire damage,+(10 to 30)% chance to block,,,"***Divinarius*** (Battlestave - Req. Level: ***56***; Req. Str ***90***;Req. Int ***90***;)
+- Innate: 24% chance to block
+  - +(30 to 50) to all attributes
+  - (30 to 50)% increased recovery from all sources
+  - Adds (160 to 240) to (320 to 480) local fire damage
+  - +(10 to 30)% chance to block","***Divinarius*** (Battlestave - Req. Level: ***56***; Req. Str ***90***;Req. Int ***90***;)
+- Innate: 24% chance to block
+  - +(30 to 50) to all attributes
+  - (30 to 50)% increased recovery from all sources
+  - Adds (160 to 240) to (320 to 480) local fire damage
+  - +(10 to 30)% chance to block"
+Armor,Body,Traitor's Garb,21,,35,,9% increased evasion rating,0.90%,(50 to 80)% increased local defences,Recover (4 to 8)% of life on kill,Enemies take (20 to 40)% increased damage,Take 100% increased damage while you are below 50% of maximum life,,,"***Traitor's Garb*** (Body - Req. Level: ***21***; Req. Dex ***35***;)
+- Innate: 9% increased evasion rating
+  - (50 to 80)% increased local defences
+  - Recover (4 to 8)% of life on kill
+  - Enemies take (20 to 40)% increased damage
+  - Take 100% increased damage while you are below 50% of maximum life","***Traitor's Garb*** (Body - Req. Level: ***21***; Req. Dex ***35***;)
+- Innate: 9% increased evasion rating
+  - (50 to 80)% increased local defences
+  - Recover (4 to 8)% of life on kill
+  - Enemies take (20 to 40)% increased damage
+  - Take 100% increased damage while you are below 50% of maximum life"
+Armor,Body,Mind Bulwark,21,20,,20,+6% to all elemental resistances,0.60%,(10 to 20)% increased mana,(10 to 20)% increased intelligence,+(30 to 50)% to armour effectiveness against chaos damage,Gain armor equal to 40% of maximum mana,,,"***Mind Bulwark*** (Body - Req. Level: ***21***; Req. Str ***20***;Req. Int ***20***;)
+- Innate: +6% to all elemental resistances
+  - (10 to 20)% increased mana
+  - (10 to 20)% increased intelligence
+  - +(30 to 50)% to armour effectiveness against chaos damage
+  - Gain armor equal to 40% of maximum mana","***Mind Bulwark*** (Body - Req. Level: ***21***; Req. Str ***20***;Req. Int ***20***;)
+- Innate: +6% to all elemental resistances
+  - (10 to 20)% increased mana
+  - (10 to 20)% increased intelligence
+  - +(30 to 50)% to armour effectiveness against chaos damage
+  - Gain armor equal to 40% of maximum mana"
+Armor,Body,Eternal Penance,25,23,,23,+6% to all elemental resistances,0.60%,Regenerate (16 to 24)% of life per second,Take (80 to 120)% increased damage,Take (20 to 40)% of physical damage as chaos damage,Take (20 to 40)% of elemental damage as chaos damage,,,"***Eternal Penance*** (Body - Req. Level: ***25***; Req. Str ***23***;Req. Int ***23***;)
+- Innate: +6% to all elemental resistances
+  - Regenerate (16 to 24)% of life per second
+  - Take (80 to 120)% increased damage
+  - Take (20 to 40)% of physical damage as chaos damage
+  - Take (20 to 40)% of elemental damage as chaos damage","***Eternal Penance*** (Body - Req. Level: ***25***; Req. Str ***23***;Req. Int ***23***;)
+- Innate: +6% to all elemental resistances
+  - Regenerate (16 to 24)% of life per second
+  - Take (80 to 120)% increased damage
+  - Take (20 to 40)% of physical damage as chaos damage
+  - Take (20 to 40)% of elemental damage as chaos damage"
+Armor,Body,Solemn Oath,39,45,,45,+6% to all elemental resistances,0.60%,+(20 to 50)% to all attributes,+(10 to 30)% to chaos resistance,+8 to energy shield per 10 strength,+16 armour per 10 intelligence,,,"***Solemn Oath*** (Body - Req. Level: ***39***; Req. Str ***45***;Req. Int ***45***;)
+- Innate: +6% to all elemental resistances
+  - +(20 to 50)% to all attributes
+  - +(10 to 30)% to chaos resistance
+  - +8 to energy shield per 10 strength
+  - +16 armour per 10 intelligence","***Solemn Oath*** (Body - Req. Level: ***39***; Req. Str ***45***;Req. Int ***45***;)
+- Innate: +6% to all elemental resistances
+  - +(20 to 50)% to all attributes
+  - +(10 to 30)% to chaos resistance
+  - +8 to energy shield per 10 strength
+  - +16 armour per 10 intelligence"
+Armor,Body,Forgeheart,42,88,,,12% increased armour,1.20%,+(80 to 140) to maximum life,+(20 to 40)% to fire resistance,(10 to 30)% increased life recovery,Take (20 to 40)% of physical damage as fire damage,,,"***Forgeheart*** (Body - Req. Level: ***42***; Req. Str ***88***;)
+- Innate: 12% increased armour
+  - +(80 to 140) to maximum life
+  - +(20 to 40)% to fire resistance
+  - (10 to 30)% increased life recovery
+  - Take (20 to 40)% of physical damage as fire damage","***Forgeheart*** (Body - Req. Level: ***42***; Req. Str ***88***;)
+- Innate: 12% increased armour
+  - +(80 to 140) to maximum life
+  - +(20 to 40)% to fire resistance
+  - (10 to 30)% increased life recovery
+  - Take (20 to 40)% of physical damage as fire damage"
+Armor,Body,Adaptive Mail,49,70,70,,+40 to maximum life,+4,(400 to 700)% increased local defences,+(10 to 30)% to all elemental resistances,Cannot evade while you are above 50% of maximum life,Your armor has no effect while you are below 50% of maximum life,,,"***Adaptive Mail*** (Body - Req. Level: ***49***; Req. Str ***70***;Req. Dex ***70***;)
+- Innate: +40 to maximum life
+  - (400 to 700)% increased local defences
+  - +(10 to 30)% to all elemental resistances
+  - Cannot evade while you are above 50% of maximum life
+  - Your armor has no effect while you are below 50% of maximum life","***Adaptive Mail*** (Body - Req. Level: ***49***; Req. Str ***70***;Req. Dex ***70***;)
+- Innate: +40 to maximum life
+  - (400 to 700)% increased local defences
+  - +(10 to 30)% to all elemental resistances
+  - Cannot evade while you are above 50% of maximum life
+  - Your armor has no effect while you are below 50% of maximum life"
+Armor,Body,The Carapace,56,450,,,12% increased amour,1.20%,(240 to 360) increased local defences,+(8 to 24)% to all elemental resistances,200% increased attribute requirements,Take no extra damage from critical hits,,,"***The Carapace*** (Body - Req. Level: ***56***; Req. Str ***450***;)
+- Innate: 12% increased amour
+  - (240 to 360) increased local defences
+  - +(8 to 24)% to all elemental resistances
+  - 200% increased attribute requirements
+  - Take no extra damage from critical hits","***The Carapace*** (Body - Req. Level: ***56***; Req. Str ***450***;)
+- Innate: 12% increased amour
+  - (240 to 360) increased local defences
+  - +(8 to 24)% to all elemental resistances
+  - 200% increased attribute requirements
+  - Take no extra damage from critical hits"
+Armor,Body,Tempest's Embrace,56,,150,,12% increased evasion rating,1.20%,+(20 to 60) to dexterity,(100 to 180)% increased local defences,Take (20 to 40)% of physical damage as lightning damage,"Once per stage, if you would die, recover 25% of maximum life and permanently inflict 50% shock on yourself",,,"***Tempest's Embrace*** (Body - Req. Level: ***56***; Req. Dex ***150***;)
+- Innate: 12% increased evasion rating
+  - +(20 to 60) to dexterity
+  - (100 to 180)% increased local defences
+  - Take (20 to 40)% of physical damage as lightning damage
+  - Once per stage, if you would die, recover 25% of maximum life and permanently inflict 50% shock on yourself","***Tempest's Embrace*** (Body - Req. Level: ***56***; Req. Dex ***150***;)
+- Innate: 12% increased evasion rating
+  - +(20 to 60) to dexterity
+  - (100 to 180)% increased local defences
+  - Take (20 to 40)% of physical damage as lightning damage
+  - Once per stage, if you would die, recover 25% of maximum life and permanently inflict 50% shock on yourself"
+Armor,Body,Lightshroud,56,,,150,12% increased energy shield,1.20%,(-95 to -90)% less energy shield,+(10 to 30)% to chaos resistance,Take (20 to 40)% of physical damage as chaos damage,Your energy shield cannot be reduced below its maximum by damage taken,,,"***Lightshroud*** (Body - Req. Level: ***56***; Req. Int ***150***;)
+- Innate: 12% increased energy shield
+  - (-95 to -90)% less energy shield
+  - +(10 to 30)% to chaos resistance
+  - Take (20 to 40)% of physical damage as chaos damage
+  - Your energy shield cannot be reduced below its maximum by damage taken","***Lightshroud*** (Body - Req. Level: ***56***; Req. Int ***150***;)
+- Innate: 12% increased energy shield
+  - (-95 to -90)% less energy shield
+  - +(10 to 30)% to chaos resistance
+  - Take (20 to 40)% of physical damage as chaos damage
+  - Your energy shield cannot be reduced below its maximum by damage taken"
+Armor,Helmet,Mask of the Broken,1,,,9,6% increased energy shield,0.60%,+(-200 to 200) to maximum life,+(-200 to 200) to maximum mana,+(-40 to 40) to all attributes,(-40 to 40)% increased defences,(-20 to 20)% to all elemental resistances,(-40 to 40)% increased damage,"***Mask of the Broken*** (Helmet - Req. Level: ***1***; Req. Int ***9***;)
+- Innate: 6% increased energy shield
+  - +(-200 to 200) to maximum life
+  - +(-200 to 200) to maximum mana
+  - +(-40 to 40) to all attributes
+  - (-40 to 40)% increased defences
+  - (-20 to 20)% to all elemental resistances
+  - (-40 to 40)% increased damage","***Mask of the Broken*** (Helmet - Req. Level: ***1***; Req. Int ***9***;)
+- Innate: 6% increased energy shield
+  - +(-200 to 200) to maximum life
+  - +(-200 to 200) to maximum mana
+  - +(-40 to 40) to all attributes
+  - (-40 to 40)% increased defences
+  - (-20 to 20)% to all elemental resistances
+  - (-40 to 40)% increased damage"
+Armor,Helmet,Shroud of Avarice,4,,7,7,+2% chance to dodge,0.20%,+(8 to 12)% chance to dodge,Take 10% increased damage,(10 to 30)% increased item rarity,(10 to 20)% increased item quantity,,,"***Shroud of Avarice*** (Helmet - Req. Level: ***4***; Req. Dex ***7***;Req. Int ***7***;)
+- Innate: +2% chance to dodge
+  - +(8 to 12)% chance to dodge
+  - Take 10% increased damage
+  - (10 to 30)% increased item rarity
+  - (10 to 20)% increased item quantity","***Shroud of Avarice*** (Helmet - Req. Level: ***4***; Req. Dex ***7***;Req. Int ***7***;)
+- Innate: +2% chance to dodge
+  - +(8 to 12)% chance to dodge
+  - Take 10% increased damage
+  - (10 to 30)% increased item rarity
+  - (10 to 20)% increased item quantity"
+Armor,Helmet,Crest of Ascension,28,26,,26,+6% to all elemental resistances,0.60%,(10 to 20)% increased life,(50 to 80)% increased local defences,(10 to 20)% to chaos resistance,Gain (8 to 14)% of life as extra base energy shield,,,"***Crest of Ascension*** (Helmet - Req. Level: ***28***; Req. Str ***26***;Req. Int ***26***;)
+- Innate: +6% to all elemental resistances
+  - (10 to 20)% increased life
+  - (50 to 80)% increased local defences
+  - (10 to 20)% to chaos resistance
+  - Gain (8 to 14)% of life as extra base energy shield","***Crest of Ascension*** (Helmet - Req. Level: ***28***; Req. Str ***26***;Req. Int ***26***;)
+- Innate: +6% to all elemental resistances
+  - (10 to 20)% increased life
+  - (50 to 80)% increased local defences
+  - (10 to 20)% to chaos resistance
+  - Gain (8 to 14)% of life as extra base energy shield"
+Armor,Helmet,Crown of Scorn,31,53,,,9% increased armour,0.90%,(200 to 400)% increased local defences,You cannot evade or dodge,Enemies have 100% more speed,Enemies deal 25% less damage,,,"***Crown of Scorn*** (Helmet - Req. Level: ***31***; Req. Str ***53***;)
+- Innate: 9% increased armour
+  - (200 to 400)% increased local defences
+  - You cannot evade or dodge
+  - Enemies have 100% more speed
+  - Enemies deal 25% less damage","***Crown of Scorn*** (Helmet - Req. Level: ***31***; Req. Str ***53***;)
+- Innate: 9% increased armour
+  - (200 to 400)% increased local defences
+  - You cannot evade or dodge
+  - Enemies have 100% more speed
+  - Enemies deal 25% less damage"
+Armor,Helmet,Crimson Visage,35,63,,,9% increased armour,0.90%,(10 to 20)% increased life,Regenerate (2 to 4)% of life per second,(30 to 50)% increased critical hit chance,Cannot recover life while above 50% of maximum life,,,"***Crimson Visage*** (Helmet - Req. Level: ***35***; Req. Str ***63***;)
+- Innate: 9% increased armour
+  - (10 to 20)% increased life
+  - Regenerate (2 to 4)% of life per second
+  - (30 to 50)% increased critical hit chance
+  - Cannot recover life while above 50% of maximum life","***Crimson Visage*** (Helmet - Req. Level: ***35***; Req. Str ***63***;)
+- Innate: 9% increased armour
+  - (10 to 20)% increased life
+  - Regenerate (2 to 4)% of life per second
+  - (30 to 50)% increased critical hit chance
+  - Cannot recover life while above 50% of maximum life"
+Armor,Helmet,Dreadveil,35,,38,38,+3% chance to dodge,0.30%,(60 to 90)% increased local defences,+(10 to 20)% to chaos resistance,+(6 to 12)% chance to dodge,Enemies lose 25% of maximum life at the beginning of combat,,,"***Dreadveil*** (Helmet - Req. Level: ***35***; Req. Dex ***38***;Req. Int ***38***;)
+- Innate: +3% chance to dodge
+  - (60 to 90)% increased local defences
+  - +(10 to 20)% to chaos resistance
+  - +(6 to 12)% chance to dodge
+  - Enemies lose 25% of maximum life at the beginning of combat","***Dreadveil*** (Helmet - Req. Level: ***35***; Req. Dex ***38***;Req. Int ***38***;)
+- Innate: +3% chance to dodge
+  - (60 to 90)% increased local defences
+  - +(10 to 20)% to chaos resistance
+  - +(6 to 12)% chance to dodge
+  - Enemies lose 25% of maximum life at the beginning of combat"
+Armor,Helmet,Prowlsight,39,,75,,12% increased evasion rating,1.20%,Gain (100 to 200) life on kill,(30 to 50)% increased critical hit chance,+(5 to 8)% chance to dodge,10% more accuracy rating per 0.1 seconds of attack time,,,"***Prowlsight*** (Helmet - Req. Level: ***39***; Req. Dex ***75***;)
+- Innate: 12% increased evasion rating
+  - Gain (100 to 200) life on kill
+  - (30 to 50)% increased critical hit chance
+  - +(5 to 8)% chance to dodge
+  - 10% more accuracy rating per 0.1 seconds of attack time","***Prowlsight*** (Helmet - Req. Level: ***39***; Req. Dex ***75***;)
+- Innate: 12% increased evasion rating
+  - Gain (100 to 200) life on kill
+  - (30 to 50)% increased critical hit chance
+  - +(5 to 8)% chance to dodge
+  - 10% more accuracy rating per 0.1 seconds of attack time"
+Armor,Helmet,Gimpse of Serenity,39,,,75,12% increased energy shield,1.20%,(50 to 80)% increased local defence,+(10 to 20)% to chaos resistance,(50 to 80)% increased mana regeneration,50% of mana regeneration per second applies to your energy shield instead,,,"***Gimpse of Serenity*** (Helmet - Req. Level: ***39***; Req. Int ***75***;)
+- Innate: 12% increased energy shield
+  - (50 to 80)% increased local defence
+  - +(10 to 20)% to chaos resistance
+  - (50 to 80)% increased mana regeneration
+  - 50% of mana regeneration per second applies to your energy shield instead","***Gimpse of Serenity*** (Helmet - Req. Level: ***39***; Req. Int ***75***;)
+- Innate: 12% increased energy shield
+  - (50 to 80)% increased local defence
+  - +(10 to 20)% to chaos resistance
+  - (50 to 80)% increased mana regeneration
+  - 50% of mana regeneration per second applies to your energy shield instead"
+Armor,Helmet,Flowing Crown,42,,,88,% increased energy shield,,(120 to 240)% increased local defences,Regenerate (2 to 4)% of energy shield per second,Mana cost of abilities is paid with energy shield instead,You have no mana,,,"***Flowing Crown*** (Helmet - Req. Level: ***42***; Req. Int ***88***;)
+- Innate: % increased energy shield
+  - (120 to 240)% increased local defences
+  - Regenerate (2 to 4)% of energy shield per second
+  - Mana cost of abilities is paid with energy shield instead
+  - You have no mana","***Flowing Crown*** (Helmet - Req. Level: ***42***; Req. Int ***88***;)
+- Innate: % increased energy shield
+  - (120 to 240)% increased local defences
+  - Regenerate (2 to 4)% of energy shield per second
+  - Mana cost of abilities is paid with energy shield instead
+  - You have no mana"
+Armor,Helmet,The Hollow Revenant,46,61,,61,+8% to all elemental resistances,0.80%,(10 to 30)% increased life,Take (10 to 30)% of physical damage as chaos damage,"Once per stage, if you would die, your maximum life is halved, then recover all life","If your death was prevented during the current stage, gain 40% more speed and take 1.000 chaos damage per second",,,"***The Hollow Revenant*** (Helmet - Req. Level: ***46***; Req. Str ***61***;Req. Int ***61***;)
+- Innate: +8% to all elemental resistances
+  - (10 to 30)% increased life
+  - Take (10 to 30)% of physical damage as chaos damage
+  - Once per stage, if you would die, your maximum life is halved, then recover all life
+  - If your death was prevented during the current stage, gain 40% more speed and take 1.000 chaos damage per second","***The Hollow Revenant*** (Helmet - Req. Level: ***46***; Req. Str ***61***;Req. Int ***61***;)
+- Innate: +8% to all elemental resistances
+  - (10 to 30)% increased life
+  - Take (10 to 30)% of physical damage as chaos damage
+  - Once per stage, if you would die, your maximum life is halved, then recover all life
+  - If your death was prevented during the current stage, gain 40% more speed and take 1.000 chaos damage per second"
+Armor,Helmet,Cowl of the Kin'Jal,49,,70,70,+4% chance to dodge,0.40%,(120-180)% increased local defences,(10 to 30)% increased attack and cast speed,You cannot evade while you have energy shield,"Take 1% reduced damage per 200 evasion rating while you have energy shield, up to 50%",,,"***Cowl of the Kin'Jal*** (Helmet - Req. Level: ***49***; Req. Dex ***70***;Req. Int ***70***;)
+- Innate: +4% chance to dodge
+  - (120-180)% increased local defences
+  - (10 to 30)% increased attack and cast speed
+  - You cannot evade while you have energy shield
+  - Take 1% reduced damage per 200 evasion rating while you have energy shield, up to 50%","***Cowl of the Kin'Jal*** (Helmet - Req. Level: ***49***; Req. Dex ***70***;Req. Int ***70***;)
+- Innate: +4% chance to dodge
+  - (120-180)% increased local defences
+  - (10 to 30)% increased attack and cast speed
+  - You cannot evade while you have energy shield
+  - Take 1% reduced damage per 200 evasion rating while you have energy shield, up to 50%"
+Armor,Gloves,Verdant Soul,7,9,,9,+4% to all elemental resistances,0.40%,+(10 to 30)% to lightning resistance,+(10 to 30)% to cold resistance,+(10 to 30)% to fire resistance,2% increased energy shield per 1% lightning resistance above your maximum lightning resistance,2% increased evasion rating per 1% cold resistance above your maximum cold resistance,2% increased armor per 1% fire resistance above your maximum fire resistance,"***Verdant Soul*** (Gloves - Req. Level: ***7***; Req. Str ***9***;Req. Int ***9***;)
+- Innate: +4% to all elemental resistances
+  - +(10 to 30)% to lightning resistance
+  - +(10 to 30)% to cold resistance
+  - +(10 to 30)% to fire resistance
+  - 2% increased energy shield per 1% lightning resistance above your maximum lightning resistance
+  - 2% increased evasion rating per 1% cold resistance above your maximum cold resistance
+  - 2% increased armor per 1% fire resistance above your maximum fire resistance","***Verdant Soul*** (Gloves - Req. Level: ***7***; Req. Str ***9***;Req. Int ***9***;)
+- Innate: +4% to all elemental resistances
+  - +(10 to 30)% to lightning resistance
+  - +(10 to 30)% to cold resistance
+  - +(10 to 30)% to fire resistance
+  - 2% increased energy shield per 1% lightning resistance above your maximum lightning resistance
+  - 2% increased evasion rating per 1% cold resistance above your maximum cold resistance
+  - 2% increased armor per 1% fire resistance above your maximum fire resistance"
+Armor,Gloves,Thief's Grip,18,,17,17,3% chance to dodge,0.30%,+(4 to 8)% chance to dodge,(20 to 40)% increased item rarity,2% increased critical hit chance per 1% increased item rarity,+2% to critical damage multiplier per 1% increased item quantity,,,"***Thief's Grip*** (Gloves - Req. Level: ***18***; Req. Dex ***17***;Req. Int ***17***;)
+- Innate: 3% chance to dodge
+  - +(4 to 8)% chance to dodge
+  - (20 to 40)% increased item rarity
+  - 2% increased critical hit chance per 1% increased item rarity
+  - +2% to critical damage multiplier per 1% increased item quantity","***Thief's Grip*** (Gloves - Req. Level: ***18***; Req. Dex ***17***;Req. Int ***17***;)
+- Innate: 3% chance to dodge
+  - +(4 to 8)% chance to dodge
+  - (20 to 40)% increased item rarity
+  - 2% increased critical hit chance per 1% increased item rarity
+  - +2% to critical damage multiplier per 1% increased item quantity"
+Armor,Gloves,Frostbound,18,17,,17,+6% to all elemental resistances,0.60%,+(40 to 60) to maximum life,+(10 to 30)% to cold resistance,+(3 to 5)% to maximum chill effect,Your hits inflict chill as though dealing 100% more damage,,,"***Frostbound*** (Gloves - Req. Level: ***18***; Req. Str ***17***;Req. Int ***17***;)
+- Innate: +6% to all elemental resistances
+  - +(40 to 60) to maximum life
+  - +(10 to 30)% to cold resistance
+  - +(3 to 5)% to maximum chill effect
+  - Your hits inflict chill as though dealing 100% more damage","***Frostbound*** (Gloves - Req. Level: ***18***; Req. Str ***17***;Req. Int ***17***;)
+- Innate: +6% to all elemental resistances
+  - +(40 to 60) to maximum life
+  - +(10 to 30)% to cold resistance
+  - +(3 to 5)% to maximum chill effect
+  - Your hits inflict chill as though dealing 100% more damage"
+Armor,Gloves,Oscilliarm,31,53,,,9% increased armour,0.90%,(10 to 20)% increased strength,15% less attack speed,+(16 to 24)% chance to deal double damage with attacks,+(8 to 12)% chance to deal triple damage with attacks,,,"***Oscilliarm*** (Gloves - Req. Level: ***31***; Req. Str ***53***;)
+- Innate: 9% increased armour
+  - (10 to 20)% increased strength
+  - 15% less attack speed
+  - +(16 to 24)% chance to deal double damage with attacks
+  - +(8 to 12)% chance to deal triple damage with attacks","***Oscilliarm*** (Gloves - Req. Level: ***31***; Req. Str ***53***;)
+- Innate: 9% increased armour
+  - (10 to 20)% increased strength
+  - 15% less attack speed
+  - +(16 to 24)% chance to deal double damage with attacks
+  - +(8 to 12)% chance to deal triple damage with attacks"
+Armor,Gloves,Truestrike,31,,53,,9% increased evasion rating,0.90%,+(30 to 50) to dexterity,+(200 to 600) to accuracy rating,+(2 to 6)% to attack base critical hit chance,Adds 2-3 physical damage to attacks per 50 accuracy rating,,,"***Truestrike*** (Gloves - Req. Level: ***31***; Req. Dex ***53***;)
+- Innate: 9% increased evasion rating
+  - +(30 to 50) to dexterity
+  - +(200 to 600) to accuracy rating
+  - +(2 to 6)% to attack base critical hit chance
+  - Adds 2-3 physical damage to attacks per 50 accuracy rating","***Truestrike*** (Gloves - Req. Level: ***31***; Req. Dex ***53***;)
+- Innate: 9% increased evasion rating
+  - +(30 to 50) to dexterity
+  - +(200 to 600) to accuracy rating
+  - +(2 to 6)% to attack base critical hit chance
+  - Adds 2-3 physical damage to attacks per 50 accuracy rating"
+Armor,Gloves,Soul Rippers,31,,31,31,+3% chance to dodge,0.30%,Recover (5 to 8)% of mana on kill,Gain (6 to 12) energy shield on hit,(12 to 18)% increased attack and cast speed,(20 to 40)% increased cricital hit chance,,,"***Soul Rippers*** (Gloves - Req. Level: ***31***; Req. Dex ***31***;Req. Int ***31***;)
+- Innate: +3% chance to dodge
+  - Recover (5 to 8)% of mana on kill
+  - Gain (6 to 12) energy shield on hit
+  - (12 to 18)% increased attack and cast speed
+  - (20 to 40)% increased cricital hit chance","***Soul Rippers*** (Gloves - Req. Level: ***31***; Req. Dex ***31***;Req. Int ***31***;)
+- Innate: +3% chance to dodge
+  - Recover (5 to 8)% of mana on kill
+  - Gain (6 to 12) energy shield on hit
+  - (12 to 18)% increased attack and cast speed
+  - (20 to 40)% increased cricital hit chance"
+Armor,Gloves,Woe Touch,39,,45,45,+4% chance to dodge,0.40%,+(3 to 5)% to base ciritcal chance hit chance,+(20 to 40)% to critical damage multiplier,40% less ailment duration,Ailments  inflicted with critical hits gain 1% more duration per 1% critical damage multiplier,,,"***Woe Touch*** (Gloves - Req. Level: ***39***; Req. Dex ***45***;Req. Int ***45***;)
+- Innate: +4% chance to dodge
+  - +(3 to 5)% to base ciritcal chance hit chance
+  - +(20 to 40)% to critical damage multiplier
+  - 40% less ailment duration
+  - Ailments  inflicted with critical hits gain 1% more duration per 1% critical damage multiplier","***Woe Touch*** (Gloves - Req. Level: ***39***; Req. Dex ***45***;Req. Int ***45***;)
+- Innate: +4% chance to dodge
+  - +(3 to 5)% to base ciritcal chance hit chance
+  - +(20 to 40)% to critical damage multiplier
+  - 40% less ailment duration
+  - Ailments  inflicted with critical hits gain 1% more duration per 1% critical damage multiplier"
+Armor,Gloves,Arcanima,39,45,,45,+8% to all elemental resistances,0.80%,+(40 to 80) to maximum life,(60 to 90)% increased local defences,(20 to 40)% increased spell damage,The local damage of your weapons applies to spells as well,,,"***Arcanima*** (Gloves - Req. Level: ***39***; Req. Str ***45***;Req. Int ***45***;)
+- Innate: +8% to all elemental resistances
+  - +(40 to 80) to maximum life
+  - (60 to 90)% increased local defences
+  - (20 to 40)% increased spell damage
+  - The local damage of your weapons applies to spells as well","***Arcanima*** (Gloves - Req. Level: ***39***; Req. Str ***45***;Req. Int ***45***;)
+- Innate: +8% to all elemental resistances
+  - +(40 to 80) to maximum life
+  - (60 to 90)% increased local defences
+  - (20 to 40)% increased spell damage
+  - The local damage of your weapons applies to spells as well"
+Armor,Gloves,Surgewrath,39,45,45,,+8% to all elemental resistances,0.80%,+(10 to 30)% to lightning resistance,(12 to 18)% increased attack and cast speed,(20 to 40)% increased shock effect,+(10 to 20)% to maximum shock effect,,,"***Surgewrath*** (Gloves - Req. Level: ***39***; Req. Str ***45***;Req. Dex ***45***;)
+- Innate: +8% to all elemental resistances
+  - +(10 to 30)% to lightning resistance
+  - (12 to 18)% increased attack and cast speed
+  - (20 to 40)% increased shock effect
+  - +(10 to 20)% to maximum shock effect","***Surgewrath*** (Gloves - Req. Level: ***39***; Req. Str ***45***;Req. Dex ***45***;)
+- Innate: +8% to all elemental resistances
+  - +(10 to 30)% to lightning resistance
+  - (12 to 18)% increased attack and cast speed
+  - (20 to 40)% increased shock effect
+  - +(10 to 20)% to maximum shock effect"
+Armor,Gloves,Carnage Pact,42,88,,,12% increased armour,1.20%,lose 200 life per second,Leech (6 to 9)% of physical hit damage from attacks as life,Adds (30 to 40) to (60 to 90) physical damage to attacks,(10 to 30)% increased attack speed,,,"***Carnage Pact*** (Gloves - Req. Level: ***42***; Req. Str ***88***;)
+- Innate: 12% increased armour
+  - lose 200 life per second
+  - Leech (6 to 9)% of physical hit damage from attacks as life
+  - Adds (30 to 40) to (60 to 90) physical damage to attacks
+  - (10 to 30)% increased attack speed","***Carnage Pact*** (Gloves - Req. Level: ***42***; Req. Str ***88***;)
+- Innate: 12% increased armour
+  - lose 200 life per second
+  - Leech (6 to 9)% of physical hit damage from attacks as life
+  - Adds (30 to 40) to (60 to 90) physical damage to attacks
+  - (10 to 30)% increased attack speed"
+Armor,Gloves,Entropic Grasp,46,,,102,12% increase energy shield,1.20%,+(4 to 12)% chance to deal double damage,(20 to 40)% increase ailment duration,Chaos damage can inflict all elemental ailments,Your chance to inflict elemental ailments is 50%,,,"***Entropic Grasp*** (Gloves - Req. Level: ***46***; Req. Int ***102***;)
+- Innate: 12% increase energy shield
+  - +(4 to 12)% chance to deal double damage
+  - (20 to 40)% increase ailment duration
+  - Chaos damage can inflict all elemental ailments
+  - Your chance to inflict elemental ailments is 50%","***Entropic Grasp*** (Gloves - Req. Level: ***46***; Req. Int ***102***;)
+- Innate: 12% increase energy shield
+  - +(4 to 12)% chance to deal double damage
+  - (20 to 40)% increase ailment duration
+  - Chaos damage can inflict all elemental ailments
+  - Your chance to inflict elemental ailments is 50%"
+Armor,Gloves,Hands of the Fateweaver,49,,70,70,+4% chance to dodge,0.40%,+(20 to 60) to dexterity,(50 to 80)% increased local defences,+(3 to 5)% to spell base critical hit chance,2% increased cast speed per 10 dexterity,,,"***Hands of the Fateweaver*** (Gloves - Req. Level: ***49***; Req. Dex ***70***;Req. Int ***70***;)
+- Innate: +4% chance to dodge
+  - +(20 to 60) to dexterity
+  - (50 to 80)% increased local defences
+  - +(3 to 5)% to spell base critical hit chance
+  - 2% increased cast speed per 10 dexterity","***Hands of the Fateweaver*** (Gloves - Req. Level: ***49***; Req. Dex ***70***;Req. Int ***70***;)
+- Innate: +4% chance to dodge
+  - +(20 to 60) to dexterity
+  - (50 to 80)% increased local defences
+  - +(3 to 5)% to spell base critical hit chance
+  - 2% increased cast speed per 10 dexterity"
+Armor,Gloves,Inner Tranquility,49,,,117,12% increased energy shield,1.20%,+(80 to 140) to maximum life,+(80 to 140) to maximum mana,(80 to 140)% increased local defences,"While your energy shield is below its maximum, scarifice 10% of your maximum life per secon to recover that much energy shield",,,"***Inner Tranquility*** (Gloves - Req. Level: ***49***; Req. Int ***117***;)
+- Innate: 12% increased energy shield
+  - +(80 to 140) to maximum life
+  - +(80 to 140) to maximum mana
+  - (80 to 140)% increased local defences
+  - While your energy shield is below its maximum, scarifice 10% of your maximum life per secon to recover that much energy shield","***Inner Tranquility*** (Gloves - Req. Level: ***49***; Req. Int ***117***;)
+- Innate: 12% increased energy shield
+  - +(80 to 140) to maximum life
+  - +(80 to 140) to maximum mana
+  - (80 to 140)% increased local defences
+  - While your energy shield is below its maximum, scarifice 10% of your maximum life per secon to recover that much energy shield"
+Armor,Boots,Ironstance,21,20,20,,+30 to maximum life,+3,+(20 to 30) to strength,(100 to 300)% increased local defences,+(8 to 12)% to all elemental resistances,Your total evasion rating is converted into armour,,,"***Ironstance*** (Boots - Req. Level: ***21***; Req. Str ***20***;Req. Dex ***20***;)
+- Innate: +30 to maximum life
+  - +(20 to 30) to strength
+  - (100 to 300)% increased local defences
+  - +(8 to 12)% to all elemental resistances
+  - Your total evasion rating is converted into armour","***Ironstance*** (Boots - Req. Level: ***21***; Req. Str ***20***;Req. Dex ***20***;)
+- Innate: +30 to maximum life
+  - +(20 to 30) to strength
+  - (100 to 300)% increased local defences
+  - +(8 to 12)% to all elemental resistances
+  - Your total evasion rating is converted into armour"
+Armor,Boots,Wintermarch,21,20,,20,+6% to all elemental resistances,0.60%,+(30 to 50) to maximum life,+(10 to 30)% to cold resistance,Take (10 to 30)% of physical damage as cold damage,You are unaffected by chill,,,"***Wintermarch*** (Boots - Req. Level: ***21***; Req. Str ***20***;Req. Int ***20***;)
+- Innate: +6% to all elemental resistances
+  - +(30 to 50) to maximum life
+  - +(10 to 30)% to cold resistance
+  - Take (10 to 30)% of physical damage as cold damage
+  - You are unaffected by chill","***Wintermarch*** (Boots - Req. Level: ***21***; Req. Str ***20***;Req. Int ***20***;)
+- Innate: +6% to all elemental resistances
+  - +(30 to 50) to maximum life
+  - +(10 to 30)% to cold resistance
+  - Take (10 to 30)% of physical damage as cold damage
+  - You are unaffected by chill"
+Armor,Boots,Preystride,25,,39,,9% increased evasion rating,0.90%,+(20 to 40) to dexterity,(80 to 140)% increased local defences,Take (20 to 40)% increased damage,1% more evasion rating per 1% missing life,,,"***Preystride*** (Boots - Req. Level: ***25***; Req. Dex ***39***;)
+- Innate: 9% increased evasion rating
+  - +(20 to 40) to dexterity
+  - (80 to 140)% increased local defences
+  - Take (20 to 40)% increased damage
+  - 1% more evasion rating per 1% missing life","***Preystride*** (Boots - Req. Level: ***25***; Req. Dex ***39***;)
+- Innate: 9% increased evasion rating
+  - +(20 to 40) to dexterity
+  - (80 to 140)% increased local defences
+  - Take (20 to 40)% increased damage
+  - 1% more evasion rating per 1% missing life"
+Armor,Boots,Stormchasers,31,53,,,9% increased amour,0.90%,+(10 to 30)% to lightning resistance,(10 to 30)% increased attack and cast speed,Take (10 to 20)% of physical damage as lightning damage,"Every 1 second, inflict 10% shock on yourself and enemies",,,"***Stormchasers*** (Boots - Req. Level: ***31***; Req. Str ***53***;)
+- Innate: 9% increased amour
+  - +(10 to 30)% to lightning resistance
+  - (10 to 30)% increased attack and cast speed
+  - Take (10 to 20)% of physical damage as lightning damage
+  - Every 1 second, inflict 10% shock on yourself and enemies","***Stormchasers*** (Boots - Req. Level: ***31***; Req. Str ***53***;)
+- Innate: 9% increased amour
+  - +(10 to 30)% to lightning resistance
+  - (10 to 30)% increased attack and cast speed
+  - Take (10 to 20)% of physical damage as lightning damage
+  - Every 1 second, inflict 10% shock on yourself and enemies"
+Armor,Boots,Phantomstep,42,,52,52,+4% chance to dodge,0.40%,(10 to 30)% increased dexterity,+(5 to 15)% to maximum chance to dodge,+1% chance to dodge per 10 dexterity,You cannot evade,,,"***Phantomstep*** (Boots - Req. Level: ***42***; Req. Dex ***52***;Req. Int ***52***;)
+- Innate: +4% chance to dodge
+  - (10 to 30)% increased dexterity
+  - +(5 to 15)% to maximum chance to dodge
+  - +1% chance to dodge per 10 dexterity
+  - You cannot evade","***Phantomstep*** (Boots - Req. Level: ***42***; Req. Dex ***52***;Req. Int ***52***;)
+- Innate: +4% chance to dodge
+  - (10 to 30)% increased dexterity
+  - +(5 to 15)% to maximum chance to dodge
+  - +1% chance to dodge per 10 dexterity
+  - You cannot evade"
+Armor,Shield,Brittleguard,11,12,12,,+20 to maximum life,+2,+(8 to 12)% to all elemental resistances,+25% to maximum chance to block,(200 to 300)% increased local block chance,50% chance to reduce no damage on block,,,"***Brittleguard*** (Shield - Req. Level: ***11***; Req. Str ***12***;Req. Dex ***12***;)
+- Innate: +20 to maximum life
+  - +(8 to 12)% to all elemental resistances
+  - +25% to maximum chance to block
+  - (200 to 300)% increased local block chance
+  - 50% chance to reduce no damage on block","***Brittleguard*** (Shield - Req. Level: ***11***; Req. Str ***12***;Req. Dex ***12***;)
+- Innate: +20 to maximum life
+  - +(8 to 12)% to all elemental resistances
+  - +25% to maximum chance to block
+  - (200 to 300)% increased local block chance
+  - 50% chance to reduce no damage on block"
+Armor,Shield,Remnant of the Ages,21,,,35,9% increased energy shield,0.90%,+(50 to 80) to maximum mana,+(10 to 30) to intelligence,(30 to 50)% increased local defences,Gain (10 to 20)% of mana as extra base energy shield,,,"***Remnant of the Ages*** (Shield - Req. Level: ***21***; Req. Int ***35***;)
+- Innate: 9% increased energy shield
+  - +(50 to 80) to maximum mana
+  - +(10 to 30) to intelligence
+  - (30 to 50)% increased local defences
+  - Gain (10 to 20)% of mana as extra base energy shield","***Remnant of the Ages*** (Shield - Req. Level: ***21***; Req. Int ***35***;)
+- Innate: 9% increased energy shield
+  - +(50 to 80) to maximum mana
+  - +(10 to 30) to intelligence
+  - (30 to 50)% increased local defences
+  - Gain (10 to 20)% of mana as extra base energy shield"
+Armor,Shield,Gift to the Stalwart,,,,,,,,,,,,,"***Gift to the Stalwart*** (Shield - Req. Level: ******; )
+- Innate: 
+  - 
+  - 
+  - 
+  - ","***Gift to the Stalwart*** (Shield - Req. Level: ******; )
+- Innate: 
+  - 
+  - 
+  - 
+  - "
+Armor,Shield,Mirror of Deceit,31,,31,31,+3% chance to dodge,0.30%,-25% to maximum chance to block,(40 to 160)% increased local block chance,"When you would block, dodge instead",Your chance to block is halved,,,"***Mirror of Deceit*** (Shield - Req. Level: ***31***; Req. Dex ***31***;Req. Int ***31***;)
+- Innate: +3% chance to dodge
+  - -25% to maximum chance to block
+  - (40 to 160)% increased local block chance
+  - When you would block, dodge instead
+  - Your chance to block is halved","***Mirror of Deceit*** (Shield - Req. Level: ***31***; Req. Dex ***31***;Req. Int ***31***;)
+- Innate: +3% chance to dodge
+  - -25% to maximum chance to block
+  - (40 to 160)% increased local block chance
+  - When you would block, dodge instead
+  - Your chance to block is halved"
+Armor,Shield,Volturnus,31,,,53,9% increased energy shield,0.90%,(50 to 80)% increased local defences,Take (10 to 30)% of physical damage as lightning damage,Take (10 to 30)% of physical damage as cold damage,Take (10 to 30)% of physical damage as fire damage,,,"***Volturnus*** (Shield - Req. Level: ***31***; Req. Int ***53***;)
+- Innate: 9% increased energy shield
+  - (50 to 80)% increased local defences
+  - Take (10 to 30)% of physical damage as lightning damage
+  - Take (10 to 30)% of physical damage as cold damage
+  - Take (10 to 30)% of physical damage as fire damage","***Volturnus*** (Shield - Req. Level: ***31***; Req. Int ***53***;)
+- Innate: 9% increased energy shield
+  - (50 to 80)% increased local defences
+  - Take (10 to 30)% of physical damage as lightning damage
+  - Take (10 to 30)% of physical damage as cold damage
+  - Take (10 to 30)% of physical damage as fire damage"
+Armor,Shield,Eluvenar,39,,75,,9% increased evasion rating,0.90%,+(20 to 60) to dexterity,(50 to 80)% increased local defense,(10 to 30)% increase attack and cast speed,2% increased evasion rating per 10 dexterity,,,"***Eluvenar*** (Shield - Req. Level: ***39***; Req. Dex ***75***;)
+- Innate: 9% increased evasion rating
+  - +(20 to 60) to dexterity
+  - (50 to 80)% increased local defense
+  - (10 to 30)% increase attack and cast speed
+  - 2% increased evasion rating per 10 dexterity","***Eluvenar*** (Shield - Req. Level: ***39***; Req. Dex ***75***;)
+- Innate: 9% increased evasion rating
+  - +(20 to 60) to dexterity
+  - (50 to 80)% increased local defense
+  - (10 to 30)% increase attack and cast speed
+  - 2% increased evasion rating per 10 dexterity"
+Armor,Shield,Force Prism,39,45,,45,+6% to all elemental resistances,0.60%,Gain (20 to 40) mana on block,Gain (20 to 60) energy shield on block,(20 to 60)% increased local block chance,Your action bar is filled by 40% when you block,,,"***Force Prism*** (Shield - Req. Level: ***39***; Req. Str ***45***;Req. Int ***45***;)
+- Innate: +6% to all elemental resistances
+  - Gain (20 to 40) mana on block
+  - Gain (20 to 60) energy shield on block
+  - (20 to 60)% increased local block chance
+  - Your action bar is filled by 40% when you block","***Force Prism*** (Shield - Req. Level: ***39***; Req. Str ***45***;Req. Int ***45***;)
+- Innate: +6% to all elemental resistances
+  - Gain (20 to 40) mana on block
+  - Gain (20 to 60) energy shield on block
+  - (20 to 60)% increased local block chance
+  - Your action bar is filled by 40% when you block"
+Armor,Shield,Supreme Bulwark,,,,,,,,,,,,,"***Supreme Bulwark*** (Shield - Req. Level: ******; )
+- Innate: 
+  - 
+  - 
+  - 
+  - ","***Supreme Bulwark*** (Shield - Req. Level: ******; )
+- Innate: 
+  - 
+  - 
+  - 
+  - "
+Armor,Shield,Primordial Aegis,49,,,117,12% increased energy shield,1.20%,(40 to 60)% increased local defences,+(8 to 2)% to all elemental resistances,+(5 to 10)% to all maximum elemental resistances,+100% chance to avoid elemental ailments,,,"***Primordial Aegis*** (Shield - Req. Level: ***49***; Req. Int ***117***;)
+- Innate: 12% increased energy shield
+  - (40 to 60)% increased local defences
+  - +(8 to 2)% to all elemental resistances
+  - +(5 to 10)% to all maximum elemental resistances
+  - +100% chance to avoid elemental ailments","***Primordial Aegis*** (Shield - Req. Level: ***49***; Req. Int ***117***;)
+- Innate: 12% increased energy shield
+  - (40 to 60)% increased local defences
+  - +(8 to 2)% to all elemental resistances
+  - +(5 to 10)% to all maximum elemental resistances
+  - +100% chance to avoid elemental ailments"
+Armor,Shield,Dawnbreak,49,70,,70,8% to all elemental resistances,0.80%,(100 to 200)% increased local defences,+(10 to 30)% to chaos resistance,+(5 to 9)% to maximum chaos resistance,"Every 5 seconds, regenerate 25% of maximum life over 1 second",,,"***Dawnbreak*** (Shield - Req. Level: ***49***; Req. Str ***70***;Req. Int ***70***;)
+- Innate: 8% to all elemental resistances
+  - (100 to 200)% increased local defences
+  - +(10 to 30)% to chaos resistance
+  - +(5 to 9)% to maximum chaos resistance
+  - Every 5 seconds, regenerate 25% of maximum life over 1 second","***Dawnbreak*** (Shield - Req. Level: ***49***; Req. Str ***70***;Req. Int ***70***;)
+- Innate: 8% to all elemental resistances
+  - (100 to 200)% increased local defences
+  - +(10 to 30)% to chaos resistance
+  - +(5 to 9)% to maximum chaos resistance
+  - Every 5 seconds, regenerate 25% of maximum life over 1 second"
+Armor,Shield,The Fortress,56,150,,,12% increased armour,1.20%,(120 to 180)% increased local defences,-25% to maximum chance to block,+50% to block power,(20 to 40)% increased local block chance,,,"***The Fortress*** (Shield - Req. Level: ***56***; Req. Str ***150***;)
+- Innate: 12% increased armour
+  - (120 to 180)% increased local defences
+  - -25% to maximum chance to block
+  - +50% to block power
+  - (20 to 40)% increased local block chance","***The Fortress*** (Shield - Req. Level: ***56***; Req. Str ***150***;)
+- Innate: 12% increased armour
+  - (120 to 180)% increased local defences
+  - -25% to maximum chance to block
+  - +50% to block power
+  - (20 to 40)% increased local block chance"
+Accessory,Amulet,Aspirant's Legacy,1,,,,+10 to all attributes,+1,+(8 to 24) to all attributes,(8 to 24)% increased defences,+(4 to 12)% to all elemental resistances,(20 to 30)% increased experience gain,,,"***Aspirant's Legacy*** (Amulet - Req. Level: ***1***; )
+- Innate: +10 to all attributes
+  - +(8 to 24) to all attributes
+  - (8 to 24)% increased defences
+  - +(4 to 12)% to all elemental resistances
+  - (20 to 30)% increased experience gain","***Aspirant's Legacy*** (Amulet - Req. Level: ***1***; )
+- Innate: +10 to all attributes
+  - +(8 to 24) to all attributes
+  - (8 to 24)% increased defences
+  - +(4 to 12)% to all elemental resistances
+  - (20 to 30)% increased experience gain"
+Accessory,Amulet,Heart of the Protector,21,,,,+20 to strength,+2,(10 to 30)% increased defences,Gain (20 to 40) life on block,-25% to block power,Your chance to block is doubled,,,"***Heart of the Protector*** (Amulet - Req. Level: ***21***; )
+- Innate: +20 to strength
+  - (10 to 30)% increased defences
+  - Gain (20 to 40) life on block
+  - -25% to block power
+  - Your chance to block is doubled","***Heart of the Protector*** (Amulet - Req. Level: ***21***; )
+- Innate: +20 to strength
+  - (10 to 30)% increased defences
+  - Gain (20 to 40) life on block
+  - -25% to block power
+  - Your chance to block is doubled"
+Accessory,Amulet,Soulstone Talisman,25,,,,+20 to intelligence,+2,(20 to 40)% increased mana,+(30 to 50) to intelligence,+(10 to 20)% to chaos resistance,Regenerate (1 to 3)% of mana per second,,,"***Soulstone Talisman*** (Amulet - Req. Level: ***25***; )
+- Innate: +20 to intelligence
+  - (20 to 40)% increased mana
+  - +(30 to 50) to intelligence
+  - +(10 to 20)% to chaos resistance
+  - Regenerate (1 to 3)% of mana per second","***Soulstone Talisman*** (Amulet - Req. Level: ***25***; )
+- Innate: +20 to intelligence
+  - (20 to 40)% increased mana
+  - +(30 to 50) to intelligence
+  - +(10 to 20)% to chaos resistance
+  - Regenerate (1 to 3)% of mana per second"
+Accessory,Amulet,The Undying Flame,28,,,,+20 to strength,+2,+(50 to 80) to maximum life,(10 to 30)% increased life recovery,(30 to 60)% increased ignite duration,Ignite effects carry on to subsequent enemies,,,"***The Undying Flame*** (Amulet - Req. Level: ***28***; )
+- Innate: +20 to strength
+  - +(50 to 80) to maximum life
+  - (10 to 30)% increased life recovery
+  - (30 to 60)% increased ignite duration
+  - Ignite effects carry on to subsequent enemies","***The Undying Flame*** (Amulet - Req. Level: ***28***; )
+- Innate: +20 to strength
+  - +(50 to 80) to maximum life
+  - (10 to 30)% increased life recovery
+  - (30 to 60)% increased ignite duration
+  - Ignite effects carry on to subsequent enemies"
+Accessory,Amulet,Flashfire,31,,,,+30 to dexterity,+3,(200 to 300)% more ignite damage,(10 to 20)% increased attack and cast speed,+50% chance to inflict ignite,75% less ignite duration,,,"***Flashfire*** (Amulet - Req. Level: ***31***; )
+- Innate: +30 to dexterity
+  - (200 to 300)% more ignite damage
+  - (10 to 20)% increased attack and cast speed
+  - +50% chance to inflict ignite
+  - 75% less ignite duration","***Flashfire*** (Amulet - Req. Level: ***31***; )
+- Innate: +30 to dexterity
+  - (200 to 300)% more ignite damage
+  - (10 to 20)% increased attack and cast speed
+  - +50% chance to inflict ignite
+  - 75% less ignite duration"
+Accessory,Amulet,Eternal Gaze,31,,,,+30 to intelligence,+3,(20 to 40)% increased defences,(20 to 40)% increased chill duration,+(5 to 10)% to maximum chill effect,Chill effects carry on to subsequent enemies,,,"***Eternal Gaze*** (Amulet - Req. Level: ***31***; )
+- Innate: +30 to intelligence
+  - (20 to 40)% increased defences
+  - (20 to 40)% increased chill duration
+  - +(5 to 10)% to maximum chill effect
+  - Chill effects carry on to subsequent enemies","***Eternal Gaze*** (Amulet - Req. Level: ***31***; )
+- Innate: +30 to intelligence
+  - (20 to 40)% increased defences
+  - (20 to 40)% increased chill duration
+  - +(5 to 10)% to maximum chill effect
+  - Chill effects carry on to subsequent enemies"
+Accessory,Amulet,Inward Focus,39,,,,+30 to strength,+3,(30 to 60)% increased defences,+(10 to 30)% to chaos resistance,+100% to armor effectiveness against chaos damage,Your armor has no effect against physical damage taken,,,"***Inward Focus*** (Amulet - Req. Level: ***39***; )
+- Innate: +30 to strength
+  - (30 to 60)% increased defences
+  - +(10 to 30)% to chaos resistance
+  - +100% to armor effectiveness against chaos damage
+  - Your armor has no effect against physical damage taken","***Inward Focus*** (Amulet - Req. Level: ***39***; )
+- Innate: +30 to strength
+  - (30 to 60)% increased defences
+  - +(10 to 30)% to chaos resistance
+  - +100% to armor effectiveness against chaos damage
+  - Your armor has no effect against physical damage taken"
+Accessory,Amulet,Venofrenzy,39,,,,+30 to dexterity,+3,(10 to 30)% increased poison duration,Poison you inflict is reflected to you,1% more speed per poison on you,Take 90% less poison damage,,,"***Venofrenzy*** (Amulet - Req. Level: ***39***; )
+- Innate: +30 to dexterity
+  - (10 to 30)% increased poison duration
+  - Poison you inflict is reflected to you
+  - 1% more speed per poison on you
+  - Take 90% less poison damage","***Venofrenzy*** (Amulet - Req. Level: ***39***; )
+- Innate: +30 to dexterity
+  - (10 to 30)% increased poison duration
+  - Poison you inflict is reflected to you
+  - 1% more speed per poison on you
+  - Take 90% less poison damage"
+Accessory,Amulet,The Melding,42,,,,+20 to all attributes,+2,(10 to 30) increased ailment duration,Elemental Ailments you inflict are reflected to you,1% more speed per 1% effect of shock applied to you,3% increased defences per 1% effect of chill applied to you,Regenerate 5% of maximum life per second while you are ignited,,"***The Melding*** (Amulet - Req. Level: ***42***; )
+- Innate: +20 to all attributes
+  - (10 to 30) increased ailment duration
+  - Elemental Ailments you inflict are reflected to you
+  - 1% more speed per 1% effect of shock applied to you
+  - 3% increased defences per 1% effect of chill applied to you
+  - Regenerate 5% of maximum life per second while you are ignited","***The Melding*** (Amulet - Req. Level: ***42***; )
+- Innate: +20 to all attributes
+  - (10 to 30) increased ailment duration
+  - Elemental Ailments you inflict are reflected to you
+  - 1% more speed per 1% effect of shock applied to you
+  - 3% increased defences per 1% effect of chill applied to you
+  - Regenerate 5% of maximum life per second while you are ignited"
+Accessory,Amulet,Eye of the Storm,46,,,,+40 to intelligence,+4,(10 to 30)% increased attack and cast speed,(20 to 60)% more shock duration,The effect of shock you inflict is always 2%,The aggregated effect of shock you inflict is not limited by your maximum shock effect,,,"***Eye of the Storm*** (Amulet - Req. Level: ***46***; )
+- Innate: +40 to intelligence
+  - (10 to 30)% increased attack and cast speed
+  - (20 to 60)% more shock duration
+  - The effect of shock you inflict is always 2%
+  - The aggregated effect of shock you inflict is not limited by your maximum shock effect","***Eye of the Storm*** (Amulet - Req. Level: ***46***; )
+- Innate: +40 to intelligence
+  - (10 to 30)% increased attack and cast speed
+  - (20 to 60)% more shock duration
+  - The effect of shock you inflict is always 2%
+  - The aggregated effect of shock you inflict is not limited by your maximum shock effect"
+Accessory,Amulet,Adorned Lineage,49,,,,+20 to all attributes,+2,(20 to 60) increased defences,+(10 to 20) to chaos resistance,(10 to 30)% increased item rarity,+60 to energy shield per equipped unique item,,,"***Adorned Lineage*** (Amulet - Req. Level: ***49***; )
+- Innate: +20 to all attributes
+  - (20 to 60) increased defences
+  - +(10 to 20) to chaos resistance
+  - (10 to 30)% increased item rarity
+  - +60 to energy shield per equipped unique item","***Adorned Lineage*** (Amulet - Req. Level: ***49***; )
+- Innate: +20 to all attributes
+  - (20 to 60) increased defences
+  - +(10 to 20) to chaos resistance
+  - (10 to 30)% increased item rarity
+  - +60 to energy shield per equipped unique item"
+Accessory,Amulet,Shard of Creation,56,,,,+20 to all attributes,+2,+(20 to 60) to strength,+(20 to 60) to dexterity,+(20 to 60) to intelligence,"1% increased damage per 10 combined strength, dexterity, and intelligence",,,"***Shard of Creation*** (Amulet - Req. Level: ***56***; )
+- Innate: +20 to all attributes
+  - +(20 to 60) to strength
+  - +(20 to 60) to dexterity
+  - +(20 to 60) to intelligence
+  - 1% increased damage per 10 combined strength, dexterity, and intelligence","***Shard of Creation*** (Amulet - Req. Level: ***56***; )
+- Innate: +20 to all attributes
+  - +(20 to 60) to strength
+  - +(20 to 60) to dexterity
+  - +(20 to 60) to intelligence
+  - 1% increased damage per 10 combined strength, dexterity, and intelligence"
+Accessory,Ring,Praxis,7,,,,16% increased mana regeneration,1.60%,+(8 to 12) to all attributes,(5 to 8)% increased attack and cast speed,(-30 to -50)% reduced mana cost of abilities,(5 to 8)% increased experience gain,,,"***Praxis*** (Ring - Req. Level: ***7***; )
+- Innate: 16% increased mana regeneration
+  - +(8 to 12) to all attributes
+  - (5 to 8)% increased attack and cast speed
+  - (-30 to -50)% reduced mana cost of abilities
+  - (5 to 8)% increased experience gain","***Praxis*** (Ring - Req. Level: ***7***; )
+- Innate: 16% increased mana regeneration
+  - +(8 to 12) to all attributes
+  - (5 to 8)% increased attack and cast speed
+  - (-30 to -50)% reduced mana cost of abilities
+  - (5 to 8)% increased experience gain"
+Accessory,Ring,Broken Legacy,18,,,,16% increased mana regen,1.60%,+(10 to 30) to all attributes,Your critical hit chance is 50%,Your critical damage multiplier is +100%,Deal no damage with non-critical hits,Your hits cannot be evaded,,"***Broken Legacy*** (Ring - Req. Level: ***18***; )
+- Innate: 16% increased mana regen
+  - +(10 to 30) to all attributes
+  - Your critical hit chance is 50%
+  - Your critical damage multiplier is +100%
+  - Deal no damage with non-critical hits
+  - Your hits cannot be evaded","***Broken Legacy*** (Ring - Req. Level: ***18***; )
+- Innate: 16% increased mana regen
+  - +(10 to 30) to all attributes
+  - Your critical hit chance is 50%
+  - Your critical damage multiplier is +100%
+  - Deal no damage with non-critical hits
+  - Your hits cannot be evaded"
+Accessory,Ring,Winterstorm,18,,,,16% increased critical hit chance,1.60%,(20 to 40)% increased critical hit chance,Convert 50% of your physical damage into lightning damage,Convert 50% of your lightning damage into cold damage,30% increased effect of non-damaging ailments,,,"***Winterstorm*** (Ring - Req. Level: ***18***; )
+- Innate: 16% increased critical hit chance
+  - (20 to 40)% increased critical hit chance
+  - Convert 50% of your physical damage into lightning damage
+  - Convert 50% of your lightning damage into cold damage
+  - 30% increased effect of non-damaging ailments","***Winterstorm*** (Ring - Req. Level: ***18***; )
+- Innate: 16% increased critical hit chance
+  - (20 to 40)% increased critical hit chance
+  - Convert 50% of your physical damage into lightning damage
+  - Convert 50% of your lightning damage into cold damage
+  - 30% increased effect of non-damaging ailments"
+Accessory,Ring,Timeclasp,18,,,,+160 to accuracy rating,+16,(20 to 40)% increased defences,20% less attack and cast speed,(20 to 40)% increased ailment duration,Hits you take cannot be critical,,,"***Timeclasp*** (Ring - Req. Level: ***18***; )
+- Innate: +160 to accuracy rating
+  - (20 to 40)% increased defences
+  - 20% less attack and cast speed
+  - (20 to 40)% increased ailment duration
+  - Hits you take cannot be critical","***Timeclasp*** (Ring - Req. Level: ***18***; )
+- Innate: +160 to accuracy rating
+  - (20 to 40)% increased defences
+  - 20% less attack and cast speed
+  - (20 to 40)% increased ailment duration
+  - Hits you take cannot be critical"
+Accessory,Ring,Blood Price,21,,,,6% increased life recovery,0.60%,+(40 to 60) to maximum life,Recover (3 to 5)% of life on kill,(10 to 30)% increased damage,Mana cost of abilities is paid with life instead,,,"***Blood Price*** (Ring - Req. Level: ***21***; )
+- Innate: 6% increased life recovery
+  - +(40 to 60) to maximum life
+  - Recover (3 to 5)% of life on kill
+  - (10 to 30)% increased damage
+  - Mana cost of abilities is paid with life instead","***Blood Price*** (Ring - Req. Level: ***21***; )
+- Innate: 6% increased life recovery
+  - +(40 to 60) to maximum life
+  - Recover (3 to 5)% of life on kill
+  - (10 to 30)% increased damage
+  - Mana cost of abilities is paid with life instead"
+Accessory,Ring,Constancy,,,,,,,,,,,,,"***Constancy*** (Ring - Req. Level: ******; )
+- Innate: 
+  - 
+  - 
+  - 
+  - ","***Constancy*** (Ring - Req. Level: ******; )
+- Innate: 
+  - 
+  - 
+  - 
+  - "
+Accessory,Ring,Conflux of Thunder,21,,,,16% increased mana regeneration,1.60%,+(20 to 40) to intelligence,+(20 to 40)% to lightning resistance,+50% chance to inflict shock,All elemental damage types can shock,,,"***Conflux of Thunder*** (Ring - Req. Level: ***21***; )
+- Innate: 16% increased mana regeneration
+  - +(20 to 40) to intelligence
+  - +(20 to 40)% to lightning resistance
+  - +50% chance to inflict shock
+  - All elemental damage types can shock","***Conflux of Thunder*** (Ring - Req. Level: ***21***; )
+- Innate: 16% increased mana regeneration
+  - +(20 to 40) to intelligence
+  - +(20 to 40)% to lightning resistance
+  - +50% chance to inflict shock
+  - All elemental damage types can shock"
+Accessory,Ring,Conflux of Frost,21,,,,16% increased critical hit chance,1.60%,+(20 to 40) to dexterity,+(20 to 40)% to cold resistance,+50% chance to inflict chill,All elemental damage types can chill,,,"***Conflux of Frost*** (Ring - Req. Level: ***21***; )
+- Innate: 16% increased critical hit chance
+  - +(20 to 40) to dexterity
+  - +(20 to 40)% to cold resistance
+  - +50% chance to inflict chill
+  - All elemental damage types can chill","***Conflux of Frost*** (Ring - Req. Level: ***21***; )
+- Innate: 16% increased critical hit chance
+  - +(20 to 40) to dexterity
+  - +(20 to 40)% to cold resistance
+  - +50% chance to inflict chill
+  - All elemental damage types can chill"
+Accessory,Ring,Conflux of Flame,21,,,,6% increased life recovery,0.60%,+(20 to 40) to strength,+(20 to 40) to fire resistance,+50% chance to inflict ignite,All elemental damage types can ignite,,,"***Conflux of Flame*** (Ring - Req. Level: ***21***; )
+- Innate: 6% increased life recovery
+  - +(20 to 40) to strength
+  - +(20 to 40) to fire resistance
+  - +50% chance to inflict ignite
+  - All elemental damage types can ignite","***Conflux of Flame*** (Ring - Req. Level: ***21***; )
+- Innate: 6% increased life recovery
+  - +(20 to 40) to strength
+  - +(20 to 40) to fire resistance
+  - +50% chance to inflict ignite
+  - All elemental damage types can ignite"
+Accessory,Ring,Savage Legacy,25,,,,16% increased critical hit chance,1.60%,Recover (3 to 5)% life on kill,(20 to 40)% increased attack critical hit chance,+(6 to 12)% chance to deal double damage with attacks,Take 10% increased damage,,,"***Savage Legacy*** (Ring - Req. Level: ***25***; )
+- Innate: 16% increased critical hit chance
+  - Recover (3 to 5)% life on kill
+  - (20 to 40)% increased attack critical hit chance
+  - +(6 to 12)% chance to deal double damage with attacks
+  - Take 10% increased damage","***Savage Legacy*** (Ring - Req. Level: ***25***; )
+- Innate: 16% increased critical hit chance
+  - Recover (3 to 5)% life on kill
+  - (20 to 40)% increased attack critical hit chance
+  - +(6 to 12)% chance to deal double damage with attacks
+  - Take 10% increased damage"
+Accessory,Ring,Lionheart Signet,28,,,,9% increased life recovery,0.90%,+(30 to 50) to maximum life,(16 to 24)% increased defences,+(8 to 12)% to chaos resistance,+(4 to 8)% chance to block,,,"***Lionheart Signet*** (Ring - Req. Level: ***28***; )
+- Innate: 9% increased life recovery
+  - +(30 to 50) to maximum life
+  - (16 to 24)% increased defences
+  - +(8 to 12)% to chaos resistance
+  - +(4 to 8)% chance to block","***Lionheart Signet*** (Ring - Req. Level: ***28***; )
+- Innate: 9% increased life recovery
+  - +(30 to 50) to maximum life
+  - (16 to 24)% increased defences
+  - +(8 to 12)% to chaos resistance
+  - +(4 to 8)% chance to block"
+Accessory,Ring,Sanguine Eye,31,,,,9% increased life recovery,0.90%,Leech (2 to 4)% of physical hit damage from attacks as life,Gain (50 to 100) mana on kill,(10 to 30)% increased bleed damage,Your leech effects also apply to damage over time inflicted through bleeding,,,"***Sanguine Eye*** (Ring - Req. Level: ***31***; )
+- Innate: 9% increased life recovery
+  - Leech (2 to 4)% of physical hit damage from attacks as life
+  - Gain (50 to 100) mana on kill
+  - (10 to 30)% increased bleed damage
+  - Your leech effects also apply to damage over time inflicted through bleeding","***Sanguine Eye*** (Ring - Req. Level: ***31***; )
+- Innate: 9% increased life recovery
+  - Leech (2 to 4)% of physical hit damage from attacks as life
+  - Gain (50 to 100) mana on kill
+  - (10 to 30)% increased bleed damage
+  - Your leech effects also apply to damage over time inflicted through bleeding"
+Accessory,Ring,The Confluence,31,,,,24% increased critical hit chance,2.40%,(20 to 50) increased elemental damage,Convert 33% of your physical damage to lightning damage,Convert 33% of your physical damage to cold damage,Convert 33% of your physical damage to fire damage,,,"***The Confluence*** (Ring - Req. Level: ***31***; )
+- Innate: 24% increased critical hit chance
+  - (20 to 50) increased elemental damage
+  - Convert 33% of your physical damage to lightning damage
+  - Convert 33% of your physical damage to cold damage
+  - Convert 33% of your physical damage to fire damage","***The Confluence*** (Ring - Req. Level: ***31***; )
+- Innate: 24% increased critical hit chance
+  - (20 to 50) increased elemental damage
+  - Convert 33% of your physical damage to lightning damage
+  - Convert 33% of your physical damage to cold damage
+  - Convert 33% of your physical damage to fire damage"
+Accessory,Ring,Glitterbind,31,,,,+240 to accuracy rating,+24,+(-30 to -10)% to chaos resistance,Gain (40 to 80) mana on kill,(10 to 20)% increased attack and cast speed,(30 to 50)% increased item rarity,,,"***Glitterbind*** (Ring - Req. Level: ***31***; )
+- Innate: +240 to accuracy rating
+  - +(-30 to -10)% to chaos resistance
+  - Gain (40 to 80) mana on kill
+  - (10 to 20)% increased attack and cast speed
+  - (30 to 50)% increased item rarity","***Glitterbind*** (Ring - Req. Level: ***31***; )
+- Innate: +240 to accuracy rating
+  - +(-30 to -10)% to chaos resistance
+  - Gain (40 to 80) mana on kill
+  - (10 to 20)% increased attack and cast speed
+  - (30 to 50)% increased item rarity"
+Accessory,Ring,Primordial Resonance,35,,,,24% increased critical hit chance,2.40%,+(20 to 30) to energy shield,+(8 to 12)% to all elemental resistances,(20 to 40)% increased critical hit chance,Critital hits have a 100% chance to inflict elemental ailments,,,"***Primordial Resonance*** (Ring - Req. Level: ***35***; )
+- Innate: 24% increased critical hit chance
+  - +(20 to 30) to energy shield
+  - +(8 to 12)% to all elemental resistances
+  - (20 to 40)% increased critical hit chance
+  - Critital hits have a 100% chance to inflict elemental ailments","***Primordial Resonance*** (Ring - Req. Level: ***35***; )
+- Innate: 24% increased critical hit chance
+  - +(20 to 30) to energy shield
+  - +(8 to 12)% to all elemental resistances
+  - (20 to 40)% increased critical hit chance
+  - Critital hits have a 100% chance to inflict elemental ailments"
+Accessory,Ring,Soulthirst,39,,,,240 to accuracy rating,+24,+(30 to 50) to energy shield,Leech (2 to 4)% of physical hit damage from attacks as life,(10 to 20)% increased attack speed,Life leech effects apply to your energy shield instead,,,"***Soulthirst*** (Ring - Req. Level: ***39***; )
+- Innate: 240 to accuracy rating
+  - +(30 to 50) to energy shield
+  - Leech (2 to 4)% of physical hit damage from attacks as life
+  - (10 to 20)% increased attack speed
+  - Life leech effects apply to your energy shield instead","***Soulthirst*** (Ring - Req. Level: ***39***; )
+- Innate: 240 to accuracy rating
+  - +(30 to 50) to energy shield
+  - Leech (2 to 4)% of physical hit damage from attacks as life
+  - (10 to 20)% increased attack speed
+  - Life leech effects apply to your energy shield instead"
+Accessory,Ring,Disintegration Catalyst,39,,,,24% increased critical hit chance,2.40%,(10 to 30)% increased lightning damage,(20 to 40)% increased critical hit chance,your lightning damage can inflict poison,Critical hits have a 100% chance to inflict poison,,,"***Disintegration Catalyst*** (Ring - Req. Level: ***39***; )
+- Innate: 24% increased critical hit chance
+  - (10 to 30)% increased lightning damage
+  - (20 to 40)% increased critical hit chance
+  - your lightning damage can inflict poison
+  - Critical hits have a 100% chance to inflict poison","***Disintegration Catalyst*** (Ring - Req. Level: ***39***; )
+- Innate: 24% increased critical hit chance
+  - (10 to 30)% increased lightning damage
+  - (20 to 40)% increased critical hit chance
+  - your lightning damage can inflict poison
+  - Critical hits have a 100% chance to inflict poison"
+Accessory,Ring,Tanglecoil,39,,,,24% increased mana regeneration,2.40%,+(-40 to 40)% to lightning resistance,+(-40 to 40)% to cold resistance,+(-40 to 40)% to fire resistance,Elemental resistances of enemies are equal to yours,,,"***Tanglecoil*** (Ring - Req. Level: ***39***; )
+- Innate: 24% increased mana regeneration
+  - +(-40 to 40)% to lightning resistance
+  - +(-40 to 40)% to cold resistance
+  - +(-40 to 40)% to fire resistance
+  - Elemental resistances of enemies are equal to yours","***Tanglecoil*** (Ring - Req. Level: ***39***; )
+- Innate: 24% increased mana regeneration
+  - +(-40 to 40)% to lightning resistance
+  - +(-40 to 40)% to cold resistance
+  - +(-40 to 40)% to fire resistance
+  - Elemental resistances of enemies are equal to yours"
+Accessory,Ring,Singularity,56,,,,32% increased critical hit chance,3.20%,+(10 to 30) to all attributes,(10 to 30)% to chaos resistance,(30 to 50)% increased critical hit chance,Convert 100% of your elemental damage to chaos damage,,,"***Singularity*** (Ring - Req. Level: ***56***; )
+- Innate: 32% increased critical hit chance
+  - +(10 to 30) to all attributes
+  - (10 to 30)% to chaos resistance
+  - (30 to 50)% increased critical hit chance
+  - Convert 100% of your elemental damage to chaos damage","***Singularity*** (Ring - Req. Level: ***56***; )
+- Innate: 32% increased critical hit chance
+  - +(10 to 30) to all attributes
+  - (10 to 30)% to chaos resistance
+  - (30 to 50)% increased critical hit chance
+  - Convert 100% of your elemental damage to chaos damage"
+Accessory,Belt,Aspirant's Will,7,,,,+20 to maximum life,+2,(4 to 12)% increased life,(4 to 12)% increased mana,(4 to 12)% to chaos resistance,regenerate 1 life per second per character level,,,"***Aspirant's Will*** (Belt - Req. Level: ***7***; )
+- Innate: +20 to maximum life
+  - (4 to 12)% increased life
+  - (4 to 12)% increased mana
+  - (4 to 12)% to chaos resistance
+  - regenerate 1 life per second per character level","***Aspirant's Will*** (Belt - Req. Level: ***7***; )
+- Innate: +20 to maximum life
+  - (4 to 12)% increased life
+  - (4 to 12)% increased mana
+  - (4 to 12)% to chaos resistance
+  - regenerate 1 life per second per character level"
+Accessory,Belt,Mother's Embrace,14,,,,9% increased defences,0.90%,(10 to 30)% increased defences,+(4 to 12)% to all elemental resistances,+50% chance to avoid ailments,Take no extra damage from critical hits,,,"***Mother's Embrace*** (Belt - Req. Level: ***14***; )
+- Innate: 9% increased defences
+  - (10 to 30)% increased defences
+  - +(4 to 12)% to all elemental resistances
+  - +50% chance to avoid ailments
+  - Take no extra damage from critical hits","***Mother's Embrace*** (Belt - Req. Level: ***14***; )
+- Innate: 9% increased defences
+  - (10 to 30)% increased defences
+  - +(4 to 12)% to all elemental resistances
+  - +50% chance to avoid ailments
+  - Take no extra damage from critical hits"
+Accessory,Belt,Surge Strap,39,,,,+40 to maximum life,+4,(10 to 20)% increased life,(10 to 20)% increased mana,(10 to 30)% increased defences,(10 to 30)% increased damage,,,"***Surge Strap*** (Belt - Req. Level: ***39***; )
+- Innate: +40 to maximum life
+  - (10 to 20)% increased life
+  - (10 to 20)% increased mana
+  - (10 to 30)% increased defences
+  - (10 to 30)% increased damage","***Surge Strap*** (Belt - Req. Level: ***39***; )
+- Innate: +40 to maximum life
+  - (10 to 20)% increased life
+  - (10 to 20)% increased mana
+  - (10 to 30)% increased defences
+  - (10 to 30)% increased damage"
+Accessory,Belt,Flow Tether,42,,,,+8% to all elemental resistances,0.80%,+(80 to 140) to maximum mana,+(40 to 80) to energy shield,+(10 to 20)% to chaos resistance,(30 to 50)% of damage taken is applied to your mana first,,,"***Flow Tether*** (Belt - Req. Level: ***42***; )
+- Innate: +8% to all elemental resistances
+  - +(80 to 140) to maximum mana
+  - +(40 to 80) to energy shield
+  - +(10 to 20)% to chaos resistance
+  - (30 to 50)% of damage taken is applied to your mana first","***Flow Tether*** (Belt - Req. Level: ***42***; )
+- Innate: +8% to all elemental resistances
+  - +(80 to 140) to maximum mana
+  - +(40 to 80) to energy shield
+  - +(10 to 20)% to chaos resistance
+  - (30 to 50)% of damage taken is applied to your mana first"
+Accessory,Belt,Fleshbind,42,,,,+40 to maximum life,+4,(20 to 40)% more life,50% less defences,(-30 to -10)% to chaos resistance,Regenerate (3 to 5)% of life per second,,,"***Fleshbind*** (Belt - Req. Level: ***42***; )
+- Innate: +40 to maximum life
+  - (20 to 40)% more life
+  - 50% less defences
+  - (-30 to -10)% to chaos resistance
+  - Regenerate (3 to 5)% of life per second","***Fleshbind*** (Belt - Req. Level: ***42***; )
+- Innate: +40 to maximum life
+  - (20 to 40)% more life
+  - 50% less defences
+  - (-30 to -10)% to chaos resistance
+  - Regenerate (3 to 5)% of life per second"
+Accessory,Belt,Fundamentality,42,,,,+40 to maximum life,+4,+(4 to 20)% to all resistances,50% increased damage per uncommon item equipped,+150 life per magic item equipped,+30 to all attributes per rare item equipped,,,"***Fundamentality*** (Belt - Req. Level: ***42***; )
+- Innate: +40 to maximum life
+  - +(4 to 20)% to all resistances
+  - 50% increased damage per uncommon item equipped
+  - +150 life per magic item equipped
+  - +30 to all attributes per rare item equipped","***Fundamentality*** (Belt - Req. Level: ***42***; )
+- Innate: +40 to maximum life
+  - +(4 to 20)% to all resistances
+  - 50% increased damage per uncommon item equipped
+  - +150 life per magic item equipped
+  - +30 to all attributes per rare item equipped"
+Accessory,Belt,Shattered Divinity,42,,,,+8% to all elemental resistances,0.80%,+(-7 to 7)% to maximum lightning resistance,+(-7 to 7)% to maximum cold resistance,+(-7 to 7)% to maximum fire resistance,+(20 to 50)% to all elemental resistances,,,"***Shattered Divinity*** (Belt - Req. Level: ***42***; )
+- Innate: +8% to all elemental resistances
+  - +(-7 to 7)% to maximum lightning resistance
+  - +(-7 to 7)% to maximum cold resistance
+  - +(-7 to 7)% to maximum fire resistance
+  - +(20 to 50)% to all elemental resistances","***Shattered Divinity*** (Belt - Req. Level: ***42***; )
+- Innate: +8% to all elemental resistances
+  - +(-7 to 7)% to maximum lightning resistance
+  - +(-7 to 7)% to maximum cold resistance
+  - +(-7 to 7)% to maximum fire resistance
+  - +(20 to 50)% to all elemental resistances"
+Accessory,Belt,Titansblood,49,,,,+8% to all elemental resistances,0.80%,(10 to 30)% increased attributes,"While you have at least 400 strength, gain +20% chance to deal double damage","While you have at least 400 dexterity, gain 30% increased speed",While you have at least 400 intelligence gain +60% to critical damage multiplier,,,"***Titansblood*** (Belt - Req. Level: ***49***; )
+- Innate: +8% to all elemental resistances
+  - (10 to 30)% increased attributes
+  - While you have at least 400 strength, gain +20% chance to deal double damage
+  - While you have at least 400 dexterity, gain 30% increased speed
+  - While you have at least 400 intelligence gain +60% to critical damage multiplier","***Titansblood*** (Belt - Req. Level: ***49***; )
+- Innate: +8% to all elemental resistances
+  - (10 to 30)% increased attributes
+  - While you have at least 400 strength, gain +20% chance to deal double damage
+  - While you have at least 400 dexterity, gain 30% increased speed
+  - While you have at least 400 intelligence gain +60% to critical damage multiplier"
+Accessory,Belt,Circling Thoughts,49,,,,12% increased defences,1.30%,(10 to 20)% increased intelligence,+(30 to 60) to energy shield,2% increased energy shield per 10 intelligence,Regenerate 1% of energy shield per second per 150 intelligence,,,"***Circling Thoughts*** (Belt - Req. Level: ***49***; )
+- Innate: 12% increased defences
+  - (10 to 20)% increased intelligence
+  - +(30 to 60) to energy shield
+  - 2% increased energy shield per 10 intelligence
+  - Regenerate 1% of energy shield per second per 150 intelligence","***Circling Thoughts*** (Belt - Req. Level: ***49***; )
+- Innate: 12% increased defences
+  - (10 to 20)% increased intelligence
+  - +(30 to 60) to energy shield
+  - 2% increased energy shield per 10 intelligence
+  - Regenerate 1% of energy shield per second per 150 intelligence"
+Accessory,Belt,Twilight Eminence,49,,,,12% increased defences,1.20%,+(10 to 30)% to chaos resistance,+(5 to 10)% to maximum chaos resistance,Take (10 to 30)% of physical damage as chaos damage,Take (30 to 50)% of elemental damage as chaos damage,,,"***Twilight Eminence*** (Belt - Req. Level: ***49***; )
+- Innate: 12% increased defences
+  - +(10 to 30)% to chaos resistance
+  - +(5 to 10)% to maximum chaos resistance
+  - Take (10 to 30)% of physical damage as chaos damage
+  - Take (30 to 50)% of elemental damage as chaos damage","***Twilight Eminence*** (Belt - Req. Level: ***49***; )
+- Innate: 12% increased defences
+  - +(10 to 30)% to chaos resistance
+  - +(5 to 10)% to maximum chaos resistance
+  - Take (10 to 30)% of physical damage as chaos damage
+  - Take (30 to 50)% of elemental damage as chaos damage"

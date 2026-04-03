@@ -91,12 +91,6 @@ function webNodePosition(
   };
 }
 
-function pointCostPerRank(tier: ClassTier): number {
-  if (tier === "base") return 20;
-  if (tier === "intermediate") return 30;
-  return 40;
-}
-
 const MAX_RANKS_PER_UPGRADE = 5;
 
 function formatUpgradeLine(u: ClassDef["upgrades"][number], pointsInUpgrade: number): string {
@@ -152,7 +146,7 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
   }, []);
 
   useLayoutEffect(() => {
-    recomputeLines();
+    queueMicrotask(() => recomputeLines());
   }, [recomputeLines, upgradeLevels, selectedId]);
 
   useEffect(() => {

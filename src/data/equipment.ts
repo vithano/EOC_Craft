@@ -22,8 +22,45 @@ export interface EquipmentItem {
 }
 
 export const EQUIPMENT_SLOTS: string[] = [
-  'Helmet', 'Chest', 'Gloves', 'Boots', 'Weapon', 'Off-hand', 'Ring 1', 'Ring 2', 'Amulet',
+  'Helmet',
+  'Chest',
+  'Gloves',
+  'Boots',
+  'Legs',
+  'Weapon',
+  'Off-hand',
+  'Ring 1',
+  'Ring 2',
+  'Amulet',
 ];
+
+/** One stack in the bag; `slot` is the equipment slot this piece equips into. */
+export interface InventoryStack {
+  id: string;
+  slot: string;
+  itemId: string;
+  qty: number;
+}
+
+export const INVENTORY_MAX_SLOTS = 100;
+
+export const DEFAULT_INVENTORY: InventoryStack[] = [
+  { id: 'inv-longbow', slot: 'Weapon', itemId: 'longbow', qty: 1 },
+  { id: 'inv-staff', slot: 'Weapon', itemId: 'staff_of_flames', qty: 1 },
+];
+
+export type EquipmentFilter = 'all' | 'weapons' | 'armor' | 'accessories';
+
+export function slotCategory(slot: string): 'weapons' | 'armor' | 'accessories' {
+  if (slot === 'Weapon' || slot === 'Off-hand') return 'weapons';
+  if (slot === 'Ring 1' || slot === 'Ring 2' || slot === 'Amulet') return 'accessories';
+  return 'armor';
+}
+
+export function getItemDefinition(slot: string, itemId: string): EquipmentItem | undefined {
+  const list = EQUIPMENT_ITEMS[slot];
+  return list?.find((i) => i.id === itemId);
+}
 
 export const EQUIPMENT_ITEMS: Record<string, EquipmentItem[]> = {
   Helmet: [
@@ -55,6 +92,14 @@ export const EQUIPMENT_ITEMS: Record<string, EquipmentItem[]> = {
     { id: 'iron_boots', name: 'Iron Boots', rarity: 'uncommon', modifiers: { armor: 16, vitality: 2 } },
     { id: 'windsprint_boots', name: 'Windsprint Boots', rarity: 'rare', modifiers: { armor: 10, agility: 10, evasion: 8 } },
     { id: 'arcane_treads', name: 'Arcane Treads', rarity: 'rare', modifiers: { armor: 8, intelligence: 5, mana: 15 } },
+  ],
+  Legs: [
+    { id: 'none', name: '-- None --', modifiers: {} },
+    { id: 'cloth_leggings', name: 'Cloth Leggings', rarity: 'common', modifiers: { armor: 12, agility: 2 } },
+    { id: 'leather_chaps', name: 'Leather Chaps', rarity: 'uncommon', modifiers: { armor: 22, dexterity: 3 } },
+    { id: 'chain_leggings', name: 'Chain Leggings', rarity: 'uncommon', modifiers: { armor: 32, vitality: 3 } },
+    { id: 'plate_greaves', name: 'Plate Greaves', rarity: 'rare', modifiers: { armor: 48, strength: 4, vitality: 5 } },
+    { id: 'shadow_legwraps', name: 'Shadow Legwraps', rarity: 'rare', modifiers: { armor: 20, evasion: 12, agility: 6 } },
   ],
   Weapon: [
     { id: 'none', name: '-- None --', modifiers: {} },
