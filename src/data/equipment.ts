@@ -1,8 +1,31 @@
-export const EQUIPMENT_SLOTS = [
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic';
+
+export interface ItemModifiers {
+  armor?: number;
+  damage?: number;
+  strength?: number;
+  agility?: number;
+  intelligence?: number;
+  vitality?: number;
+  dexterity?: number;
+  evasion?: number;
+  critChance?: number;
+  mana?: number;
+  health?: number;
+}
+
+export interface EquipmentItem {
+  id: string;
+  name: string;
+  rarity?: Rarity;
+  modifiers: ItemModifiers;
+}
+
+export const EQUIPMENT_SLOTS: string[] = [
   'Helmet', 'Chest', 'Gloves', 'Boots', 'Weapon', 'Off-hand', 'Ring 1', 'Ring 2', 'Amulet',
 ];
 
-export const EQUIPMENT_ITEMS = {
+export const EQUIPMENT_ITEMS: Record<string, EquipmentItem[]> = {
   Helmet: [
     { id: 'none', name: '-- None --', modifiers: {} },
     { id: 'iron_helm', name: 'Iron Helm', rarity: 'common', modifiers: { armor: 15, vitality: 2 } },

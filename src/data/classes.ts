@@ -1,4 +1,20 @@
-export const CLASSES = [
+export interface BaseStats {
+  strength: number;
+  agility: number;
+  intelligence: number;
+  vitality: number;
+  dexterity: number;
+}
+
+export interface CharacterClass {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  baseStats: BaseStats;
+}
+
+export const CLASSES: CharacterClass[] = [
   {
     id: 'warrior',
     name: 'Warrior',

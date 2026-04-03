@@ -1,4 +1,13 @@
-export const UPGRADES = {
+import type { ItemModifiers } from './equipment';
+
+export interface Upgrade {
+  id: string;
+  name: string;
+  description: string;
+  modifiers: ItemModifiers;
+}
+
+export const UPGRADES: Record<string, Upgrade[]> = {
   warrior: [
     { id: 'berserker_rage', name: 'Berserker Rage', description: '+15% damage when below 30% HP', modifiers: { damage: 8 } },
     { id: 'iron_skin', name: 'Iron Skin', description: 'Passively increases armor by 20', modifiers: { armor: 20 } },
