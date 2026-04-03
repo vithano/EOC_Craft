@@ -51,7 +51,7 @@ export default function EquipmentPanel({ equipped, onEquip }: EquipmentPanelProp
                 )}
               </div>
               {hasMods && (
-                <div className="flex flex-wrap gap-1 mt-1 ml-18 pl-[4.5rem]">
+                <div className="flex flex-wrap gap-1 mt-1 pl-[4.5rem]">
                   {Object.entries(mods).map(([k, v]) => (
                     <span key={k} className="text-xs bg-zinc-800 text-emerald-400 px-1.5 py-0.5 rounded">
                       +{v} {k}

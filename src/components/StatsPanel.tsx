@@ -18,6 +18,14 @@ export default function StatsPanel({ stats }: StatsPanelProps) {
 
   const attributes = ['strength', 'agility', 'intelligence', 'vitality', 'dexterity'] as const;
 
+  const attrAbbr: Record<string, string> = {
+    strength: 'STR',
+    agility: 'AGI',
+    intelligence: 'INT',
+    vitality: 'VIT',
+    dexterity: 'DEX',
+  };
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
       <div className="flex items-center gap-2 text-zinc-100 font-semibold text-sm uppercase tracking-wider mb-4">
@@ -41,7 +49,7 @@ export default function StatsPanel({ stats }: StatsPanelProps) {
         <div className="grid grid-cols-5 gap-2">
           {attributes.map((attr) => (
             <div key={attr} className="flex flex-col items-center bg-zinc-800 rounded-lg p-2">
-              <span className="text-zinc-500 text-xs uppercase">{attr.slice(0, 3)}</span>
+              <span className="text-zinc-500 text-xs">{attrAbbr[attr]}</span>
               <span className="text-zinc-100 font-bold text-base">{stats[attr]}</span>
             </div>
           ))}
