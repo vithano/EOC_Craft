@@ -639,6 +639,87 @@ export const GAME_CLASSES: readonly ClassDef[] = [
 export const GAME_CLASSES_BY_ID: Readonly<Record<string, ClassDef>> =
   Object.fromEntries(GAME_CLASSES.map(c => [c.id, c]));
 
+/**
+ * Clockwise from the top on the radial web. Inner = base tier; mid = intermediate; outer = major.
+ * Each major sits between the two intermediates in its AND requirement (consecutive in the mid ring, including wrap).
+ */
+export const CLASS_WEB_ORDER: Readonly<Record<ClassTier, readonly string[]>> = {
+  base: ['sorcerer', 'rogue', 'hunter', 'fighter', 'warrior', 'acolyte'],
+  intermediate: [
+    'druid',
+    'arcanist',
+    'trickster',
+    'assassin',
+    'pathfinder',
+    'windrunner',
+    'mercenary',
+    'champion',
+    'barbarian',
+    'juggernaut',
+    'zealot',
+    'guardian',
+  ],
+  major: [
+    'archmage',
+    'occultist',
+    'reaper',
+    'shadow',
+    'mirage',
+    'dervish',
+    'dragoon',
+    'berserker',
+    'destroyer',
+    'chieftain',
+    'templar',
+    'ascendant',
+  ],
+};
+
+export function getClassesInWebOrder(tier: ClassTier): ClassDef[] {
+  const ids = CLASS_WEB_ORDER[tier];
+  return ids
+    .map(id => GAME_CLASSES_BY_ID[id])
+    .filter((c): c is ClassDef => c != null && c.tier === tier);
+}
+
+/** Emoji per class for comb / modals. */
+export const CLASS_ICONS: Readonly<Record<string, string>> = {
+  sorcerer: '🔮',
+  rogue: '🗡️',
+  hunter: '🏹',
+  fighter: '⚔️',
+  warrior: '🛡️',
+  acolyte: '📿',
+  arcanist: '✨',
+  druid: '🌿',
+  guardian: '🏛️',
+  zealot: '⚡',
+  juggernaut: '🪨',
+  barbarian: '🪓',
+  champion: '👑',
+  mercenary: '🎖️',
+  windrunner: '💨',
+  pathfinder: '🧭',
+  assassin: '🥷',
+  trickster: '🎭',
+  archmage: '📚',
+  ascendant: '🌟',
+  templar: '⛪',
+  chieftain: '🔥',
+  destroyer: '💀',
+  berserker: '😤',
+  dragoon: '🐉',
+  dervish: '🌀',
+  mirage: '🌫️',
+  shadow: '🌑',
+  reaper: '⚰️',
+  occultist: '🔯',
+};
+
+export function getClassIcon(classId: string): string {
+  return CLASS_ICONS[classId] ?? '◆';
+}
+
 export function getClassLevel(
   classId: string,
   upgradeLevels: Record<string, number>
@@ -657,6 +738,12 @@ export function isClassBonusActive(
   return getClassLevel(classId, upgradeLevels) >= cls.classBonusRequiredPoints;
 }
 
+/** Points needed in a prerequisite before it counts for unlocking classes that list it (base 10, intermediate/major 15). */
+export function getPrerequisiteActivationPoints(prereqClassId: string): number {
+  const p = GAME_CLASSES_BY_ID[prereqClassId];
+  return p?.classBonusRequiredPoints ?? 999;
+}
+
 export function isClassUnlocked(
   classId: string,
   upgradeLevels: Record<string, number>
@@ -664,15 +751,14 @@ export function isClassUnlocked(
   const cls = GAME_CLASSES_BY_ID[classId];
   if (!cls) return false;
   if (cls.requirement.type === 'none') return true;
-  const reqLevel = cls.tier === 'intermediate' ? 10 : 15;
   if (cls.requirement.type === 'or') {
     return cls.requirement.classIds.some(
-      id => getClassLevel(id, upgradeLevels) >= reqLevel
+      id => getClassLevel(id, upgradeLevels) >= getPrerequisiteActivationPoints(id)
     );
   }
   // 'and'
   return cls.requirement.classIds.every(
-    id => getClassLevel(id, upgradeLevels) >= reqLevel
+    id => getClassLevel(id, upgradeLevels) >= getPrerequisiteActivationPoints(id)
   );
 }
 

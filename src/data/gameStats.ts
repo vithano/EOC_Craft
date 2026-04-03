@@ -338,7 +338,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 17. Attacks per second
   // -------------------------------------------------------------------------
-  const totalIncreasedAtk = u('increasedAttackSpeed') + u('increasedAttackSpeedAndCastSpeed')
+  // Mercenary class bonus: 1% increased attack speed per 10 strength or dexterity (whichever is lower)
+  const mercenaryAspIncPct = bonus('mercenary') ? Math.min(str, dex) / 10 : 0
+  const totalIncreasedAtk =
+    u('increasedAttackSpeed')
+    + u('increasedAttackSpeedAndCastSpeed')
+    + mercenaryAspIncPct
   // Rogue class bonus: 10% more APS (multiplicative)
   const rogueMult = bonus('rogue') ? 1.10 : 1.0
   const aps = BASE_GAME_STATS.baseAps * (1 + totalIncreasedAtk / 100) * rogueMult
@@ -368,7 +373,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const increasedAttackDamage   = u('increasedAttackDamage')
   const increasedSpellDamage    = u('increasedSpellDamage')    + spellDmgFromInt
   const increasedElementalDamage= u('increasedElementalDamage') + u('increasedElementalDamageWithAttacks')
-  const increasedDamage         = u('increasedDamage')
+  // Occultist class bonus: 1% increased damage per 100 maximum energy shield
+  const occultistDmgFromEsPct   = bonus('occultist') ? maxEnergyShield / 100 : 0
+  const increasedDamage         = u('increasedDamage') + occultistDmgFromEsPct
   const damageOverTimeMultiplier= u('increasedDamageOverTimeMultiplier')
 
   // -------------------------------------------------------------------------

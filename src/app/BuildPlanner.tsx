@@ -1,91 +1,94 @@
 "use client";
 
-import { useState, useMemo } from 'react';
-import ClassSelector from '../components/ClassSelector';
-import EquipmentPanel from '../components/EquipmentPanel';
-import StatsPanel from '../components/StatsPanel';
-import UpgradesPanel from '../components/UpgradesPanel';
-import BuildSummary from '../components/BuildSummary';
-import FormulaViewer from '../components/FormulaViewer';
-import { CLASSES } from '../data/classes';
-import { EQUIPMENT_SLOTS, EQUIPMENT_ITEMS } from '../data/equipment';
-import type { ItemModifiers } from '../data/equipment';
-import { UPGRADES } from '../data/upgrades';
-import { computeStats } from '../data/formulas';
-import { NEXUS_TIER_ROWS } from '../data/nexusEnemyScaling';
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import BuildSummary from "../components/BuildSummary";
+import EocClassesPanel from "../components/EocClassesPanel";
+import EocStatsPanel from "../components/EocStatsPanel";
+import EquipmentPanel from "../components/EquipmentPanel";
+import FormulaViewer from "../components/FormulaViewer";
+import { EQUIPMENT_SLOTS, EQUIPMENT_ITEMS } from "../data/equipment";
+import type { ItemModifiers } from "../data/equipment";
+import { aggregateItemModifiers, computeBuildStats } from "../data/gameStats";
+import { loadStoredPlanner, saveStoredPlanner } from "../lib/eocBuildStorage";
+import { NEXUS_TIER_ROWS } from "../data/nexusEnemyScaling";
 
-function aggregateModifiers(items: Array<{ modifiers: ItemModifiers }>): ItemModifiers {
-  const result: ItemModifiers = {};
-  for (const item of items) {
-    for (const [key, val] of Object.entries(item.modifiers) as [keyof ItemModifiers, number][]) {
-      result[key] = (result[key] ?? 0) + val;
-    }
-  }
-  return result;
+function itemModifiersFromEquipped(equipped: Record<string, string>) {
+  const equippedItems = EQUIPMENT_SLOTS.map((slot) => {
+    const itemId = equipped[slot] ?? "none";
+    const items = EQUIPMENT_ITEMS[slot] ?? [];
+    return items.find((i) => i.id === itemId) ?? { modifiers: {} as ItemModifiers };
+  });
+  return aggregateItemModifiers(equippedItems);
 }
 
 export default function BuildPlanner() {
-  const [selectedClass, setSelectedClass] = useState('warrior');
+  const [upgradeLevels, setUpgradeLevels] = useState<Record<string, number>>({});
   const [equipped, setEquipped] = useState<Record<string, string>>({});
-  const [activeUpgrades, setActiveUpgrades] = useState<string[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const [incomingDamage, setIncomingDamage] = useState(100);
   const [nexusTier, setNexusTier] = useState(0);
 
-  const handleSelectClass = (classId: string) => {
-    setSelectedClass(classId);
-    setActiveUpgrades([]);
-  };
+  useEffect(() => {
+    const saved = loadStoredPlanner();
+    if (saved) {
+      setUpgradeLevels(saved.upgradeLevels);
+      if (saved.equipped) setEquipped(saved.equipped);
+    }
+    setHydrated(true);
+  }, []);
 
-  const handleEquip = (slot: string, itemId: string) => {
-    setEquipped((prev) => ({ ...prev, [slot]: itemId }));
-  };
+  const equipmentModifiers = useMemo(() => itemModifiersFromEquipped(equipped), [equipped]);
 
-  const handleToggleUpgrade = (upgradeId: string) => {
-    setActiveUpgrades((prev) =>
-      prev.includes(upgradeId) ? prev.filter((id) => id !== upgradeId) : [...prev, upgradeId]
-    );
-  };
+  const buildConfig = useMemo(
+    () => ({ upgradeLevels, equipmentModifiers }),
+    [upgradeLevels, equipmentModifiers]
+  );
 
-  const stats = useMemo(() => {
-    const cls = CLASSES.find((c) => c.id === selectedClass);
-    const classBaseStats = cls?.baseStats ?? {};
+  const stats = useMemo(() => computeBuildStats(buildConfig), [buildConfig]);
 
-    const equippedItems = EQUIPMENT_SLOTS.map((slot) => {
-      const itemId = equipped[slot] ?? 'none';
-      const items = EQUIPMENT_ITEMS[slot] ?? [];
-      return items.find((i) => i.id === itemId) ?? { modifiers: {} };
-    });
-    const equipModifiers = aggregateModifiers(equippedItems);
+  useEffect(() => {
+    if (!hydrated) return;
+    saveStoredPlanner({ ...buildConfig, equipped });
+  }, [buildConfig, equipped, hydrated]);
 
-    const classUpgrades = UPGRADES[selectedClass] ?? [];
-    const activeUpgradeItems = classUpgrades.filter((u) => activeUpgrades.includes(u.id));
-    const upgradeModifiers = aggregateModifiers(activeUpgradeItems);
-
-    return computeStats(selectedClass, equipModifiers, upgradeModifiers, classBaseStats, {
-      incomingDamage,
-      nexusTier,
-    });
-  }, [selectedClass, equipped, activeUpgrades, incomingDamage, nexusTier]);
+  const upgradeTotalPoints = useMemo(
+    () => Object.values(upgradeLevels).reduce((a, b) => a + b, 0),
+    [upgradeLevels]
+  );
+  const classesWithPoints = useMemo(() => {
+    const ids = new Set<string>();
+    for (const k of Object.keys(upgradeLevels)) {
+      const [classId] = k.split("/");
+      if (classId) ids.add(classId);
+    }
+    return ids.size;
+  }, [upgradeLevels]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold text-zinc-100">EOC Craft ⚙️</h1>
-          <p className="text-zinc-500 text-xs mt-0.5">
-            Theorycrafting Build Planner — Equipment • Classes • Upgrades • Formulas
-          </p>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-zinc-100">EOC Craft ⚙️</h1>
+            <p className="text-zinc-500 text-xs mt-0.5">
+              Echoes of Creation — class trees from <code className="text-zinc-400">gameClasses.ts</code>, stats from{" "}
+              <code className="text-zinc-400">computeBuildStats</code>
+            </p>
+          </div>
+          <Link href="/battle" className="text-sm text-blue-400 hover:text-blue-300 shrink-0">
+            Demo encounter →
+          </Link>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <main className="py-6">
+        <div className="max-w-7xl mx-auto px-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-zinc-100 font-semibold text-sm uppercase tracking-wider">Incoming hit damage</div>
                 <div className="text-zinc-500 text-xs mt-1">
-                  Armour DR, ailment preview (post-mit vs your life). Source: formulas/Armour.csv, Non-Damaging Ailment
-                  Effect.csv.
+                  Armour DR and non-damaging ailment preview use your EOC armour and life + ES pools.
                 </div>
               </div>
               <div className="text-zinc-100 font-mono text-sm">{incomingDamage}</div>
@@ -109,8 +112,7 @@ export default function BuildPlanner() {
               <div>
                 <div className="text-zinc-100 font-semibold text-sm uppercase tracking-wider">Nexus tier (enemy ref.)</div>
                 <div className="text-zinc-500 text-xs mt-1">
-                  Table from formulas/Nexus Tier Enemy Scaling.csv. Accuracy and evasion match sheet; use tier avg phys
-                  as incoming damage if you like.
+                  Hit chance / your evade vs table accuracy & evasion.
                 </div>
               </div>
               <div className="text-zinc-100 font-mono text-sm">{nexusTier}</div>
@@ -148,33 +150,26 @@ export default function BuildPlanner() {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Left column */}
-          <div className="flex flex-col gap-4">
-            <ClassSelector selectedClass={selectedClass} onSelectClass={handleSelectClass} />
-            <UpgradesPanel
-              selectedClass={selectedClass}
-              activeUpgrades={activeUpgrades}
-              onToggleUpgrade={handleToggleUpgrade}
-            />
+        <div className="w-full min-w-0 mb-4 px-2 sm:px-4 md:px-6 lg:px-10 xl:px-14">
+          <EocClassesPanel upgradeLevels={upgradeLevels} onChangeUpgradeLevels={setUpgradeLevels} />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-4 min-w-0">
+            <EquipmentPanel equipped={equipped} onEquip={(slot, id) => setEquipped((p) => ({ ...p, [slot]: id }))} />
           </div>
-          {/* Center column */}
-          <div className="flex flex-col gap-4">
-            <EquipmentPanel equipped={equipped} onEquip={handleEquip} />
-            <StatsPanel stats={stats} />
+          <div className="flex flex-col gap-4 min-w-0">
+            <EocStatsPanel stats={stats} incomingDamage={incomingDamage} nexusTier={nexusTier} />
           </div>
-          {/* Right column */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 min-w-0">
             <BuildSummary
-              selectedClass={selectedClass}
               equipped={equipped}
-              activeUpgrades={activeUpgrades}
+              upgradeTotalPoints={upgradeTotalPoints}
+              classesWithPoints={classesWithPoints}
               stats={stats}
             />
           </div>
         </div>
-        {/* Full-width formula viewer */}
-        <div className="mt-4">
+        <div className="max-w-7xl mx-auto px-4 mt-4">
           <FormulaViewer />
         </div>
       </main>
