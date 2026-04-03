@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MAX_PLANNER_LEVEL } from "../data/gameClasses";
 import type { ComputedBuildStats } from "../data/gameStats";
 
 interface BuildSummaryProps {
@@ -74,9 +75,17 @@ export default function BuildSummary({
           <span className="text-zinc-200">{classesWithPoints}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-zinc-400">Upgrade points spent</span>
-          <span className={upgradeTotalPoints >= 30 ? "text-emerald-400" : "text-zinc-200"}>
-            {upgradeTotalPoints}
+          <span className="text-zinc-400">Level</span>
+          <span
+            className={
+              upgradeTotalPoints >= MAX_PLANNER_LEVEL
+                ? "text-emerald-400"
+                : upgradeTotalPoints >= MAX_PLANNER_LEVEL * 0.75
+                  ? "text-yellow-400"
+                  : "text-zinc-200"
+            }
+          >
+            {upgradeTotalPoints}/{MAX_PLANNER_LEVEL}
           </span>
         </div>
         <div className="flex justify-between gap-2">

@@ -52,6 +52,9 @@ export interface ClassDef {
   requirement: ClassRequirement;
 }
 
+/** Max total passive ranks across all classes in the planner (shown as character level). */
+export const MAX_PLANNER_LEVEL = 100;
+
 function upg(id: UpgradeModifierKey, label: string, valuePerPoint: number, isFlat = false): UpgradeDef {
   return { id, label, valuePerPoint, isFlat, maxPoints: 5 };
 }
