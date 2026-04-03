@@ -151,7 +151,15 @@ export default function BuildPlanner() {
           </div>
         </div>
         <div className="w-full min-w-0 mb-4 px-2 sm:px-4 md:px-6 lg:px-10 xl:px-14">
-          <EocClassesPanel upgradeLevels={upgradeLevels} onChangeUpgradeLevels={setUpgradeLevels} />
+          {hydrated ? (
+            <EocClassesPanel upgradeLevels={upgradeLevels} onChangeUpgradeLevels={setUpgradeLevels} />
+          ) : (
+            <div
+              className="rounded-xl border border-amber-950/80 bg-[#141019] h-[min(520px,70vh)] animate-pulse"
+              aria-busy="true"
+              aria-label="Loading class planner"
+            />
+          )}
         </div>
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="flex flex-col gap-4 min-w-0">

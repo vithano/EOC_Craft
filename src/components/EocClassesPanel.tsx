@@ -511,7 +511,6 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
                 {selected.upgrades.map((u) => {
                   const key = `${selected.id}/${u.id}`;
                   const pts = upgradeLevels[key] ?? 0;
-                  const cost = pointCostPerRank(selected.tier);
                   const canSpend =
                     totalAllocated < MAX_PLANNER_LEVEL &&
                     isClassUnlocked(selected.id, upgradeLevels) &&
