@@ -1,0 +1,29 @@
+,,,
+,,Base Shock,Base Chill
+Damage_valid_as_percentage_of_combined_max_life_and_ES,0.01%,0.45%,0.31%
+,0.02%,0.63%,0.44%
+,0.05%,1.00%,0.70%
+,0.10%,1.41%,0.99%
+,0.20%,2.00%,1.40%
+,0.50%,3.16%,2.21%
+,1.00%,4.47%,3.13%
+,2.00%,6.32%,4.43%
+,5.00%,10.00%,7.00%
+,10.00%,14.14%,9.90%
+,,,
+,,,
+,,,
+,,,
+,,,
+,,,
+,,,
+((damage_valid_attacker / ((life_defender + energyshield_defender) * 5)) ^ 0.5) * ailmentMultiplier * extraEffectMultiplier * specialChillMultiplier,,,
+"damage_valid_attacker is the sum of final post-mitigation hit damage of valid damage types (e.g. lightning damage if shock per default, and cold if chill per default)",,,
+ailmentMultiplier is increased shock/chill effect of the ailment source (player or enemy),,,
+"extraEffectMultiplier is 1.0 if the ailment source is the player, and 1.4 if it's an enemy",,,
+"specialChillMultiplier is 0.7 if the ailment-to-be-inflicted is a chill, otherwise 1.0",,,
+,,,
+Functionally equivalent to:,,,
+((valid_damage_as_percentage_max_life_and_es / 5)^0.5) * ailmentmulti * extraeffectmulti * chillmulti,,,
+,,,
+life_defender and energyshield_defender based on max or current?,,,

@@ -9,11 +9,39 @@ export default function StatsPanel({ stats }: StatsPanelProps) {
     { label: 'Damage', value: stats.damage, sub: 'base dmg', color: 'text-orange-400', highlight: true },
     { label: 'Eff. Damage', value: stats.effectiveDamage, sub: 'with crits', color: 'text-red-400', highlight: true },
     { label: 'Armor', value: stats.armor, sub: `${stats.damageReduction}% dmg red.`, color: 'text-blue-400', highlight: false },
-    { label: 'Evasion', value: stats.evasion, sub: 'dodge rating', color: 'text-purple-400', highlight: false },
+    { label: 'Evasion', value: stats.evasion, sub: 'rating', color: 'text-purple-400', highlight: false },
     { label: 'Health', value: stats.health, sub: 'hp pool', color: 'text-emerald-400', highlight: false },
     { label: 'Mana', value: stats.mana, sub: 'mana pool', color: 'text-blue-400', highlight: false },
     { label: 'Crit Chance', value: `${stats.critChance}%`, sub: 'critical rate', color: 'text-yellow-400', highlight: false },
-    { label: 'Dmg Reduction', value: `${stats.damageReduction}%`, sub: 'from armor', color: 'text-zinc-400', highlight: false },
+    { label: 'Dmg Reduction', value: `${stats.damageReduction}%`, sub: 'vs incoming hit', color: 'text-zinc-400', highlight: false },
+    {
+      label: 'Evade chance',
+      value: `${stats.evasionChanceVsEnemy}%`,
+      sub: 'vs enemy acc',
+      color: 'text-fuchsia-400',
+      highlight: false,
+    },
+    {
+      label: 'Hit chance',
+      value: `${stats.hitChanceVsEnemy}%`,
+      sub: 'vs lvl100 eva',
+      color: 'text-pink-400',
+      highlight: false,
+    },
+    {
+      label: 'Ailment shock',
+      value: `${stats.ailmentShockEffectPct}%`,
+      sub: 'post-mit preview',
+      color: 'text-cyan-400',
+      highlight: false,
+    },
+    {
+      label: 'Ailment chill',
+      value: `${stats.ailmentChillEffectPct}%`,
+      sub: '×0.7 chill',
+      color: 'text-sky-400',
+      highlight: false,
+    },
   ];
 
   const attributes = ['strength', 'agility', 'intelligence', 'vitality', 'dexterity'] as const;

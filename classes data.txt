@@ -1,0 +1,548 @@
+base stats:
+life: 300
+mana: 150
+int/str/dex:15
+hit damage - 3-6(physical)
+attacks per second: 1.0
+mana cost per attack: 3
+accuracy rating: 20
+critical hit chance: 5.1%
+critical damage multipler:+100%
+evasion rating: 20
+lightning/cold/fire/chaos resistance: 0%(max 75%)
+mana regenaration per second:4 (2.5% of maximum mana per second)
+life recovered after each encounter:10%
+
+glossery:
+stage - a series of 10 encounters
+encounter - a 1 on 1 fight against an enemy, each attacking by its attack or spell speed
+level: each point put into a class is considered a level in that class
+abilities: attacks or spells that can be leveled up by using them more often and gain attunement each time they level up
+strength: +1 life per strength, 1% increased melee damage per 10 strength
+dexterity: 2% increased defenses per 10 dexterity, 2% increased critical hit chance per 10 dexterity
+intelligence: +1 mana per intelligence, 1% increased spell damage per 10 intelligence
+defenses:
+armor: full effectiveness against physical damage, 50% against elemental damage, 25% against chaos damage, the amount of damage reduction against a hit provided by armor cannot exceed 90%
+evasion rating: evading a hit prevents all damage and effects that would result from that hit, the percentage chance to evade depends on the defenders evasion rating vs the attackers accuracy rating, evasion has full effectivess against attacks and 50% against spells, the maximum chance to evade a hit is 90%
+energy shield: acts as an additional hit pool, protecting a defenders life until it is depleted, 25% of your energy shield is recovered after each encounter during a stage, chaos damage bypasses 50% of energy shield by default
+resistances: mitigate damage from non-physical damage types, the default maximum resistance is 75% and cannot exceed 90%
+block: blocking a hit reduces its damage by a percentage equal to the defenders block power, 50% by default, maximum chance to block hits is 75%
+dodge: dodging a hit prevents all damage and effects that would result from that hit, the maximum chance to dodge is 75% and cannot exceed 90%, chance to ddoge is not influenced by an attackers accuracy rating
+damage: damage generally occurs either from hits or as damage over time from ailements, any quantity of damage belongs to one of five damage types:
+physical,lightning,cold,fire or chaos, a single hit can deal damage of multiple types at once. lightning, cold and fire damage are further classfied as elemental damage
+ailements: status effects which can be eapplied through hits, if a hit has a chance to inflict a specific ailment and also deals damage of the required type(s). the different ailments are divided into two categories: damaging and non-damaging ailments.
+damaging ailments: bleeding, ignite and poison, these ailments deal damage over time of a specific type, with their base damage determined by the final pre-mitigation damage dealt of the required type(s) by the inflicting hit.
+bleed: 
+    base damage per second: 30% of physical hit damage
+    damage type:physical
+    duration: 2 seconds
+    ailement behavior: the strongest stack of bleeding deals full damage, while additional active stacks deal 50% of their damage
+ignite:
+    base damage per second: 45% of fire hit damage
+    damage type: fire
+    duration: 2 seconds
+    ailment behavior: the strongest stack of ignite deals full damage, while additional active stacks deal 25% of their damage
+poison:
+    base damage per second: 15% of combined physical and chaos hit damage
+    damage type:chaos
+    duration: 3 seconds
+    ailment behavior: all active poison stacks deal their full damage
+non-damaging ailments: shock and chill, these ailments cause debuffs based on their combined effect across all active stacks, with the effect of a single stack determined by the final post-mitigation damage dealt of the required type(s) by the inflicting hit. the combined effected of a non-damaging ailment across all stacks is limited to an amount depending on the type of ailment.
+shock:
+    required damage type: lightning
+    debuff effect: 1% increased damage taken per 1% of shock
+    duration: 3 seconds
+    maximum effect: 50%
+chill:
+    required damage type: cold
+    debuff effect: 1% less speed per 1% effect of chill
+    duration: 3 seconds
+    maximum effect: 35%
+critical hits: a critical hit multiplies its damage by its critical damage multiplier, modifiers such as 'increased critical hit chance' multiply your base critical hit chance gained from weapons,spells or other sources
+classes data:
+maxPointsPerUpgrade:5
+each upgrade can be leveled up 5 times for example if a sorcerer puts 5 points in increasedLife, the total bonus would be 4% * 5 = 20%
+the classBonus is only activated when the amount of points used reaches the required amount, for example to get the classBonus as a sorcerer, 10 points should be put in upgrades
+Base classes:
+maxLevel:15
+classLevelRequired:10
+sorcerer:
+{
+    perLevel:{
+        int:2
+    },
+
+    classBonus:'gain 10% of mana as extra base energy shield, 10% reduced mana cost of abilities",
+    availableUpgrades:{
+        increasedLife: 4%,
+        increasedEnergyShield: 6%,
+        increasedSpellDamage: 4%,
+    }
+}
+rogue:
+{
+    perLevel:{
+        dex:1,
+        int:1
+    },
+    classBonus:'+150 to accuracy rating, 10% more attack speed and cast speed',
+    availableUpgrades:{
+        increasedLife: 4%,
+        increasedEvasionRatingAndEnergyShield: 6%,
+        increasedDamage: 4%,
+    }
+}
+hunter:
+{
+    perLevel:{
+        dex:2
+    },
+    classBonus:'100% increased post-encounter life recovery',
+    availableUpgrades:{
+        increasedLife: 4%,
+        increasedEvasionRating: 6%,
+        increasedAttackDamage: 4%,
+    }
+}
+fighter:
+{
+    perLevel:{
+        str:1,
+        dex:1
+    },
+    classBonus:'+15% to all resistances, 5% increased experience gain',
+    availableUpgrades:{
+        increasedLife: 4%,
+        increasedArmorAndEvasionRating: 6%,
+        increasedAttackDamage: 4%,
+    }
+}
+warrior:
+{
+    perLevel:{
+        str:2
+    },
+    classBonus:'+100 to maximum life, 15% increased strength',
+    availableUpgrades:{
+        increasedLife: 4%,
+        increasedArmor: 6%,
+        increasedMeleeDamage: 4%,
+    }
+}
+acolyte:
+{
+    perLevel:{
+        int:1,
+        str:1
+    },
+    classBonus:'25% increased recovery from all sources',
+    availableUpgrades:{
+        increasedLife: 4%,
+        increasedArmorAndEnergyShield: 6%,
+        increasedDamage: 4%,
+    }
+}
+Intermediate classes:
+maxLevel:25
+classLevelRequired:15
+Arcanist:
+{
+    perLevel:{
+        int:3,
+        dex:1
+    },
+    classBonus:'chaos damage does not bypass your energy shield, 50% increased post-encounter energy shield recovery,take 15% reduced physical damage while you have energy shield',
+    availableUpgrades:{
+        increasedEnergyShield: 9%,
+        increasedSpellDamage: 6%,
+        increasedSpellCriticalHitChance: 12%,
+        increasedAllElementalResistances: 3%,
+        increasedManaRegeneration: 15%,
+    },
+    requiredClasses:'sorcerer' OR 'trickster' OR 'druid'
+}
+Druid:
+{
+    perLevel:{
+        str:1,
+        int:3
+    },
+    classBonus:'while above 50% of maximum mana 25% of damage taken is applied to your mana first, regenerate 2% of maximum mana per second',
+    availableUpgrades:{
+        increasedLife: 6%,
+        increasedEnergyShield: 9%,
+        increasedSpellkDamage: 6%,
+        increasedMana: 6%,
+        increasedChanceToInflictElementalAilments: 10%,
+    },
+    requiredClasses:'sorcerer' OR 'guardian' OR 'arcanist'
+}
+Guardian:
+{
+    perLevel:{
+        str:2,
+        int:2
+    },
+    classBonus:'+30 to all attributes, the inherent bonuses gained from attributes are doubled',
+    availableUpgrades:{
+        increasedLife: 4%,
+        increasedArmorAndEnergyShield: 9%,
+        increasedMana: 6%,
+        increasedChanceToBlock: 3%,
+        increasedChaosResistance: 6%
+    },
+    requiredClasses: 'acolyte' OR 'zealot' OR 'druid'
+}
+Zealot:
+{
+    perLevel:{
+        str:2,
+        int:2
+    },
+    classBonus:'when you hit an enemy your base damage is rolled twice and the higher result is used, when you are hit by an enemy their base damage is rolled twice and the lower result is used',
+    availableUpgrades:{
+        increasedLife: 6%,
+        increasedArmorAndEnergyShield: 9%,
+        increasedElementalDamage: 6%,
+        increasedCriticalHitChance: 12%,
+        increasedChanceToInflictElementalAilments: 10%
+    },
+    requiredClasses: 'guardian' OR 'acolyte' OR 'juggernaut'
+}
+Juggernaut:
+{
+     perLevel:{
+        str:3,
+        int:1
+    },
+    classBonus:'+50% to armor effectiveness against elemental damage, +25% to armor effectiveness against chaos damage, when hit recover life equal to 4% of prevented damage',
+    availableUpgrades:{
+        increasedLife: 6%,
+        increasedArmor: 9%,
+        increasedMeleeDamage: 6%,
+        increasedAllElementalResistances: 3%,
+        increasedLifeRecovery: 4%
+    },
+    requiredClasses: 'zealot' OR 'warrior' OR 'barbarian'
+}
+Juggernaut:
+{
+     perLevel:{
+        str:3,
+        int:1
+    },
+    classBonus:'+50% to armor effectiveness against elemental damage, +25% to armor effectiveness against chaos damage, when hit recover life equal to 4% of prevented damage',
+    availableUpgrades:{
+        increasedLife: 6%,
+        increasedArmor: 9%,
+        increasedMeleeDamage: 6%,
+        increasedAllElementalResistances: 3%,
+        increasedLifeRecovery: 4%
+    },
+    requiredClasses: 'zealot' OR 'warrior' OR 'barbarian'
+}
+Barbarian:
+{
+     perLevel:{
+        str:3,
+        dex:1
+    },
+    classBonus:'+10% chance to deal double damage with attacks, hits ignore 50% of enemy armor',
+    availableUpgrades:{
+        increasedLife: 6%,
+        increasedMeleeDamage: 6%,
+        increasedAttackSpeed: 4%,
+        increasedAccuracyRating: 9%,
+        gainLifeOnKill: 45
+    },
+    requiredClasses: 'juggernaut' OR 'warrior' OR 'champion'
+}
+CHampion:
+{
+     perLevel:{
+        str:2,
+        dex:2
+    },
+    classBonus:'take 1% reduced damage per 4% missing life, once per stage if you would die your life is set to 1 instead',
+    availableUpgrades:{
+        increasedLife: 6%,
+        increasedArmorAndEvasionRating: 9%,
+        increasedAttackSpeed: 4%,
+        increasedChanceToInflictBleedingWithAttacks: 10%,
+        increasedChanceToBlock: 3%
+    },
+    requiredClasses: 'barbarian' OR 'fighter' OR 'mercenary'
+}
+Mercenary:
+{
+     perLevel:{
+        str:2,
+        dex:2
+    },
+    classBonus:'+5 to strength and dexterity per class level, 1% increased attack speed per 10 strength or dexterity whichever is lower',
+    availableUpgrades:{
+        increasedLife: 6%,
+        increasedArmorAndEvasionRating: 9%,
+        increasedAttackDamage: 6%,
+        increasedAllElementalResistances: 3%,
+        increasedAccuracyRating: 9%
+    },
+    requiredClasses: 'champion' OR 'fighter' OR 'windrunner'
+}
+Windrunner:
+{
+     perLevel:{
+        str:1,
+        dex:3
+    },
+    classBonus:'permenantly inflict 15% shock and 10% chill on enemies at the beginning of an encounter',
+    availableUpgrades:{
+        increasedEvasionRating: 9%,
+        increasedAttackSpeed: 4%,
+        increasedAttackCriticalHitChance: 12%,
+        increasedChanceToInflictElementalAilments: 10%,
+        gainManaOnKill: 45
+    },
+    requiredClasses: 'pathfinder' OR 'hunter' OR 'mercenary'
+}
+Pathfinder:
+{
+     perLevel:{
+        int:1,
+        dex:3
+    },
+    classBonus:'+50% to evasion effectiveness against hits from spells, take 20% less damage the first time you are hit during an encounter',
+    availableUpgrades:{
+        increasedEvasionRating: 9%,
+        increasedAttackDamage: 6%,
+        increasedChanceToInflictBleedingWithAttacks: 10%,
+        increasedAccuracyRating: 9%,
+        increasedAllElementalResistances: 3%
+    },
+    requiredClasses: 'windrunner' OR 'hunter' OR 'assassin'
+}
+Assassin:
+{
+     perLevel:{
+        int:2,
+        dex:2
+    },
+    classBonus:'+8% to base critical hit chance, enemies have 25% less evasion rating against critical hits',
+    availableUpgrades:{
+        increasedLife: 6%,
+        increasedEvasionRatingAndEnergyShield: 9%,
+        increasedCriticalHitChance: 12%,
+        increasedChanceToInflictPoisonWithAttacks: 10%,
+        gainLifeOnKill: 45
+    },
+    requiredClasses: 'trickster' OR 'rogue' OR 'pathfinder'
+}
+Trickster:
+{
+     perLevel:{
+        dex:2,
+        int:2
+    },
+    classBonus:'enemies take 10% increased damage, enemies have 5% less speed, enemies deal 5% less damage',
+    availableUpgrades:{
+        increasedEvasionRatingAndEnergyShield: 9%,
+        increasedAttackSpeedAndCastSpeed: 4%,
+        increasedChanceToDodge: 2%,
+        gainEnergyShieldOnKill: 45,
+        increasedAilmentDuration: 8%
+    },
+    requiredClasses: 'arcanist' OR 'rogue' OR 'assassin'
+}
+major classes:
+each character is limited to 1 major class total, a character cant have more than 1
+maxLevel:25
+classLevelRequired:15
+Archmage:
+{
+    perLevel:{
+        int:4
+    },
+    classBonus:'+2 to the level of all abilities, 100% increased effect of attunement modifiers from abilities',
+    availableUpgrades:{
+        increasedEnergyShield: 12%,
+        increasedSpellDamage: 8%,
+        increasedCastSpeed: 6%,
+        increasedIntelligence: 6%,
+        increasedMana: 8%
+    },
+    requiredClasses: 'arcanist' AND 'druid'
+}
+Ascendant:
+{
+    perLevel:{
+        str:1,
+        int:3
+    },
+    classBonus:'50% of non-chaos damage taken bypasses your energy shield, 50% of life regeneration per second also applies to your energy shield, regenerate 5% of life per second',
+    availableUpgrades:{
+        increasedLife: 8%,
+        increasedEnergyShield: 12%,
+        increasedElementalDamage: 8%,
+        increasedMana: 8%,
+        increasedEffectOfNonDamagingAilments: 12%
+    },
+    requiredClasses: 'guardian' AND 'druid'
+}
+Templar:
+{
+    perLevel:{
+        str:2,
+        int:2
+    },
+    classBonus:'+50% to armor effectiveness against chaos damage, recover energy shield equal to 2% of armor when you block',
+    availableUpgrades:{
+        increasedArmorAndEnergyShield: 12%,
+        increasedElementalDamage: 8%,
+        increasedCriticalHitChance: 16%,
+        increasedMana: 8%,
+        increasedChanceToBlock: 4%
+    },
+    requiredClasses: 'guardian' AND 'zealot'
+}
+Chieftain:
+{
+    perLevel:{
+        str:3,
+        int:1
+    },
+    classBonus:'take 25% of physical damage as fire damage, +5% to maximum fire resistance, enemies take 40% increased elemental damage',
+    availableUpgrades:{
+        increasedLife: 8%,
+        increasedArmorAndEnergyShield: 12%,
+        increasedElementalDamageWithAttacks: 8%,
+        increasedAllElementalResistances: 4%,
+        increasedAilmentDuration: 12%
+    },
+    requiredClasses: 'juggernaut' AND 'zealot'
+}
+Destroyer:
+{
+    perLevel:{
+        str:4,
+    },
+    classBonus:'+25% chance to deal double damage with attacks, +1% chance to deal triple damage with attacks per 2% chance to deal double damage with attacks',
+    availableUpgrades:{
+        increasedLife: 8%,
+        increasedArmor: 12%,
+        increasedMeleeDamage: 8%,
+        increasedStrength: 6%,
+        gainLifeOnKill: 60
+    },
+    requiredClasses: 'juggernaut' AND 'barbarian'
+}
+Berserker:
+{
+    perLevel:{
+        str:3,
+        dex:1
+    },
+    classBonus:'leech 10% of hit damage as life, take 25% increased damage, 1% more melee attack speed per 1% missing life',
+    availableUpgrades:{
+        increasedLife: 8%,
+        increasedMeleeDamage: 8%,
+        increasedMeleeAttackSpeed: 6%,
+        increasedAttackCriticalHitChance: 16%,
+        gainManaOnKill: 60
+    },
+    requiredClasses: 'champion' AND 'barbarian'
+}
+Dragoon:
+{
+    perLevel:{
+        str:2,
+        dex:2
+    },
+    classBonus:'+25% to maximum chance to block, enemies take 1% increased damage per 1% missing combined life and energy shield',
+    availableUpgrades:{
+        increasedLife: 8%,
+        increasedArmorAndEvasionRating: 12%,
+        increasedMeleeDamage: 8%,
+        increasedDamageOverTimeMultiplier: 8%,
+        increasedChanceToBlock: 4%
+    },
+    requiredClasses: 'champion' AND 'mercenary'
+}
+Dervish:
+{
+    perLevel:{
+        str:1,
+        dex:3
+    },
+    classBonus:'during a stage gain 5% increased attack critical hit chance per non-critical hit dealt up to 100% and 2% more attack speed per critical hit dealt up to 30%',
+    availableUpgrades:{
+        increasedLife: 8%,
+        increasedEvasionRating: 12%,
+        increasedAttackSpeed: 6%,
+        increasedAttackCriticalHitChance: 16%,
+        increasedEffectOfNonDamagingAilments: 12%
+    },
+    requiredClasses: 'windrunner' AND 'mercenary'
+}
+Mirage:
+{
+    perLevel:{
+        dex:4
+    },
+    classBonus:'+5% to final chance to evade, recover life equal to 2% of evasion rating when you evade',
+    availableUpgrades:{
+        increasedEvasionRating: 12%,
+        increasedAttackDamage: 8%,
+        increasedAttackSpeed: 6%,
+        increasedDexterity: 6%,
+        increasedAllElementalResistances: 4%
+    },
+    requiredClasses: 'windrunner' AND 'pathfinder'
+}
+Shadow:
+{
+    perLevel:{
+        dex:3,
+        int:1
+    },
+    classBonus:'the first attack or spell cast during an encounter deals 50% more damage, your action bar is filled by 35% when you evade or dodge',
+    availableUpgrades:{
+        increasedEvasionRating: 12%,
+        increasedCriticalHitChance: 16%,
+        increasedDamageOverTimeMultiplier: 8%,
+        increasedChanceToDodge: 3%,
+        increasedAccuracyRating: 12%
+    },
+    requiredClasses: 'assassin' AND 'pathfinder'
+}
+Reaper:
+{
+    perLevel:{
+        dex:2,
+        int:2
+    },
+    classBonus:'permenantly inflict 20% chill on yourself, the effect of chill on you is reversed, at the beginning of an encounter chill effects on you are reflected to enemies',
+    availableUpgrades:{
+        increasedEvasionRatingAndEnergyShield: 12%,
+        increasedAttackSpeedAndCastSpeed: 6%,
+        increasedCriticalHitChance: 16%,
+        increasedChanceToDodge: 3%,
+        gainEnergyShieldOnHit: 4
+    },
+    requiredClasses: 'assassin' AND 'trickster'
+}
+Occultist:
+{
+    perLevel:{
+        dex:1,
+        int:3
+    },
+    classBonus:'your maximum life is 1, 40% more energy shield, deal 1% increased damage per 100 maximum energy shield',
+    availableUpgrades:{
+        increasedEnergyShield: 12%,
+        increasedCastSpeed: 6%,
+        increasedSpellCriticalHitChance: 16%,
+        increasedDamageOverTimeMultiplier: 8%,
+        increasedChaosResistance: 8%
+    },
+    requiredClasses: 'arcanist' AND 'trickster'
+}
