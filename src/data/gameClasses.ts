@@ -646,7 +646,6 @@ export const GAME_CLASSES_BY_ID: Readonly<Record<string, ClassDef>> =
 export const CLASS_WEB_ORDER: Readonly<Record<ClassTier, readonly string[]>> = {
   base: ['sorcerer', 'rogue', 'hunter', 'fighter', 'warrior', 'acolyte'],
   intermediate: [
-    'druid',
     'arcanist',
     'trickster',
     'assassin',
@@ -658,9 +657,9 @@ export const CLASS_WEB_ORDER: Readonly<Record<ClassTier, readonly string[]>> = {
     'juggernaut',
     'zealot',
     'guardian',
+    'druid',
   ],
   major: [
-    'archmage',
     'occultist',
     'reaper',
     'shadow',
@@ -672,6 +671,7 @@ export const CLASS_WEB_ORDER: Readonly<Record<ClassTier, readonly string[]>> = {
     'chieftain',
     'templar',
     'ascendant',
+    'archmage',
   ],
 };
 

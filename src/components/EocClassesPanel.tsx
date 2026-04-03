@@ -56,9 +56,9 @@ function formatPerLevel(perLevel: ClassPerLevel): string {
 
 /** Distance from canvas center as % of half the square (50% = edge). */
 const TIER_RING_PCT: Readonly<Record<ClassTier, number>> = {
-  base: 17,
-  intermediate: 30,
-  major: 43,
+  base: 12,
+  intermediate: 25,
+  major: 38,
 };
 
 /**
@@ -95,6 +95,8 @@ function pointCostPerRank(tier: ClassTier): number {
   if (tier === "intermediate") return 30;
   return 40;
 }
+
+const MAX_RANKS_PER_UPGRADE = 5;
 
 function formatUpgradeLine(u: ClassDef["upgrades"][number], pointsInUpgrade: number): string {
   const v = pointsInUpgrade > 0 ? pointsInUpgrade * u.valuePerPoint : u.valuePerPoint;
@@ -163,6 +165,7 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
   }, [recomputeLines]);
 
   const selected = selectedId ? GAME_CLASSES_BY_ID[selectedId] : null;
+  const selectedClassLevel = selected ? getClassLevel(selected.id, upgradeLevels) : 0;
 
   const tryAdd = (cls: ClassDef, upgradeId: string) => {
     const key = `${cls.id}/${upgradeId}`;
@@ -321,37 +324,7 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
               preserveAspectRatio="xMidYMid meet"
               xmlns="http://www.w3.org/2000/svg"
             >
-              {[TIER_RING_PCT.base, TIER_RING_PCT.intermediate, TIER_RING_PCT.major].map((r, i) => (
-                <circle
-                  key={i}
-                  cx={50}
-                  cy={50}
-                  r={r}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={0.35}
-                  className="text-violet-300/50"
-                />
-              ))}
-              {Array.from({ length: 24 }, (_, i) => {
-                const a = (Math.PI * 2 * i) / 24;
-                const spokeR = TIER_RING_PCT.major + 2;
-                const x2 = 50 + spokeR * Math.cos(a - Math.PI / 2);
-                const y2 = 50 + spokeR * Math.sin(a - Math.PI / 2);
-                return (
-                  <line
-                    key={`spoke-${i}`}
-                    x1={50}
-                    y1={50}
-                    x2={x2}
-                    y2={y2}
-                    stroke="currentColor"
-                    strokeWidth={0.2}
-                    className="text-white/20"
-                  />
-                );
-              })}
-              <circle cx={50} cy={50} r={5} fill="rgba(0,0,0,0.35)" stroke="rgba(167,139,250,0.35)" strokeWidth={0.4} />
+              
             </svg>
 
             <svg className="absolute inset-0 z-[1] size-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
@@ -377,12 +350,7 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
               <span className="text-[8px] text-zinc-500">All points</span>
             </button>
 
-            <div
-              className="pointer-events-none absolute left-1/2 top-1/2 z-[3] -translate-x-1/2 -translate-y-1/2 text-center"
-              aria-hidden
-            >
-              <span className="text-[8px] font-bold uppercase tracking-[0.35em] text-violet-300/70 sm:text-[9px]">EOC</span>
-            </div>
+     
 
             <div className="absolute inset-0 z-[2]">
               {(["base", "intermediate", "major"] as const).map((tier) => {
@@ -500,6 +468,31 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
                     Max {selected.maxLevel} · Bonus at {selected.classBonusRequiredPoints}
                   </span>
                 </div>
+                <div className="mt-3 space-y-1">
+                  <div className="flex justify-between items-baseline gap-2 text-[9px] font-bold uppercase tracking-wide text-zinc-500">
+                    <span>Class points</span>
+                    <span className="tabular-nums text-amber-200/95 shrink-0">
+                      {selectedClassLevel} / {selected.maxLevel}
+                    </span>
+                  </div>
+                  <div
+                    className="flex h-2 gap-px overflow-hidden rounded bg-zinc-950 ring-1 ring-zinc-800/90"
+                    role="img"
+                    aria-label={`${selectedClassLevel} of ${selected.maxLevel} class points on the bar`}
+                  >
+                    {Array.from({ length: selected.maxLevel }, (_, i) => (
+                      <div
+                        key={i}
+                        title={`Point ${i + 1}${i < selectedClassLevel ? " (allocated)" : ""}`}
+                        className={`min-w-0 flex-1 transition-[background-color,box-shadow] duration-300 ease-out ${
+                          i < selectedClassLevel
+                            ? "bg-gradient-to-b from-amber-400 to-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+                            : "bg-zinc-800/95"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
                 <p className="mt-2 text-[10px] text-zinc-500 leading-relaxed">{formatRequirement(selected)}</p>
               </div>
 
@@ -561,6 +554,29 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
                         >
                           +
                         </button>
+                      </div>
+                      <div
+                        className="mt-2 flex gap-0.5 px-0.5"
+                        role="img"
+                        aria-label={`${pts} of ${MAX_RANKS_PER_UPGRADE} ranks; numbers mark each rank slot`}
+                      >
+                        {Array.from({ length: MAX_RANKS_PER_UPGRADE }, (_, idx) => {
+                          const rank = idx + 1;
+                          const filled = rank <= pts;
+                          return (
+                            <div
+                              key={rank}
+                              title={`Rank ${rank}${filled ? " (allocated)" : ""}`}
+                              className={`flex min-h-[22px] min-w-0 flex-1 items-center justify-center rounded border text-[8px] font-bold tabular-nums transition-[color,background-color,border-color,box-shadow] duration-300 ease-out sm:min-h-[24px] sm:text-[9px] ${
+                                filled
+                                  ? "border-amber-600/85 bg-gradient-to-b from-amber-500 to-amber-700 text-amber-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+                                  : "border-zinc-700/85 bg-zinc-900/90 text-zinc-500"
+                              }`}
+                            >
+                              {rank}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
