@@ -85,7 +85,7 @@ export interface FormulaContext {
   flatFinalEvasionChance?: number;
   /** Energy shield for ailment formula (life + ES pool). */
   energyShield?: number;
-  ailmentAilmentMultiplier?: number;
+  ailmentMultiplier?: number;
   ailmentExtraEffectMultiplier?: 1 | 1.4;
   /** If set, Nexus tier overrides enemy accuracy / evasion from table for evasion + hit chance. */
   nexusTier?: number | null;
@@ -185,7 +185,7 @@ export function computeStats(
   const es = ctx.energyShield ?? 0;
   const postMitHit =
     incomingDamage * Math.max(0, 1 - damageReduction / 100);
-  const ailMult = ctx.ailmentAilmentMultiplier ?? 1;
+  const ailMult = ctx.ailmentMultiplier ?? 1;
   const extraAil = ctx.ailmentExtraEffectMultiplier ?? 1;
   const ailmentShockEffectPct = computeNonDamagingAilmentEffectPercent(
     postMitHit,
