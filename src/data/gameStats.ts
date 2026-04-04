@@ -1351,7 +1351,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 16. Critical hit chance
   // -------------------------------------------------------------------------
-  // Weapon base crit (or game base 5%) + 2% per 10 DEX (doubled for guardian) + Assassin +8% + upgrades
+  // Flat: weapon (or game) base + Assassin + gear attack crit + global critChanceBonus.
+  // Increased: crit upgrades + gear % + 2% per 10 DEX (× attr mult, e.g. guardian) — multiplies the flat sum.
   const baseCritChance   = eq.weaponBaseCritChance ?? BASE_GAME_STATS.baseCritChance
   const critFromDex      = (Math.floor(dex / 10) * attrCritMult * 2)
   const critFromAssassin = bonus('assassin') ? 8 : 0
@@ -1360,11 +1361,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + u('increasedAttackCriticalHitChance')
     + eq.pctIncreasedCriticalHitChanceFromGear
     + critFromDex
-  // Upgrades are "increased" — multiply the base; additive flat bonuses applied separately
-  let critChance = Math.min(
-    95,
-    (baseCritChance + critFromAssassin +eq.attackBaseCritChanceBonusFromGear + eq.critChanceBonus)  * (1 + critFromUpgrades / 100)
-  )
+  const attackCritFlatBase =
+    baseCritChance + critFromAssassin + eq.attackBaseCritChanceBonusFromGear + eq.critChanceBonus
+  let critChance = Math.min(95, attackCritFlatBase * (1 + critFromUpgrades / 100))
   let critMultiplier = BASE_GAME_STATS.critMultiplier
   // -------------------------------------------------------------------------
   // 17. Attacks per second
@@ -1534,10 +1533,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           } else if (k === 'increased critical hit chance') {
             critChance = Math.min(
               95,
-              baseCritChance * (1 + (critFromUpgrades + v) / 100)
-                + critFromDex
-                + critFromAssassin
-                + eq.critChanceBonus
+              attackCritFlatBase * (1 + (critFromUpgrades + v) / 100)
             )
           } else if (k === 'increased strikes per attack') {
             attunementStrikesIncPct += v
@@ -1609,13 +1605,11 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             castBase / ((1 + castSpeedInc / 100) * eq.castSpeedLessMultFromGear)
           const castsPerSec = 1 / effectiveCastTime
           const spellBaseCrit = def.baseCritChancePct ?? BASE_GAME_STATS.baseCritChance
+          const spellCritFlatBase =
+            spellBaseCrit + critFromAssassin + eq.critChanceBonus + eq.spellBaseCritChanceBonusFromGear
           critChance = Math.min(
             95,
-            spellBaseCrit * (1 + (critFromUpgrades + spellAttCritInc) / 100)
-            + critFromDex
-            + critFromAssassin
-            + eq.critChanceBonus
-            + eq.spellBaseCritChanceBonusFromGear
+            spellCritFlatBase * (1 + (critFromUpgrades + spellAttCritInc) / 100)
           )
           const smin = Math.round(scaledHit.min * added * (1 + incFrac))
           const smax = Math.round(scaledHit.max * added * (1 + incFrac))

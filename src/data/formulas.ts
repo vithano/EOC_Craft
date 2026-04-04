@@ -40,7 +40,8 @@ export const FORMULA_DESCRIPTIONS: Record<string, string> = {
   damage: 'baseDamage + equipmentDamage + (strength * 2) + (intelligence * 1.5) + (agility * 0.5) + critBonus',
   armor: 'equipmentArmor + (vitality * 1.5) + upgradeArmor',
   evasion: 'equipmentEvasion + (agility * 1.2) + (dexterity * 0.8) + upgradeEvasion',
-  critChance: 'baseCritChance + equipmentCritChance + upgradeCritChance',
+  critChance:
+    'computeBuildStats: min(95, flat * (1 + inc%/100)); flat = weaponOrGameBase + assassin + attackCritGear + critChanceBonus (spells: spellBase + assassin + critBonus + spellCritGear); inc = increased crit upgrades + gear inc% + 2%/10 DEX (× attr mult)',
   effectiveDamage: 'damage * (1 + critChance / 100 * critMultiplier)',
   damageReduction:
     'min(90, (armor / (500 * (incomingDamage / (incomingDamage + 500)) * 18 + armor)) * 100 + physicalDamageReduction)',
@@ -156,7 +157,7 @@ export function computeStats(
   // PLACEHOLDER FORMULA: evasion = equipEvasion + agility*1.2 + dexterity*0.8 + upgradeEvasion
   const evasion = (em.evasion ?? 0) + agility * 1.2 + dexterity * 0.8 + (um.evasion ?? 0);
 
-  // PLACEHOLDER FORMULA: critChance = baseCrit + equipCrit + upgradeCrit
+  // Legacy placeholder (not EOC computeBuildStats): additive crit — see gameStats crit section for real formula
   const critChance = base.baseCritChance + (em.critChance ?? 0) + (um.critChance ?? 0);
 
   // PLACEHOLDER FORMULA: effectiveDamage = damage * (1 + critChance/100 * critMultiplier)
