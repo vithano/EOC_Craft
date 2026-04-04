@@ -95,6 +95,102 @@ export function applyGearPhysicalConversion(
   return buildHitDamageByType(out);
 }
 
+/** Move pct of fire+cold+lightning (each of original ele) into chaos. */
+export function applyElementalToChaosConversion(rows: HitDamageTypeRow[], pct: number): HitDamageTypeRow[] {
+  if (pct <= 0) return rows;
+  const f = pct / 100;
+  const out = rows.map((r) => ({ ...r }));
+  const eleTypes: HitDamageType[] = ["fire", "cold", "lightning"];
+  let chaosAddMin = 0;
+  let chaosAddMax = 0;
+  for (const t of eleTypes) {
+    const i = out.findIndex((r) => r.type === t);
+    if (i < 0) continue;
+    const row = out[i]!;
+    const takeMin = row.min * f;
+    const takeMax = row.max * f;
+    out[i] = {
+      ...row,
+      min: Math.round(row.min - takeMin),
+      max: Math.round(row.max - takeMax),
+    };
+    chaosAddMin += takeMin;
+    chaosAddMax += takeMax;
+  }
+  const ci = out.findIndex((r) => r.type === "chaos");
+  if (ci >= 0) {
+    const c = out[ci]!;
+    out[ci] = {
+      ...c,
+      min: c.min + Math.round(chaosAddMin),
+      max: c.max + Math.round(chaosAddMax),
+    };
+  } else if (chaosAddMax > 0) {
+    out.push({ type: "chaos", min: Math.round(chaosAddMin), max: Math.round(chaosAddMax) });
+  }
+  return buildHitDamageByType(out);
+}
+
+/** Move pct of lightning into cold (of original lightning). */
+export function applyLightningToColdConversion(rows: HitDamageTypeRow[], pct: number): HitDamageTypeRow[] {
+  if (pct <= 0) return rows;
+  const f = pct / 100;
+  const out = rows.map((r) => ({ ...r }));
+  const li = out.findIndex((r) => r.type === "lightning");
+  if (li < 0) return rows;
+  const L = out[li]!;
+  const takeMin = L.min * f;
+  const takeMax = L.max * f;
+  out[li] = {
+    ...L,
+    min: Math.round(L.min - takeMin),
+    max: Math.round(L.max - takeMax),
+  };
+  const ci = out.findIndex((r) => r.type === "cold");
+  if (ci >= 0) {
+    const c = out[ci]!;
+    out[ci] = {
+      ...c,
+      min: c.min + Math.round(takeMin),
+      max: c.max + Math.round(takeMax),
+    };
+  } else {
+    out.push({ type: "cold", min: Math.round(takeMin), max: Math.round(takeMax) });
+  }
+  return buildHitDamageByType(out);
+}
+
+/** Split pct of physical into fire / cold / lightning equally (random-type style). */
+export function applyPhysicalToRandomElements(rows: HitDamageTypeRow[], pct: number): HitDamageTypeRow[] {
+  if (pct <= 0) return rows;
+  const third = pct / 300;
+  return applyGearPhysicalConversion(rows, third * 100, third * 100, third * 100);
+}
+
+/** Non-converting "gain % of physical as extra lightning" — keeps physical, adds to lightning. */
+export function applyGainPhysicalAsExtraLightning(rows: HitDamageTypeRow[], pct: number): HitDamageTypeRow[] {
+  if (pct <= 0) return rows;
+  const f = pct / 100;
+  const out = rows.map((r) => ({ ...r }));
+  const pi = out.findIndex((r) => r.type === "physical");
+  if (pi < 0) return rows;
+  const p = out[pi]!;
+  const addMin = p.min * f;
+  const addMax = p.max * f;
+  const li = out.findIndex((r) => r.type === "lightning");
+  if (li >= 0) {
+    const L = out[li]!;
+    out[li] = {
+      ...L,
+      min: L.min + Math.round(addMin),
+      max: L.max + Math.round(addMax),
+    };
+  } else {
+    out.push({ type: "lightning", min: Math.round(addMin), max: Math.round(addMax) });
+  }
+  return buildHitDamageByType(out);
+}
+
 export function sumHitDamageRange(parts: HitDamageTypeRow[]): { min: number; max: number } {
   let min = 0;
   let max = 0;

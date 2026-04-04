@@ -203,5 +203,58 @@ function normalizeEquipment(
     lightningPenetrationFromGear: Number(z.lightningPenetrationFromGear) || 0,
     hitsCannotBeEvadedFromGear: Boolean(z.hitsCannotBeEvadedFromGear),
     cannotDealCriticalStrikesFromGear: Boolean(z.cannotDealCriticalStrikesFromGear),
+    pctFireResFromGear: Number(z.pctFireResFromGear) || 0,
+    pctColdResFromGear: Number(z.pctColdResFromGear) || 0,
+    pctLightningResFromGear: Number(z.pctLightningResFromGear) || 0,
+    pctToAllResistancesFromGear: Number(z.pctToAllResistancesFromGear) || 0,
+    dodgeChanceFromGear: Number(z.dodgeChanceFromGear) || 0,
+    dodgeChancePer10DexFromGear: Number(z.dodgeChancePer10DexFromGear) || 0,
+    maxDodgeChanceBonusFromGear: Number(z.maxDodgeChanceBonusFromGear) || 0,
+    pctIncreasedCastSpeedFromGear: Number(z.pctIncreasedCastSpeedFromGear) || 0,
+    castSpeedLessMultFromGear:
+      Number(z.castSpeedLessMultFromGear) > 0 ? Number(z.castSpeedLessMultFromGear) : d.castSpeedLessMultFromGear,
+    castSpeedIncPctPer10DexFromGear: Number(z.castSpeedIncPctPer10DexFromGear) || 0,
+    increasedCriticalDamageMultiplierFromGear:
+      Number(z.increasedCriticalDamageMultiplierFromGear) || 0,
+    flatCriticalDamageMultiplierBonusFromGear:
+      Number(z.flatCriticalDamageMultiplierBonusFromGear) || 0,
+    attackBaseCritChanceBonusFromGear: Number(z.attackBaseCritChanceBonusFromGear) || 0,
+    spellBaseCritChanceBonusFromGear: Number(z.spellBaseCritChanceBonusFromGear) || 0,
+    tripleDamageChanceFromGear: Number(z.tripleDamageChanceFromGear) || 0,
+    blockPowerPctFromGear: Number(z.blockPowerPctFromGear) || 0,
+    armorEffectivenessVsChaosFromGear: Number(z.armorEffectivenessVsChaosFromGear) || 0,
+    increasedLightningDamageFromGear: Number(z.increasedLightningDamageFromGear) || 0,
+    increasedChaosDamageFromGear: Number(z.increasedChaosDamageFromGear) || 0,
+    pctIncreasedDamageOverTimeFromGear: Number(z.pctIncreasedDamageOverTimeFromGear) || 0,
+    pctIncreasedBleedDamageFromGear: Number(z.pctIncreasedBleedDamageFromGear) || 0,
+    ailmentDurationBonusFromGear: Number(z.ailmentDurationBonusFromGear) || 0,
+    pctIncreasedAllAttributesFromGear: Number(z.pctIncreasedAllAttributesFromGear) || 0,
+    pctIncreasedStrengthFromGear: Number(z.pctIncreasedStrengthFromGear) || 0,
+    pctIncreasedDexterityFromGear: Number(z.pctIncreasedDexterityFromGear) || 0,
+    pctIncreasedIntelligenceFromGear: Number(z.pctIncreasedIntelligenceFromGear) || 0,
+    damageTakenLessMultFromGear:
+      Number(z.damageTakenLessMultFromGear) > 0 ? Number(z.damageTakenLessMultFromGear) : d.damageTakenLessMultFromGear,
+    damageTakenMoreMultFromGear:
+      Number(z.damageTakenMoreMultFromGear) > 0 ? Number(z.damageTakenMoreMultFromGear) : d.damageTakenMoreMultFromGear,
+    lifeRegenPercentOfMaxLifePerSecondFromGear:
+      Number(z.lifeRegenPercentOfMaxLifePerSecondFromGear) || 0,
+    manaRegenPercentOfMaxManaPerSecondFromGear:
+      Number(z.manaRegenPercentOfMaxManaPerSecondFromGear) || 0,
+    esRegenPercentOfMaxPerSecondFromGear: Number(z.esRegenPercentOfMaxPerSecondFromGear) || 0,
+    lifeAsExtraEsPercentFromGear: Number(z.lifeAsExtraEsPercentFromGear) || 0,
+    manaAsExtraEsPercentFromGear: Number(z.manaAsExtraEsPercentFromGear) || 0,
+    enemyDamageTakenIncreasedFromGear: Number(z.enemyDamageTakenIncreasedFromGear) || 0,
+    firePenetrationFromGear: Number(z.firePenetrationFromGear) || 0,
+    coldPenetrationFromGear: Number(z.coldPenetrationFromGear) || 0,
+    chaosPenetrationFromGear: Number(z.chaosPenetrationFromGear) || 0,
+    elementalPenetrationFromGear: Number(z.elementalPenetrationFromGear) || 0,
+    elementalToChaosConversionPctFromGear: Number(z.elementalToChaosConversionPctFromGear) || 0,
+    physicalToRandomElementPctFromGear: Number(z.physicalToRandomElementPctFromGear) || 0,
+    lightningToColdConversionPctFromGear: Number(z.lightningToColdConversionPctFromGear) || 0,
+    gainPhysicalAsExtraLightningPctFromGear: Number(z.gainPhysicalAsExtraLightningPctFromGear) || 0,
+    evasionMoreMultFromGear:
+      Number(z.evasionMoreMultFromGear) > 0 ? Number(z.evasionMoreMultFromGear) : d.evasionMoreMultFromGear,
+    cannotInflictElementalAilmentsFromGear: Boolean(z.cannotInflictElementalAilmentsFromGear),
+    hitsTakenCannotBeCriticalFromGear: Boolean(z.hitsTakenCannotBeCriticalFromGear),
   };
 }

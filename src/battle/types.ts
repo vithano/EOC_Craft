@@ -20,6 +20,9 @@ export interface DemoEnemyDef {
   critMultiplier?: number
   /** 0–100; optional — lightning portion of player hits is reduced by this minus player penetration. */
   lightningResistancePercent?: number
+  fireResistancePercent?: number
+  coldResistancePercent?: number
+  chaosResistancePercent?: number
 }
 
 export interface BattleParticipantState {
