@@ -18,6 +18,8 @@ export interface DemoEnemyDef {
   dodgeChance?: number
   critChance?: number
   critMultiplier?: number
+  /** 0–100; optional — lightning portion of player hits is reduced by this minus player penetration. */
+  lightningResistancePercent?: number
 }
 
 export interface BattleParticipantState {
@@ -28,9 +30,18 @@ export interface BattleParticipantState {
 
 export interface BattleLogEntry {
   t: number
-  kind: 'player_attack' | 'enemy_attack' | 'phase'
+  kind: 'player_attack' | 'enemy_attack' | 'phase' | 'ailment' | 'dot_tick'
   message: string
   damage?: number
+}
+
+/** Shock/chill ailments applied to the enemy in the demo sim (for UI summary). */
+export interface EnemyDebuffEvent {
+  t: number
+  kind: 'shock' | 'chill'
+  /** Shock: % increased damage taken from your hits. Chill: % reduced enemy action speed. */
+  magnitudePct: number
+  durationSec: number
 }
 
 export interface EncounterResult {
@@ -41,6 +52,10 @@ export interface EncounterResult {
   log: BattleLogEntry[]
   hitsLandedPlayer: number
   hitsLandedEnemy: number
+  /** Total enemy life removed by damaging ailments (bleed, poison, ignite) over the fight. */
+  totalDotDamageToEnemy?: number
+  /** Shock/chill applications (for UI summary). */
+  enemyDebuffEvents?: EnemyDebuffEvent[]
 }
 
 export interface EncounterOptions {

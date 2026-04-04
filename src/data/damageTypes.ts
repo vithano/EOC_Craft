@@ -42,6 +42,59 @@ export function buildHitDamageByType(rows: HitDamageTypeRow[]): HitDamageTypeRow
   return rows.filter((r) => r.max > 0 || r.min > 0);
 }
 
+/**
+ * Moves a percentage of the physical row into fire/cold/lightning (each % of original physical).
+ * Multiple uniques stack additive percentages (e.g. three 33% lines ≈ 99% converted total).
+ */
+export function applyGearPhysicalConversion(
+  rows: HitDamageTypeRow[],
+  pctToFire: number,
+  pctToCold: number,
+  pctToLightning: number
+): HitDamageTypeRow[] {
+  if (pctToFire <= 0 && pctToCold <= 0 && pctToLightning <= 0) return rows;
+  const out = rows.map((r) => ({ ...r }));
+  const pi = out.findIndex((r) => r.type === "physical");
+  if (pi < 0) return rows;
+  const p = out[pi]!;
+  const origMin = p.min;
+  const origMax = p.max;
+  if (origMin <= 0 && origMax <= 0) return rows;
+
+  const take = (pct: number, lo: number, hi: number) => ({
+    min: lo * (pct / 100),
+    max: hi * (pct / 100),
+  });
+  const f = take(pctToFire, origMin, origMax);
+  const c = take(pctToCold, origMin, origMax);
+  const l = take(pctToLightning, origMin, origMax);
+
+  out[pi] = {
+    ...p,
+    min: Math.round(origMin - f.min - c.min - l.min),
+    max: Math.round(origMax - f.max - c.max - l.max),
+  };
+
+  const bump = (type: HitDamageType, dm: number, dM: number) => {
+    const i = out.findIndex((r) => r.type === type);
+    if (i >= 0) {
+      const cur = out[i]!;
+      out[i] = {
+        ...cur,
+        min: cur.min + Math.round(dm),
+        max: cur.max + Math.round(dM),
+      };
+    } else {
+      out.push({ type, min: Math.round(dm), max: Math.round(dM) });
+    }
+  };
+  bump("fire", f.min, f.max);
+  bump("cold", c.min, c.max);
+  bump("lightning", l.min, l.max);
+
+  return buildHitDamageByType(out);
+}
+
 export function sumHitDamageRange(parts: HitDamageTypeRow[]): { min: number; max: number } {
   let min = 0;
   let max = 0;

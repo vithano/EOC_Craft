@@ -351,6 +351,13 @@ export default function BattleDemoPage() {
               Block {stats.blockChance}% · Dodge {stats.dodgeChance}% · Acc {stats.accuracy}
             </div>
             <div>DPS (sheet avg) {stats.dps.toFixed(1)}</div>
+            <div className="text-zinc-500 text-xs pt-1 border-t border-zinc-800 mt-2">
+              Demo ailments (tree + ability lines): bleed {stats.bleedChance.toFixed(0)}% · poison{" "}
+              {stats.poisonChance.toFixed(0)}% · elemental {stats.elementalAilmentChance.toFixed(0)}% (adds to fire/cold/lightning
+              rolls) · shock +{stats.shockInflictChanceBonus.toFixed(0)}% · chill +{stats.chillInflictChanceBonus.toFixed(0)}% ·
+              ignite +{stats.igniteInflictChanceBonus.toFixed(0)}% · DoT mult {stats.damageOverTimeMultiplier.toFixed(0)}% ·
+              duration +{stats.ailmentDurationBonus.toFixed(0)}%
+            </div>
             {stats.classBonusesActive.length > 0 && (
               <div className="text-zinc-500 text-xs pt-2">
                 Active bonuses: {stats.classBonusesActive.join(", ")}
@@ -392,6 +399,12 @@ export default function BattleDemoPage() {
             <span className="text-zinc-500 text-sm">
               {result.durationSeconds.toFixed(1)}s · you landed {result.hitsLandedPlayer} hits · took{" "}
               {result.hitsLandedEnemy} hits
+              {(result.totalDotDamageToEnemy ?? 0) > 0 && (
+                <>
+                  {" "}
+                  · DoT to enemy {(result.totalDotDamageToEnemy ?? 0).toFixed(1)}
+                </>
+              )}
             </span>
           </div>
           <div className="text-sm text-zinc-400 mb-2">
@@ -399,12 +412,45 @@ export default function BattleDemoPage() {
             {Math.round(result.playerFinal.energyShield)} / mana {Math.round(result.playerFinal.mana)} — enemy life{" "}
             {Math.max(0, Math.round(result.enemyLifeFinal))}
           </div>
+          {(result.enemyDebuffEvents?.length ?? 0) > 0 && (
+            <div className="mb-3 rounded-lg border border-violet-800/70 bg-violet-950/25 px-3 py-2 text-sm">
+              <div className="text-[10px] uppercase tracking-wider text-violet-300/90 mb-1.5">
+                Enemy ailments — shock / chill (this run)
+              </div>
+              <ul className="space-y-1 text-xs font-mono text-violet-100/95">
+                {result.enemyDebuffEvents!.map((e, i) => (
+                  <li key={i}>
+                    <span className="text-zinc-500">{e.t.toFixed(2)}s</span>{" "}
+                    {e.kind === "shock" ? (
+                      <span>
+                        Shock ailment — +{e.magnitudePct.toFixed(0)}% damage you deal for {e.durationSec.toFixed(1)}s
+                      </span>
+                    ) : (
+                      <span>
+                        Chill ailment — {e.magnitudePct.toFixed(0)}% slower enemy attacks for {e.durationSec.toFixed(1)}s
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="max-h-72 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1 border border-zinc-800 rounded-lg p-2 bg-black/30">
-            {result.log.map((line, i) => (
-              <div key={i}>
+            {result.log.map((line, i) => {
+              const tone =
+                line.kind === "ailment"
+                  ? "text-amber-400/95"
+                  : line.kind === "dot_tick"
+                    ? "text-rose-300/95"
+                    : line.kind === "phase"
+                      ? "text-zinc-400"
+                      : "";
+              return (
+              <div key={i} className={tone}>
                 <span className="text-zinc-600">[{line.t.toFixed(2)}s]</span> {line.message}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </main>

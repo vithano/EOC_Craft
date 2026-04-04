@@ -12,12 +12,14 @@ import {
   attackDamageMultiplierAtAbilityLevel,
   EOC_ABILITY_BY_ID,
   extraStrikesFromAbilityLines,
+  inflictAilmentBonusesFromAbilityLines,
   interpolateAttunementModifier,
   scaledSpellHitForAbility,
   weaponAbilityTagFromItemId,
   type EocAbilityType,
 } from './eocAbilities'
 import {
+  applyGearPhysicalConversion,
   buildHitDamageByType,
   localFlatDamageDisplayRange,
   scaleHitDamageByType,
@@ -137,6 +139,34 @@ export interface EquipmentModifiers {
   increasedStrikesPerAttackFromGear: number
   /** Sum of “X% increased strikes … per 10 dexterity” style mods (X values summed). */
   strikesIncPctPer10DexFromGear: number
+
+  pctIncreasedCriticalHitChanceFromGear: number
+  increasedElementalDamageFromGear: number
+
+  bleedInflictChanceFromGear: number
+  poisonInflictChanceFromGear: number
+  elementalAilmentInflictChanceFromGear: number
+  chillInflictChanceFromGear: number
+  shockInflictChanceFromGear: number
+  igniteInflictChanceFromGear: number
+
+  dotDamageMoreMultFromGear: number
+  strikesMoreMultFromGear: number
+  attackSpeedLessMultFromGear: number
+  accuracyLessMultFromGear: number
+
+  lifeOnHitFromGear: number
+  lifeLeechFromHitDamagePercentFromGear: number
+  lifeLeechFromPhysicalHitPercentFromGear: number
+
+  physicalConvertedToFirePctFromGear: number
+  physicalConvertedToColdPctFromGear: number
+  physicalConvertedToLightningPctFromGear: number
+
+  lightningPenetrationFromGear: number
+
+  hitsCannotBeEvadedFromGear: boolean
+  cannotDealCriticalStrikesFromGear: boolean
 }
 
 export interface ComputedBuildStats {
@@ -184,11 +214,17 @@ export interface ComputedBuildStats {
   lifeRecoveryPct: number
   esRecoveryPct: number
 
-  // Ailment bonuses (base chances from upgrades)
+  // Ailment bonuses (base chances from upgrades + active ability lines)
   bleedChance: number
   poisonChance: number
   elementalAilmentChance: number
   ailmentDurationBonus: number // % increased duration
+  /** Added to ignite roll when fire damage is present (ability lines, e.g. +100% ignite). */
+  igniteInflictChanceBonus: number
+  /** Added to shock roll when lightning damage is present (e.g. Bladesurge +50% shock). */
+  shockInflictChanceBonus: number
+  /** Added to chill roll when cold damage is present. */
+  chillInflictChanceBonus: number
 
   // Damage modifiers (passed to battle engine)
   increasedMeleeDamage: number
@@ -201,6 +237,14 @@ export interface ComputedBuildStats {
   // Combat modifier flags (for battle engine)
   doubleDamageChance: number
   armorIgnorePercent: number          // % of enemy armor ignored
+  /** Multiplicative with (1 + damageOverTimeMultiplier/100) for damaging ailments in demo combat. */
+  dotDamageMoreMultiplier: number
+  /** % of enemy lightning resistance ignored (lightning portion of hit only, when enemy has res). */
+  lightningPenetrationPercent: number
+  lifeOnHit: number
+  lifeLeechFromHitDamagePercent: number
+  lifeLeechFromPhysicalHitPercent: number
+  hitsCannotBeEvaded: boolean
   manaShieldActive: boolean           // Druid: 25% of damage taken to mana above 50%
   chaosNotBypassES: boolean           // Arcanist bonus
   armorVsElementalMultiplier: number  // 0.5 base; 1.0 with Juggernaut
@@ -265,6 +309,34 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     flatStrikesPerAttack: 0,
     increasedStrikesPerAttackFromGear: 0,
     strikesIncPctPer10DexFromGear: 0,
+
+    pctIncreasedCriticalHitChanceFromGear: 0,
+    increasedElementalDamageFromGear: 0,
+
+    bleedInflictChanceFromGear: 0,
+    poisonInflictChanceFromGear: 0,
+    elementalAilmentInflictChanceFromGear: 0,
+    chillInflictChanceFromGear: 0,
+    shockInflictChanceFromGear: 0,
+    igniteInflictChanceFromGear: 0,
+
+    dotDamageMoreMultFromGear: 1,
+    strikesMoreMultFromGear: 1,
+    attackSpeedLessMultFromGear: 1,
+    accuracyLessMultFromGear: 1,
+
+    lifeOnHitFromGear: 0,
+    lifeLeechFromHitDamagePercentFromGear: 0,
+    lifeLeechFromPhysicalHitPercentFromGear: 0,
+
+    physicalConvertedToFirePctFromGear: 0,
+    physicalConvertedToColdPctFromGear: 0,
+    physicalConvertedToLightningPctFromGear: 0,
+
+    lightningPenetrationFromGear: 0,
+
+    hitsCannotBeEvadedFromGear: false,
+    cannotDealCriticalStrikesFromGear: false,
   }
 }
 
@@ -283,78 +355,138 @@ function addItemModifiersToEquipment(eq: EquipmentModifiers, m: ItemModifiers) {
 }
 
 function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
-  const add = (k: keyof EquipmentModifiers, v: number) => {
-    eq[k] = (eq[k] as number) + v
+  const addNum = (k: keyof EquipmentModifiers, v: number) => {
+    const cur = (eq as unknown as Record<string, unknown>)[k as string]
+    if (typeof cur === 'number') {
+      ;(eq as unknown as Record<string, number>)[k as string] = cur + v
+    }
   }
-  if (p.flatLife !== undefined) add('flatLife', p.flatLife)
-  if (p.flatMana !== undefined) add('flatMana', p.flatMana)
-  if (p.flatArmor !== undefined) add('flatArmor', p.flatArmor)
-  if (p.flatEvasion !== undefined) add('flatEvasion', p.flatEvasion)
-  if (p.flatDamageMin !== undefined) add('flatDamageMin', p.flatDamageMin)
-  if (p.flatDamageMax !== undefined) add('flatDamageMax', p.flatDamageMax)
-  if (p.flatFireMin !== undefined) add('flatFireMin', p.flatFireMin)
-  if (p.flatFireMax !== undefined) add('flatFireMax', p.flatFireMax)
-  if (p.flatColdMin !== undefined) add('flatColdMin', p.flatColdMin)
-  if (p.flatColdMax !== undefined) add('flatColdMax', p.flatColdMax)
-  if (p.flatLightningMin !== undefined) add('flatLightningMin', p.flatLightningMin)
-  if (p.flatLightningMax !== undefined) add('flatLightningMax', p.flatLightningMax)
-  if (p.flatChaosMin !== undefined) add('flatChaosMin', p.flatChaosMin)
-  if (p.flatChaosMax !== undefined) add('flatChaosMax', p.flatChaosMax)
-  if (p.flatStrikesPerAttack !== undefined) add('flatStrikesPerAttack', p.flatStrikesPerAttack)
+  if (p.flatLife !== undefined) addNum('flatLife', p.flatLife)
+  if (p.flatMana !== undefined) addNum('flatMana', p.flatMana)
+  if (p.flatArmor !== undefined) addNum('flatArmor', p.flatArmor)
+  if (p.flatEvasion !== undefined) addNum('flatEvasion', p.flatEvasion)
+  if (p.flatDamageMin !== undefined) addNum('flatDamageMin', p.flatDamageMin)
+  if (p.flatDamageMax !== undefined) addNum('flatDamageMax', p.flatDamageMax)
+  if (p.flatFireMin !== undefined) addNum('flatFireMin', p.flatFireMin)
+  if (p.flatFireMax !== undefined) addNum('flatFireMax', p.flatFireMax)
+  if (p.flatColdMin !== undefined) addNum('flatColdMin', p.flatColdMin)
+  if (p.flatColdMax !== undefined) addNum('flatColdMax', p.flatColdMax)
+  if (p.flatLightningMin !== undefined) addNum('flatLightningMin', p.flatLightningMin)
+  if (p.flatLightningMax !== undefined) addNum('flatLightningMax', p.flatLightningMax)
+  if (p.flatChaosMin !== undefined) addNum('flatChaosMin', p.flatChaosMin)
+  if (p.flatChaosMax !== undefined) addNum('flatChaosMax', p.flatChaosMax)
+  if (p.flatStrikesPerAttack !== undefined) addNum('flatStrikesPerAttack', p.flatStrikesPerAttack)
   if (p.increasedStrikesPerAttack !== undefined) {
-    add('increasedStrikesPerAttackFromGear', p.increasedStrikesPerAttack)
+    addNum('increasedStrikesPerAttackFromGear', p.increasedStrikesPerAttack)
   }
   if (p.strikesIncPctPer10Dex !== undefined) {
-    add('strikesIncPctPer10DexFromGear', p.strikesIncPctPer10Dex)
+    addNum('strikesIncPctPer10DexFromGear', p.strikesIncPctPer10Dex)
   }
-  if (p.critChanceBonus !== undefined) add('critChanceBonus', p.critChanceBonus)
-  if (p.strBonus !== undefined) add('strBonus', p.strBonus)
-  if (p.dexBonus !== undefined) add('dexBonus', p.dexBonus)
-  if (p.intBonus !== undefined) add('intBonus', p.intBonus)
-  if (p.flatAccuracy !== undefined) add('flatAccuracy', p.flatAccuracy)
-  if (p.pctIncreasedLifeFromGear !== undefined) add('pctIncreasedLifeFromGear', p.pctIncreasedLifeFromGear)
-  if (p.pctIncreasedManaFromGear !== undefined) add('pctIncreasedManaFromGear', p.pctIncreasedManaFromGear)
-  if (p.pctIncreasedArmorFromGear !== undefined) add('pctIncreasedArmorFromGear', p.pctIncreasedArmorFromGear)
-  if (p.pctIncreasedEvasionFromGear !== undefined) add('pctIncreasedEvasionFromGear', p.pctIncreasedEvasionFromGear)
+  if (p.critChanceBonus !== undefined) addNum('critChanceBonus', p.critChanceBonus)
+  if (p.strBonus !== undefined) addNum('strBonus', p.strBonus)
+  if (p.dexBonus !== undefined) addNum('dexBonus', p.dexBonus)
+  if (p.intBonus !== undefined) addNum('intBonus', p.intBonus)
+  if (p.flatAccuracy !== undefined) addNum('flatAccuracy', p.flatAccuracy)
+  if (p.pctIncreasedLifeFromGear !== undefined) addNum('pctIncreasedLifeFromGear', p.pctIncreasedLifeFromGear)
+  if (p.pctIncreasedManaFromGear !== undefined) addNum('pctIncreasedManaFromGear', p.pctIncreasedManaFromGear)
+  if (p.pctIncreasedArmorFromGear !== undefined) addNum('pctIncreasedArmorFromGear', p.pctIncreasedArmorFromGear)
+  if (p.pctIncreasedEvasionFromGear !== undefined) addNum('pctIncreasedEvasionFromGear', p.pctIncreasedEvasionFromGear)
   if (p.pctIncreasedEnergyShieldFromGear !== undefined) {
-    add('pctIncreasedEnergyShieldFromGear', p.pctIncreasedEnergyShieldFromGear)
+    addNum('pctIncreasedEnergyShieldFromGear', p.pctIncreasedEnergyShieldFromGear)
   }
   if (p.increasedMeleeDamageFromGear !== undefined) {
-    add('increasedMeleeDamageFromGear', p.increasedMeleeDamageFromGear)
+    addNum('increasedMeleeDamageFromGear', p.increasedMeleeDamageFromGear)
   }
   if (p.increasedAttackDamageFromGear !== undefined) {
-    add('increasedAttackDamageFromGear', p.increasedAttackDamageFromGear)
+    addNum('increasedAttackDamageFromGear', p.increasedAttackDamageFromGear)
   }
-  if (p.increasedDamageFromGear !== undefined) add('increasedDamageFromGear', p.increasedDamageFromGear)
+  if (p.increasedDamageFromGear !== undefined) addNum('increasedDamageFromGear', p.increasedDamageFromGear)
   if (p.increasedSpellDamageFromGear !== undefined) {
-    add('increasedSpellDamageFromGear', p.increasedSpellDamageFromGear)
+    addNum('increasedSpellDamageFromGear', p.increasedSpellDamageFromGear)
   }
   if (p.pctIncreasedAccuracyFromGear !== undefined) {
-    add('pctIncreasedAccuracyFromGear', p.pctIncreasedAccuracyFromGear)
+    addNum('pctIncreasedAccuracyFromGear', p.pctIncreasedAccuracyFromGear)
   }
   if (p.pctIncreasedAttackSpeedFromGear !== undefined) {
-    add('pctIncreasedAttackSpeedFromGear', p.pctIncreasedAttackSpeedFromGear)
+    addNum('pctIncreasedAttackSpeedFromGear', p.pctIncreasedAttackSpeedFromGear)
   }
   if (p.doubleDamageChanceFromGear !== undefined) {
-    add('doubleDamageChanceFromGear', p.doubleDamageChanceFromGear)
+    addNum('doubleDamageChanceFromGear', p.doubleDamageChanceFromGear)
   }
-  if (p.armorIgnoreFromGear !== undefined) add('armorIgnoreFromGear', p.armorIgnoreFromGear)
+  if (p.armorIgnoreFromGear !== undefined) addNum('armorIgnoreFromGear', p.armorIgnoreFromGear)
   if (p.pctToAllElementalResFromGear !== undefined) {
-    add('pctToAllElementalResFromGear', p.pctToAllElementalResFromGear)
+    addNum('pctToAllElementalResFromGear', p.pctToAllElementalResFromGear)
   }
-  if (p.pctChaosResFromGear !== undefined) add('pctChaosResFromGear', p.pctChaosResFromGear)
+  if (p.pctChaosResFromGear !== undefined) addNum('pctChaosResFromGear', p.pctChaosResFromGear)
   if (p.manaCostReductionFromGear !== undefined) {
-    add('manaCostReductionFromGear', p.manaCostReductionFromGear)
+    addNum('manaCostReductionFromGear', p.manaCostReductionFromGear)
   }
   if (p.flatEnergyShieldFromGear !== undefined) {
-    add('flatEnergyShieldFromGear', p.flatEnergyShieldFromGear)
+    addNum('flatEnergyShieldFromGear', p.flatEnergyShieldFromGear)
   }
   if (p.energyShieldLessMultFromGear !== undefined) {
     eq.energyShieldLessMultFromGear *= p.energyShieldLessMultFromGear
   }
   if (p.flatBlockChanceFromGear !== undefined) {
-    add('blockChanceFromGear', p.flatBlockChanceFromGear)
+    addNum('blockChanceFromGear', p.flatBlockChanceFromGear)
   }
+  if (p.pctIncreasedCriticalHitChanceFromGear !== undefined) {
+    addNum('pctIncreasedCriticalHitChanceFromGear', p.pctIncreasedCriticalHitChanceFromGear)
+  }
+  if (p.increasedElementalDamageFromGear !== undefined) {
+    addNum('increasedElementalDamageFromGear', p.increasedElementalDamageFromGear)
+  }
+  if (p.bleedInflictChanceFromGear !== undefined) {
+    addNum('bleedInflictChanceFromGear', p.bleedInflictChanceFromGear)
+  }
+  if (p.poisonInflictChanceFromGear !== undefined) {
+    addNum('poisonInflictChanceFromGear', p.poisonInflictChanceFromGear)
+  }
+  if (p.elementalAilmentInflictChanceFromGear !== undefined) {
+    addNum('elementalAilmentInflictChanceFromGear', p.elementalAilmentInflictChanceFromGear)
+  }
+  if (p.chillInflictChanceFromGear !== undefined) {
+    addNum('chillInflictChanceFromGear', p.chillInflictChanceFromGear)
+  }
+  if (p.shockInflictChanceFromGear !== undefined) {
+    addNum('shockInflictChanceFromGear', p.shockInflictChanceFromGear)
+  }
+  if (p.igniteInflictChanceFromGear !== undefined) {
+    addNum('igniteInflictChanceFromGear', p.igniteInflictChanceFromGear)
+  }
+  if (p.dotDamageMoreMultFromGear !== undefined) {
+    eq.dotDamageMoreMultFromGear *= p.dotDamageMoreMultFromGear
+  }
+  if (p.strikesMoreMultFromGear !== undefined) {
+    eq.strikesMoreMultFromGear *= p.strikesMoreMultFromGear
+  }
+  if (p.attackSpeedLessMultFromGear !== undefined) {
+    eq.attackSpeedLessMultFromGear *= p.attackSpeedLessMultFromGear
+  }
+  if (p.accuracyLessMultFromGear !== undefined) {
+    eq.accuracyLessMultFromGear *= p.accuracyLessMultFromGear
+  }
+  if (p.lifeOnHitFromGear !== undefined) addNum('lifeOnHitFromGear', p.lifeOnHitFromGear)
+  if (p.lifeLeechFromHitDamagePercentFromGear !== undefined) {
+    addNum('lifeLeechFromHitDamagePercentFromGear', p.lifeLeechFromHitDamagePercentFromGear)
+  }
+  if (p.lifeLeechFromPhysicalHitPercentFromGear !== undefined) {
+    addNum('lifeLeechFromPhysicalHitPercentFromGear', p.lifeLeechFromPhysicalHitPercentFromGear)
+  }
+  if (p.physicalConvertedToFirePctFromGear !== undefined) {
+    addNum('physicalConvertedToFirePctFromGear', p.physicalConvertedToFirePctFromGear)
+  }
+  if (p.physicalConvertedToColdPctFromGear !== undefined) {
+    addNum('physicalConvertedToColdPctFromGear', p.physicalConvertedToColdPctFromGear)
+  }
+  if (p.physicalConvertedToLightningPctFromGear !== undefined) {
+    addNum('physicalConvertedToLightningPctFromGear', p.physicalConvertedToLightningPctFromGear)
+  }
+  if (p.lightningPenetrationFromGear !== undefined) {
+    addNum('lightningPenetrationFromGear', p.lightningPenetrationFromGear)
+  }
+  if (p.hitsCannotBeEvadedFromGear) eq.hitsCannotBeEvadedFromGear = true
+  if (p.cannotDealCriticalStrikesFromGear) eq.cannotDealCriticalStrikesFromGear = true
 }
 
 function scaleHitDamageRowsOfType(
@@ -456,6 +588,8 @@ export function aggregateItemModifiers(
 
 export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const { equipmentModifiers: eq } = config
+  const weaponItemId = config.equippedWeaponItemId ?? 'none'
+  const weaponTag = weaponAbilityTagFromItemId(weaponItemId)
 
   // -------------------------------------------------------------------------
   // 1. Determine active class bonuses
@@ -633,6 +767,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const accuracy = Math.round(
     (BASE_GAME_STATS.baseAccuracy + (bonus('rogue') ? 150 : 0) + eq.flatAccuracy)
     * (1 + (u('increasedAccuracyRating') + eq.pctIncreasedAccuracyFromGear) / 100)
+    * eq.accuracyLessMultFromGear
   )
 
   // -------------------------------------------------------------------------
@@ -653,6 +788,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     { type: 'lightning', min: lightningR.min, max: lightningR.max },
     { type: 'chaos', min: chaosR.min, max: chaosR.max },
   ])
+  hitDamageByType = applyGearPhysicalConversion(
+    hitDamageByType,
+    eq.physicalConvertedToFirePctFromGear,
+    eq.physicalConvertedToColdPctFromGear,
+    eq.physicalConvertedToLightningPctFromGear
+  )
   let hitSum = sumHitDamageRange(hitDamageByType)
   let hitDamageMin = hitSum.min
   let hitDamageMax = hitSum.max
@@ -664,7 +805,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const baseCritChance   = eq.weaponBaseCritChance ?? BASE_GAME_STATS.baseCritChance
   const critFromDex      = (dex * attrCritMult * 2) / 100  // percentage points
   const critFromAssassin = bonus('assassin') ? 8 : 0
-  const critFromUpgrades = u('increasedCriticalHitChance') + u('increasedAttackCriticalHitChance')
+  const critFromUpgrades =
+    u('increasedCriticalHitChance')
+    + u('increasedAttackCriticalHitChance')
+    + eq.pctIncreasedCriticalHitChanceFromGear
   // Upgrades are "increased" — multiply the base; additive flat bonuses applied separately
   let critChance = Math.min(
     95,
@@ -673,7 +817,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + critFromAssassin
     + eq.critChanceBonus
   )
-
   let critMultiplier = BASE_GAME_STATS.critMultiplier
 
   // -------------------------------------------------------------------------
@@ -689,7 +832,11 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // Rogue class bonus: 10% more APS (multiplicative)
   // Use weapon effective APS (base * local mods) when a weapon is equipped; fall back to game base 1.0
   const rogueMult = bonus('rogue') ? 1.10 : 1.0
-  let aps = (eq.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps) * (1 + totalIncreasedAtk / 100) * rogueMult
+  let aps =
+    (eq.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps)
+    * (1 + totalIncreasedAtk / 100)
+    * rogueMult
+    * eq.attackSpeedLessMultFromGear
 
   // -------------------------------------------------------------------------
   // 18. Mana cost per attack
@@ -718,11 +865,27 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const increasedMeleeDamage    = u('increasedMeleeDamage')    + meleeDmgFromStr + eq.increasedMeleeDamageFromGear
   const increasedAttackDamage   = u('increasedAttackDamage') + eq.increasedAttackDamageFromGear
   const increasedSpellDamage    = u('increasedSpellDamage')    + spellDmgFromInt + eq.increasedSpellDamageFromGear
-  const increasedElementalDamage= u('increasedElementalDamage') + u('increasedElementalDamageWithAttacks')
+  const increasedElementalDamage =
+    u('increasedElementalDamage')
+    + u('increasedElementalDamageWithAttacks')
+    + eq.increasedElementalDamageFromGear
   // Occultist class bonus: 1% increased damage per 100 maximum energy shield
   const occultistDmgFromEsPct   = bonus('occultist') ? maxEnergyShield / 100 : 0
   const increasedDamage         = u('increasedDamage') + occultistDmgFromEsPct + eq.increasedDamageFromGear
   let damageOverTimeMultiplier= u('increasedDamageOverTimeMultiplier')
+
+  if (increasedElementalDamage !== 0) {
+    const ef = 1 + increasedElementalDamage / 100
+    hitDamageByType = hitDamageByType.map((r) =>
+      r.type === 'fire' || r.type === 'cold' || r.type === 'lightning'
+        ? { ...r, min: Math.round(r.min * ef), max: Math.round(r.max * ef) }
+        : r
+    )
+    hitDamageByType = buildHitDamageByType(hitDamageByType)
+    hitSum = sumHitDamageRange(hitDamageByType)
+    hitDamageMin = hitSum.min
+    hitDamageMax = hitSum.max
+  }
 
   // -------------------------------------------------------------------------
   // 21. Average hit and DPS
@@ -741,8 +904,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   let abilityContribution: AbilityContributionSummary | null = null
 
   const sel = config.ability
-  const weaponItemId = config.equippedWeaponItemId ?? 'none'
-  const weaponTag = weaponAbilityTagFromItemId(weaponItemId)
 
   let attunementStrikesIncPct = 0
   let attunementFlatDoubleChance = 0
@@ -926,10 +1087,25 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 23. Ailment bonuses
   // -------------------------------------------------------------------------
-  const bleedChance              = u('increasedChanceToInflictBleedingWithAttacks')
-  const poisonChance             = u('increasedChanceToInflictPoisonWithAttacks')
-  const elementalAilmentChance   = u('increasedChanceToInflictElementalAilments')
+  let bleedChance              = u('increasedChanceToInflictBleedingWithAttacks') + eq.bleedInflictChanceFromGear
+  let poisonChance             = u('increasedChanceToInflictPoisonWithAttacks') + eq.poisonInflictChanceFromGear
+  let elementalAilmentChance   =
+    u('increasedChanceToInflictElementalAilments') + eq.elementalAilmentInflictChanceFromGear
   const ailmentDurationBonus     = u('increasedAilmentDuration')
+  let igniteInflictChanceBonus = eq.igniteInflictChanceFromGear
+  let shockInflictChanceBonus = eq.shockInflictChanceFromGear
+  let chillInflictChanceBonus = eq.chillInflictChanceFromGear
+
+  const abForAilments = sel?.abilityId ? EOC_ABILITY_BY_ID[sel.abilityId] : undefined
+  if (abForAilments && abilityMatchesWeapon(abForAilments, weaponTag)) {
+    const ib = inflictAilmentBonusesFromAbilityLines(abForAilments.lines)
+    bleedChance += ib.bleedChance
+    poisonChance += ib.poisonChance
+    elementalAilmentChance += ib.elementalAilmentChance
+    igniteInflictChanceBonus += ib.igniteChance
+    shockInflictChanceBonus += ib.shockChance
+    chillInflictChanceBonus += ib.chillChance
+  }
 
   // -------------------------------------------------------------------------
   // 24. Combat modifier flags
@@ -996,12 +1172,24 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       eq.increasedStrikesPerAttackFromGear +
       eq.strikesIncPctPer10DexFromGear * (dex / 10) +
       attunementStrikesIncPct
-    strikesPerAttack = Math.max(1, Math.round(baseStrikes * (1 + incStrikes / 100)))
+    strikesPerAttack = Math.max(
+      1,
+      Math.round(baseStrikes * (1 + incStrikes / 100) * eq.strikesMoreMultFromGear)
+    )
   }
 
   if (!spellCombat) {
     dps = avgEffectiveDamage * aps * strikesPerAttack
   }
+
+  if (eq.cannotDealCriticalStrikesFromGear) critChance = 0
+
+  const dotDamageMoreMultiplier = eq.dotDamageMoreMultFromGear
+  const lightningPenetrationPercent = eq.lightningPenetrationFromGear
+  const lifeOnHit = eq.lifeOnHitFromGear
+  const lifeLeechFromHitDamagePercent = eq.lifeLeechFromHitDamagePercentFromGear
+  const lifeLeechFromPhysicalHitPercent = eq.lifeLeechFromPhysicalHitPercentFromGear
+  const hitsCannotBeEvaded = eq.hitsCannotBeEvadedFromGear
 
   // -------------------------------------------------------------------------
   // Return
@@ -1054,6 +1242,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     poisonChance,
     elementalAilmentChance,
     ailmentDurationBonus,
+    igniteInflictChanceBonus,
+    shockInflictChanceBonus,
+    chillInflictChanceBonus,
 
     // Damage modifiers
     increasedMeleeDamage,
@@ -1066,6 +1257,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     // Combat modifier flags
     doubleDamageChance,
     armorIgnorePercent,
+    dotDamageMoreMultiplier,
+    lightningPenetrationPercent,
+    lifeOnHit,
+    lifeLeechFromHitDamagePercent,
+    lifeLeechFromPhysicalHitPercent,
+    hitsCannotBeEvaded,
     manaShieldActive,
     chaosNotBypassES,
     armorVsElementalMultiplier,

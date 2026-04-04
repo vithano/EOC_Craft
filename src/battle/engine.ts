@@ -1,4 +1,7 @@
-import { computeEvasionChancePercent } from '../data/eocFormulas'
+import {
+  computeEvasionChancePercent,
+  computeNonDamagingAilmentEffectPercent,
+} from '../data/eocFormulas'
 import { computeDamageReductionPercentFromArmour } from '../data/formulas'
 import type { ComputedBuildStats } from '../data/gameStats'
 import {
@@ -8,7 +11,76 @@ import {
   type BattleParticipantState,
   type DemoEnemyDef,
   type EncounterResult,
+  type EnemyDebuffEvent,
 } from './types'
+
+type DotKind = 'bleed' | 'poison' | 'ignite'
+
+interface DotInstance {
+  kind: DotKind
+  dps: number
+  expiresAt: number
+}
+
+interface EnemyAilmentRuntime {
+  dots: DotInstance[]
+  /** Current % increased damage the enemy takes from shock (0–50 capped). */
+  shockMorePct: number
+  shockUntil: number
+  /** Action speed multiplier on enemy (1 = normal, 0.85 = 15% chill). */
+  chillActionMult: number
+  chillUntil: number
+}
+
+function avgHitByDamageType(stats: ComputedBuildStats): {
+  physical: number
+  fire: number
+  cold: number
+  lightning: number
+  chaos: number
+  total: number
+} {
+  let physical = 0
+  let fire = 0
+  let cold = 0
+  let lightning = 0
+  let chaos = 0
+  for (const r of stats.hitDamageByType) {
+    const m = (r.min + r.max) / 2
+    if (r.type === 'physical') physical = m
+    else if (r.type === 'fire') fire = m
+    else if (r.type === 'cold') cold = m
+    else if (r.type === 'lightning') lightning = m
+    else if (r.type === 'chaos') chaos = m
+  }
+  const total = physical + fire + cold + lightning + chaos
+  return { physical, fire, cold, lightning, chaos, total }
+}
+
+/** Split mitigated hit damage by sheet damage-type averages (for ailment base damage). */
+function damagePortionsFromHit(
+  stats: ComputedBuildStats,
+  mitigatedHitDamage: number
+): { physical: number; fire: number; cold: number; lightning: number; chaos: number } {
+  const a = avgHitByDamageType(stats)
+  if (a.total <= 0) {
+    return {
+      physical: mitigatedHitDamage,
+      fire: 0,
+      cold: 0,
+      lightning: 0,
+      chaos: 0,
+    }
+  }
+  const f = mitigatedHitDamage / a.total
+  return {
+    physical: a.physical * f,
+    fire: a.fire * f,
+    cold: a.cold * f,
+    lightning: a.lightning * f,
+    chaos: a.chaos * f,
+  }
+}
 
 function rollDamage(min: number, max: number, rollTwiceHigh: boolean): number {
   const span = Math.max(0, max - min)
@@ -20,10 +92,23 @@ function rollDamage(min: number, max: number, rollTwiceHigh: boolean): number {
   return v
 }
 
+function lightningDamageFraction(stats: ComputedBuildStats): number {
+  const a = avgHitByDamageType(stats)
+  if (a.total <= 0) return 0
+  return a.lightning / a.total
+}
+
 function mitigatedPlayerHitVsArmor(enemy: DemoEnemyDef, stats: ComputedBuildStats, raw: number): number {
   const effArmor = enemy.armor * (1 - stats.armorIgnorePercent / 100)
   const red = computeDamageReductionPercentFromArmour(effArmor, raw, 0, 90)
-  return raw * (1 - red / 100)
+  let out = raw * (1 - red / 100)
+  const lrBase = enemy.lightningResistancePercent ?? 0
+  if (lrBase > 0) {
+    const effRes = Math.max(0, lrBase - (stats.lightningPenetrationPercent ?? 0))
+    const lf = lightningDamageFraction(stats)
+    if (lf > 0 && effRes > 0) out *= 1 - lf * (effRes / 100)
+  }
+  return out
 }
 
 function enemyApsMultiplier(stats: ComputedBuildStats): number {
@@ -99,11 +184,13 @@ type PlayerHitOutcome = 'miss' | 'enemy_blocked' | 'hit'
 function resolvePlayerAttack(
   enemy: DemoEnemyDef,
   enemyLife: number,
-  stats: ComputedBuildStats
+  stats: ComputedBuildStats,
+  attackOpts?: { targetTakesIncreasedDamagePct: number }
 ): { damage: number; outcome: PlayerHitOutcome } {
-  const miss =
-    Math.random() * 100
-    < computeEvasionChancePercent(stats.accuracy, enemy.evasionRating, 0)
+  const evadePct = stats.hitsCannotBeEvaded
+    ? 0
+    : computeEvasionChancePercent(stats.accuracy, enemy.evasionRating, 0)
+  const miss = Math.random() * 100 < evadePct
   if (miss) return { damage: 0, outcome: 'miss' }
 
   const blk = enemy.blockChance ?? 0
@@ -136,6 +223,8 @@ function resolvePlayerAttack(
     base *= 1 + outgoingPlayerIncreasedDamageFrac(stats)
     const frac = enemyLife / Math.max(1, enemy.maxLife)
     base *= enemyDamageTakenMultiplier(stats, frac)
+    const shockPct = attackOpts?.targetTakesIncreasedDamagePct ?? 0
+    if (shockPct > 0) base *= 1 + shockPct / 100
 
     total += mitigatedPlayerHitVsArmor(enemy, stats, base)
   }
@@ -143,6 +232,135 @@ function resolvePlayerAttack(
   const outcome: PlayerHitOutcome =
     blockedStrikes === strikes && strikes > 0 ? 'enemy_blocked' : 'hit'
   return { damage: total, outcome }
+}
+
+const BASE_BLEED_SEC = 5
+const BASE_POISON_SEC = 4
+const BASE_IGNITE_SEC = 4
+const BASE_SHOCK_CHILL_SEC = 4
+const DOT_LOG_INTERVAL = 0.45
+
+function refreshDebuffExpiry(state: EnemyAilmentRuntime, t: number): void {
+  if (state.shockUntil > 0 && t >= state.shockUntil) {
+    state.shockMorePct = 0
+    state.shockUntil = 0
+  }
+  if (state.chillUntil > 0 && t >= state.chillUntil) {
+    state.chillActionMult = 1
+    state.chillUntil = 0
+  }
+}
+
+function activeShockPct(state: EnemyAilmentRuntime, t: number): number {
+  return t < state.shockUntil ? state.shockMorePct : 0
+}
+
+function activeChillMult(state: EnemyAilmentRuntime, t: number): number {
+  return t < state.chillUntil ? state.chillActionMult : 1
+}
+
+function formatActiveEnemyAilmentSuffix(state: EnemyAilmentRuntime, t: number): string {
+  const shockLive = activeShockPct(state, t)
+  const chillM = activeChillMult(state, t)
+  const parts: string[] = []
+  if (shockLive > 0) parts.push(`shock ailment +${shockLive.toFixed(0)}% dmg taken`)
+  if (chillM < 1 - 1e-6) parts.push(`chill ailment ${((1 - chillM) * 100).toFixed(0)}% slow`)
+  return parts.length ? ` · ${parts.join(' · ')}` : ''
+}
+
+/**
+ * Demo ailment model: on hit, roll bleed / poison / elemental ailments from sheet stats.
+ * Damaging ailments add timed DoT instances; shock/chill use Non-Damaging Ailment Effect-style scaling.
+ */
+function applyPlayerAilmentsOnHit(
+  stats: ComputedBuildStats,
+  mitigatedDamage: number,
+  enemyMaxLife: number,
+  t: number,
+  state: EnemyAilmentRuntime,
+  log: BattleLogEntry[],
+  maxLog: number,
+  debuffEvents: EnemyDebuffEvent[]
+): void {
+  if (mitigatedDamage <= 0) return
+
+  const durMult = 1 + stats.ailmentDurationBonus / 100
+  const dotMult =
+    (1 + stats.damageOverTimeMultiplier / 100) * (stats.dotDamageMoreMultiplier ?? 1)
+  const portions = damagePortionsFromHit(stats, mitigatedDamage)
+
+  const tryLogAilment = (msg: string) => {
+    if (log.length < maxLog) log.push({ t, kind: 'ailment', message: msg })
+  }
+
+  if (portions.physical > 0.01 && Math.random() * 100 < stats.bleedChance) {
+    const dps = ((portions.physical * 0.55) / BASE_BLEED_SEC) * dotMult
+    state.dots.push({
+      kind: 'bleed',
+      dps,
+      expiresAt: t + BASE_BLEED_SEC * durMult,
+    })
+    tryLogAilment(`Ailment — Bleed (DoT): ~${dps.toFixed(1)} DPS for ${(BASE_BLEED_SEC * durMult).toFixed(1)}s`)
+  }
+
+  if (Math.random() * 100 < stats.poisonChance) {
+    const dps = ((mitigatedDamage * 0.45) / BASE_POISON_SEC) * dotMult
+    state.dots.push({
+      kind: 'poison',
+      dps,
+      expiresAt: t + BASE_POISON_SEC * durMult,
+    })
+    tryLogAilment(`Ailment — Poison (DoT): ~${dps.toFixed(1)} DPS for ${(BASE_POISON_SEC * durMult).toFixed(1)}s`)
+  }
+
+  const gen = stats.elementalAilmentChance
+
+  if (portions.fire > 0.01) {
+    const pIgn = Math.min(100, gen + stats.igniteInflictChanceBonus)
+    if (Math.random() * 100 < pIgn) {
+      const dps = ((portions.fire * 0.5) / BASE_IGNITE_SEC) * dotMult
+      state.dots.push({
+        kind: 'ignite',
+        dps,
+        expiresAt: t + BASE_IGNITE_SEC * durMult,
+      })
+      tryLogAilment(
+        `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${(BASE_IGNITE_SEC * durMult).toFixed(1)}s`
+      )
+    }
+  }
+
+  if (portions.lightning > 0.01) {
+    const pShock = Math.min(100, gen + stats.shockInflictChanceBonus)
+    if (Math.random() * 100 < pShock) {
+      const effectPct = computeNonDamagingAilmentEffectPercent(portions.lightning, enemyMaxLife, 0)
+      const shock = Math.min(50, Math.max(5, effectPct * 1.15))
+      const dur = BASE_SHOCK_CHILL_SEC * durMult
+      state.shockMorePct = Math.max(state.shockMorePct, shock)
+      state.shockUntil = Math.max(state.shockUntil, t + dur)
+      debuffEvents.push({ t, kind: 'shock', magnitudePct: shock, durationSec: dur })
+      tryLogAilment(
+        `Ailment — Shock: enemy takes +${shock.toFixed(0)}% damage from your hits (${dur.toFixed(1)}s)`
+      )
+    }
+  }
+
+  if (portions.cold > 0.01) {
+    const pChill = Math.min(100, gen + stats.chillInflictChanceBonus)
+    if (Math.random() * 100 < pChill) {
+      const effectPct = computeNonDamagingAilmentEffectPercent(portions.cold, enemyMaxLife, 0)
+      const chillPct = Math.min(30, Math.max(5, effectPct * 0.85))
+      const dur = BASE_SHOCK_CHILL_SEC * durMult
+      const mult = 1 - chillPct / 100
+      state.chillActionMult =
+        state.chillUntil > t ? Math.min(state.chillActionMult, mult) : mult
+      state.chillUntil = Math.max(state.chillUntil, t + dur)
+      debuffEvents.push({ t, kind: 'chill', magnitudePct: chillPct, durationSec: dur })
+      tryLogAilment(
+        `Ailment — Chill: enemy action speed −${chillPct.toFixed(0)}% (${dur.toFixed(1)}s)`
+      )
+    }
+  }
 }
 
 function resolveEnemyAttack(
@@ -259,25 +477,112 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   const apsEnemy = enemy.aps * enemyApsMultiplier(stats)
   const firstHitFlag = { used: false }
 
+  const ailmentState: EnemyAilmentRuntime = {
+    dots: [],
+    shockMorePct: 0,
+    shockUntil: 0,
+    chillActionMult: 1,
+    chillUntil: 0,
+  }
+
   const log: BattleLogEntry[] = [
     { t: 0, kind: 'phase', message: `Encounter: ${enemy.name}` },
   ]
 
   let hitsPlayer = 0
   let hitsEnemy = 0
+  let totalDotDamage = 0
+  let lastDotLogT = -DOT_LOG_INTERVAL
+  let lastDebuffPulseT = -DOT_LOG_INTERVAL
+  let dotLogAcc = { bleed: 0, poison: 0, ignite: 0 }
+  const enemyDebuffEvents: EnemyDebuffEvent[] = []
 
   while (t < maxDuration) {
     if (player.life <= 0) break
     if (enemyLife <= 0) break
+
+    refreshDebuffExpiry(ailmentState, t)
+
+    ailmentState.dots = ailmentState.dots.filter((d) => d.expiresAt > t)
+    let dotDpsBleed = 0
+    let dotDpsPoison = 0
+    let dotDpsIgnite = 0
+    for (const d of ailmentState.dots) {
+      if (d.kind === 'bleed') dotDpsBleed += d.dps
+      else if (d.kind === 'poison') dotDpsPoison += d.dps
+      else dotDpsIgnite += d.dps
+    }
+    const dotDpsTotal = dotDpsBleed + dotDpsPoison + dotDpsIgnite
+    if (dotDpsTotal > 0) {
+      const tick = dotDpsTotal * dt
+      enemyLife -= tick
+      totalDotDamage += tick
+      dotLogAcc.bleed += dotDpsBleed * dt
+      dotLogAcc.poison += dotDpsPoison * dt
+      dotLogAcc.ignite += dotDpsIgnite * dt
+      if (t - lastDotLogT + 1e-9 >= DOT_LOG_INTERVAL && log.length < maxLog) {
+        const parts: string[] = []
+        if (dotLogAcc.bleed > 0) parts.push(`bleed ${dotLogAcc.bleed.toFixed(1)}`)
+        if (dotLogAcc.poison > 0) parts.push(`poison ${dotLogAcc.poison.toFixed(1)}`)
+        if (dotLogAcc.ignite > 0) parts.push(`ignite ${dotLogAcc.ignite.toFixed(1)}`)
+        const sum = dotLogAcc.bleed + dotLogAcc.poison + dotLogAcc.ignite
+        const ailSuf = formatActiveEnemyAilmentSuffix(ailmentState, t)
+        if (ailSuf) lastDebuffPulseT = t
+        log.push({
+          t,
+          kind: 'dot_tick',
+          message: `DoT — ${sum.toFixed(1)} total (${parts.join(', ')}) · ${Math.max(0, enemyLife).toFixed(0)} enemy life left${ailSuf}`,
+          damage: sum,
+        })
+        dotLogAcc = { bleed: 0, poison: 0, ignite: 0 }
+        lastDotLogT = t
+      }
+    }
+
+    const shockLive = activeShockPct(ailmentState, t)
+    const chillM = activeChillMult(ailmentState, t)
+    const enemyDebuffActive = shockLive > 0 || chillM < 1 - 1e-6
+    if (
+      enemyDebuffActive &&
+      dotDpsTotal <= 0 &&
+      t - lastDebuffPulseT + 1e-9 >= DOT_LOG_INTERVAL &&
+      log.length < maxLog
+    ) {
+      const parts: string[] = []
+      if (shockLive > 0) parts.push(`shocked +${shockLive.toFixed(0)}% damage taken`)
+      if (chillM < 1 - 1e-6) parts.push(`chilled ${((1 - chillM) * 100).toFixed(0)}% action slow`)
+      log.push({
+        t,
+        kind: 'ailment',
+        message: `Ailment — active on enemy: ${parts.join(' · ')}`,
+      })
+      lastDebuffPulseT = t
+    }
 
     const pAps = playerApsWithBerserker(stats, player.life)
 
     if (t + 1e-9 >= nextPlayer) {
       if (player.mana >= stats.manaCostPerAttack) {
         player.mana -= stats.manaCostPerAttack
-        const { damage, outcome } = resolvePlayerAttack(enemy, enemyLife, stats)
+        const shockNow = activeShockPct(ailmentState, t)
+        const { damage, outcome } = resolvePlayerAttack(enemy, enemyLife, stats, {
+          targetTakesIncreasedDamagePct: shockNow,
+        })
         enemyLife -= damage
-        if (damage > 0) hitsPlayer++
+        if (damage > 0) {
+          hitsPlayer++
+          const gainOnHit =
+            (stats.lifeOnHit ?? 0)
+            + damage * ((stats.lifeLeechFromHitDamagePercent ?? 0) / 100)
+            + damagePortionsFromHit(stats, damage).physical
+              * ((stats.lifeLeechFromPhysicalHitPercent ?? 0) / 100)
+          if (gainOnHit !== 0) {
+            player.life = Math.min(
+              stats.maxLife,
+              Math.max(0, player.life + gainOnHit)
+            )
+          }
+        }
         if (log.length < maxLog) {
           const msg =
             outcome === 'miss'
@@ -289,12 +594,25 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
                   : 'Glancing hit (no damage)'
           log.push({ t, kind: 'player_attack', message: msg, damage })
         }
+        if (damage > 0) {
+          applyPlayerAilmentsOnHit(
+            stats,
+            damage,
+            enemy.maxLife,
+            t,
+            ailmentState,
+            log,
+            maxLog,
+            enemyDebuffEvents
+          )
+        }
       } else if (log.length < maxLog) {
         log.push({ t, kind: 'player_attack', message: 'Out of mana — attack skipped' })
       }
       nextPlayer = t + 1 / Math.max(0.2, pAps)
     }
 
+    const chillMult = activeChillMult(ailmentState, t)
     if (t + 1e-9 >= nextEnemy) {
       const r = resolveEnemyAttack(enemy, stats, player, firstHitFlag)
       if (!r.evaded && !r.dodged && r.damageToDisplay > 0) hitsEnemy++
@@ -310,7 +628,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           })
         }
       }
-      nextEnemy = t + 1 / Math.max(0.15, apsEnemy)
+      nextEnemy = t + 1 / Math.max(0.15, apsEnemy * chillMult)
     }
 
     player.mana = Math.min(stats.maxMana, player.mana + stats.manaRegenPerSecond * dt)
@@ -340,5 +658,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     log,
     hitsLandedPlayer: hitsPlayer,
     hitsLandedEnemy: hitsEnemy,
+    totalDotDamageToEnemy: totalDotDamage,
+    enemyDebuffEvents,
   }
 }

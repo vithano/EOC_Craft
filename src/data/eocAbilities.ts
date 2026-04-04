@@ -191,6 +191,61 @@ export function interpolateAttunementModifier(
   return { key: p0.key, value: v }
 }
 
+/** Sums "+N% chance to inflict …" lines from ability CSV text (demo combat / sheet). */
+export interface InflictAilmentLineBonus {
+  bleedChance: number
+  poisonChance: number
+  elementalAilmentChance: number
+  shockChance: number
+  chillChance: number
+  igniteChance: number
+}
+
+export function inflictAilmentBonusesFromAbilityLines(lines: string[]): InflictAilmentLineBonus {
+  const out: InflictAilmentLineBonus = {
+    bleedChance: 0,
+    poisonChance: 0,
+    elementalAilmentChance: 0,
+    shockChance: 0,
+    chillChance: 0,
+    igniteChance: 0,
+  }
+  for (const raw of lines) {
+    const l = raw.toLowerCase().trim()
+    const mBleed = l.match(/\+(\d+)%\s+chance\s+to\s+inflict\s+bleeding/)
+    if (mBleed) {
+      out.bleedChance += Number(mBleed[1])
+      continue
+    }
+    const mPoison = l.match(/\+(\d+)%\s+chance\s+to\s+inflict\s+poison/)
+    if (mPoison) {
+      out.poisonChance += Number(mPoison[1])
+      continue
+    }
+    const mEle = l.match(/\+(\d+)%\s+chance\s+to\s+inflict\s+elemental\s+ailments?/)
+    if (mEle) {
+      out.elementalAilmentChance += Number(mEle[1])
+      continue
+    }
+    const mShock = l.match(/\+(\d+)%\s+chance\s+to\s+inflict\s+shock/)
+    if (mShock) {
+      out.shockChance += Number(mShock[1])
+      continue
+    }
+    const mChill = l.match(/\+(\d+)%\s+chance\s+to\s+inflict\s+chill/)
+    if (mChill) {
+      out.chillChance += Number(mChill[1])
+      continue
+    }
+    const mIgnite = l.match(/\+(\d+)%\s+chance\s+to\s+inflict\s+ignite/)
+    if (mIgnite) {
+      out.igniteChance += Number(mIgnite[1])
+      continue
+    }
+  }
+  return out
+}
+
 /** Extra strikes beyond the default first strike (attack abilities only). */
 export function extraStrikesFromAbilityLines(lines: string[]): number {
   let add = 0;

@@ -165,5 +165,43 @@ function normalizeEquipment(
     energyShieldLessMultFromGear:
       Number(z.energyShieldLessMultFromGear) > 0 ? Number(z.energyShieldLessMultFromGear) : d.energyShieldLessMultFromGear,
     flatEnergyShieldFromGear: Number(z.flatEnergyShieldFromGear) || 0,
+    weaponEffectiveAps:
+      z.weaponEffectiveAps != null && !Number.isNaN(Number(z.weaponEffectiveAps))
+        ? Number(z.weaponEffectiveAps)
+        : d.weaponEffectiveAps,
+    weaponBaseCritChance:
+      z.weaponBaseCritChance != null && !Number.isNaN(Number(z.weaponBaseCritChance))
+        ? Number(z.weaponBaseCritChance)
+        : d.weaponBaseCritChance,
+    blockChanceFromGear: Number(z.blockChanceFromGear) || 0,
+    pctIncreasedCriticalHitChanceFromGear:
+      Number(z.pctIncreasedCriticalHitChanceFromGear) || 0,
+    increasedElementalDamageFromGear: Number(z.increasedElementalDamageFromGear) || 0,
+    bleedInflictChanceFromGear: Number(z.bleedInflictChanceFromGear) || 0,
+    poisonInflictChanceFromGear: Number(z.poisonInflictChanceFromGear) || 0,
+    elementalAilmentInflictChanceFromGear:
+      Number(z.elementalAilmentInflictChanceFromGear) || 0,
+    chillInflictChanceFromGear: Number(z.chillInflictChanceFromGear) || 0,
+    shockInflictChanceFromGear: Number(z.shockInflictChanceFromGear) || 0,
+    igniteInflictChanceFromGear: Number(z.igniteInflictChanceFromGear) || 0,
+    dotDamageMoreMultFromGear:
+      Number(z.dotDamageMoreMultFromGear) > 0 ? Number(z.dotDamageMoreMultFromGear) : d.dotDamageMoreMultFromGear,
+    strikesMoreMultFromGear:
+      Number(z.strikesMoreMultFromGear) > 0 ? Number(z.strikesMoreMultFromGear) : d.strikesMoreMultFromGear,
+    attackSpeedLessMultFromGear:
+      Number(z.attackSpeedLessMultFromGear) > 0 ? Number(z.attackSpeedLessMultFromGear) : d.attackSpeedLessMultFromGear,
+    accuracyLessMultFromGear:
+      Number(z.accuracyLessMultFromGear) > 0 ? Number(z.accuracyLessMultFromGear) : d.accuracyLessMultFromGear,
+    lifeOnHitFromGear: Number(z.lifeOnHitFromGear) || 0,
+    lifeLeechFromHitDamagePercentFromGear:
+      Number(z.lifeLeechFromHitDamagePercentFromGear) || 0,
+    lifeLeechFromPhysicalHitPercentFromGear:
+      Number(z.lifeLeechFromPhysicalHitPercentFromGear) || 0,
+    physicalConvertedToFirePctFromGear: Number(z.physicalConvertedToFirePctFromGear) || 0,
+    physicalConvertedToColdPctFromGear: Number(z.physicalConvertedToColdPctFromGear) || 0,
+    physicalConvertedToLightningPctFromGear: Number(z.physicalConvertedToLightningPctFromGear) || 0,
+    lightningPenetrationFromGear: Number(z.lightningPenetrationFromGear) || 0,
+    hitsCannotBeEvadedFromGear: Boolean(z.hitsCannotBeEvadedFromGear),
+    cannotDealCriticalStrikesFromGear: Boolean(z.cannotDealCriticalStrikesFromGear),
   };
 }
