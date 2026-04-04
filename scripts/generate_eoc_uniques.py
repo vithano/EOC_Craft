@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CSV_PATH = ROOT / "Echos of Creation List of Uniques (1.3.2) - Sheet1(1).csv"
+CSV_PATH = ROOT / "uniques(1.3.2).csv"
 OUT_PATH = ROOT / "src" / "data" / "eocUniques.generated.json"
 
 RANGE_RE = re.compile(

@@ -178,6 +178,8 @@ export interface UniqueGearStatPatch {
   physicalTakenAsFirePercentFromGear?: number;
   physicalTakenAsColdPercentFromGear?: number;
   physicalTakenAsLightningPercentFromGear?: number;
+  /** Flat reduced physical damage taken (additive, e.g. The Parallax "take 8 reduced physical damage"). */
+  reducedPhysicalDamageTakenFromGear?: number;
 
   /** % increased effect of shock/chill you inflict (demo ailments). */
   nonDamagingAilmentEffectIncreasedFromGear?: number;
@@ -860,6 +862,9 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/-\s*(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+to\s+maximum\s+chance\s+to\s+block\b/i);
     if (m) add({ maxBlockChanceBonusFromGear: -Math.abs(pctFromParenOrSingle(m)) });
 
+    m = l.match(/take\s+(?:\(([\d.]+)\s+-\s+([\d.]+)\)|([\d.]+))\s+reduced\s+physical\s+damage\b/i);
+    if (m) add({ reducedPhysicalDamageTakenFromGear: pctFromParenOrSingle(m) });
+
     m = l.match(
       /take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+physical\s+damage\s+as\s+chaos\s+damage\b/i
     );
@@ -978,9 +983,9 @@ export function equipmentModifiersFromUniqueTexts(
     if (m) add({ pctIncreasedAttackSpeedFromGear: num(m)!, pctIncreasedCastSpeedFromGear: num(m)! });
 
     m = l.match(
-      /\+\(([\d.]+)\s+to\s+([\d.]+)\)%\s+to\s+base\s+ciritcal\s+chance\s+hit\s+chance\b/i
+      /\+(\d+(?:\.\d+)?)%\s+to\s+base\s+critcal\s+hit\s+chance\b/i
     );
-    if (m) add({ attackBaseCritChanceBonusFromGear: pctFromParenOrSingle(m) });
+    if (m) add({ attackBaseCritChanceBonusFromGear: num(m)! });
 
     m = l.match(/([\d.]+)%\s+increased\s+fire\s+damage\b/i);
     if (m) add({ increasedFireDamageFromGear: num(m)! });

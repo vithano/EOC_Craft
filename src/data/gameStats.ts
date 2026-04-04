@@ -256,6 +256,8 @@ export interface EquipmentModifiers {
   physicalTakenAsFirePercentFromGear: number
   physicalTakenAsColdPercentFromGear: number
   physicalTakenAsLightningPercentFromGear: number
+  /** Flat reduced physical damage taken from gear (added on top of armour reduction). */
+  reducedPhysicalDamageTakenFromGear: number
 
   nonDamagingAilmentEffectIncreasedFromGear: number
   chillInflictEffectMultFromGear: number
@@ -396,6 +398,8 @@ export interface ComputedBuildStats {
   physicalDamageTakenAsColdPercent: number
   physicalDamageTakenAsLightningPercent: number
   elementalDamageTakenAsChaosPercent: number
+  /** Flat reduced physical damage taken (from gear + Arcanist bonus). */
+  reducedPhysicalDamageTaken: number
   /** % increased shock/chill effect you inflict (demo). */
   nonDamagingAilmentEffectIncreasedPercent: number
   chillInflictEffectMult: number
@@ -586,6 +590,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     physicalTakenAsFirePercentFromGear: 0,
     physicalTakenAsColdPercentFromGear: 0,
     physicalTakenAsLightningPercentFromGear: 0,
+    reducedPhysicalDamageTakenFromGear: 0,
 
     nonDamagingAilmentEffectIncreasedFromGear: 0,
     chillInflictEffectMultFromGear: 1,
@@ -922,6 +927,9 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.physicalTakenAsLightningPercentFromGear !== undefined) {
     addNum('physicalTakenAsLightningPercentFromGear', p.physicalTakenAsLightningPercentFromGear)
   }
+  if (p.reducedPhysicalDamageTakenFromGear !== undefined) {
+    addNum('reducedPhysicalDamageTakenFromGear', p.reducedPhysicalDamageTakenFromGear)
+  }
   if (p.nonDamagingAilmentEffectIncreasedFromGear !== undefined) {
     addNum('nonDamagingAilmentEffectIncreasedFromGear', p.nonDamagingAilmentEffectIncreasedFromGear)
   }
@@ -1157,7 +1165,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     1 + u('increasedDexterity') / 100 + eq.pctIncreasedDexterityFromGear / 100 + incAllAttr
   const intMult =
     1 + u('increasedIntelligence') / 100 + eq.pctIncreasedIntelligenceFromGear / 100 + incAllAttr
-
   str  = Math.round(str  * strMult)
   dex  = Math.round(dex  * dexMult)
   int_ = Math.round(int_ * intMult)
@@ -1283,7 +1290,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const lightningRes = Math.min(maxLightningRes, resistAllFlat + eq.pctLightningResFromGear)
   const chaosRes = Math.min(
     maxChaosRes,
-    u('increasedChaosResistance') + resistAllFlat + eq.pctChaosResFromGear
+    u('increasedChaosResistance') + eq.pctChaosResFromGear
   )
 
   // -------------------------------------------------------------------------
@@ -1363,7 +1370,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + critFromDex
   const attackCritFlatBase =
     baseCritChance + critFromAssassin + eq.attackBaseCritChanceBonusFromGear + eq.critChanceBonus
-  let critChance = Math.min(95, attackCritFlatBase * (1 + critFromUpgrades / 100))
+  let critChance = Math.min(100, attackCritFlatBase * (1 + critFromUpgrades / 100))
   let critMultiplier = BASE_GAME_STATS.critMultiplier
   // -------------------------------------------------------------------------
   // 17. Attacks per second
@@ -1532,7 +1539,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             aps *= 1 + v / 100
           } else if (k === 'increased critical hit chance') {
             critChance = Math.min(
-              95,
+              100,
               attackCritFlatBase * (1 + (critFromUpgrades + v) / 100)
             )
           } else if (k === 'increased strikes per attack') {
@@ -1608,7 +1615,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           const spellCritFlatBase =
             spellBaseCrit + critFromAssassin + eq.critChanceBonus + eq.spellBaseCritChanceBonusFromGear
           critChance = Math.min(
-            95,
+            100,
             spellCritFlatBase * (1 + (critFromUpgrades + spellAttCritInc) / 100)
           )
           const smin = Math.round(scaledHit.min * added * (1 + incFrac))
@@ -1816,6 +1823,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const physicalDamageTakenAsColdPercent = eq.physicalTakenAsColdPercentFromGear
   const physicalDamageTakenAsLightningPercent = eq.physicalTakenAsLightningPercentFromGear
   const elementalDamageTakenAsChaosPercent = eq.elementalTakenAsChaosPercentFromGear
+  // Arcanist class bonus: take 15% reduced physical damage while you have energy shield
+  const reducedPhysicalDamageTaken =
+    eq.reducedPhysicalDamageTakenFromGear + (bonus('arcanist') ? 15 : 0)
   const nonDamagingAilmentEffectIncreasedPercent = eq.nonDamagingAilmentEffectIncreasedFromGear
   const chillInflictEffectMult = eq.chillInflictEffectMultFromGear
   const dealNoDamageExceptCrit = eq.dealNoDamageExceptCritFromGear
@@ -1927,6 +1937,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     physicalDamageTakenAsColdPercent,
     physicalDamageTakenAsLightningPercent,
     elementalDamageTakenAsChaosPercent,
+    reducedPhysicalDamageTaken,
     nonDamagingAilmentEffectIncreasedPercent,
     chillInflictEffectMult,
     dealNoDamageExceptCrit,

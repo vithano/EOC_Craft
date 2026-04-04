@@ -22,42 +22,49 @@ export type StoredPlannerPayload = BuildConfig & {
   abilitySelection?: AbilitySelectionState;
 };
 
-export function loadStoredPlanner(): StoredPlannerPayload | null {
-  if (typeof window === "undefined") return null;
+/**
+ * Parse the same JSON shape written to `localStorage` under {@link EOC_BUILD_STORAGE_KEY}.
+ * Use for import-from-string; invalid JSON or non-object root returns null.
+ */
+export function parseStoredPlannerJson(raw: string): StoredPlannerPayload | null {
   try {
-    const raw = localStorage.getItem(EOC_BUILD_STORAGE_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw) as Partial<StoredPlannerPayload>;
-    if (!data || typeof data !== "object") return null;
-    const equippedRaw =
-      data.equipped && typeof data.equipped === "object"
-        ? data.equipped
-        : undefined;
-    const equipped = equippedRaw
-      ? normalizeEquippedMap(equippedRaw as Record<string, unknown>)
-      : undefined;
-    const hasInventoryKey = Object.prototype.hasOwnProperty.call(data, "inventory");
-    const inventory = hasInventoryKey ? normalizeInventory(data.inventory) : undefined;
-    const abilityRaw =
-      data.ability ??
-      (data as { abilitySelection?: unknown }).abilitySelection ??
-      undefined;
-    const ability = normalizeAbilitySelection(abilityRaw);
-    const hasAbility =
-      ability.abilityId !== null || ability.abilityLevel > 0 || ability.attunementPct > 0;
-    return {
-      upgradeLevels:
-        data.upgradeLevels && typeof data.upgradeLevels === "object"
-          ? data.upgradeLevels
-          : {},
-      equipmentModifiers: normalizeEquipment(data.equipmentModifiers),
-      ...(equipped ? { equipped } : {}),
-      ...(inventory !== undefined ? { inventory } : {}),
-      ...(hasAbility ? { ability } : {}),
-    };
+    const data = JSON.parse(raw) as unknown;
+    return normalizePlannerPayload(data);
   } catch {
     return null;
   }
+}
+
+function normalizePlannerPayload(data: unknown): StoredPlannerPayload | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Partial<StoredPlannerPayload>;
+  const equippedRaw =
+    d.equipped && typeof d.equipped === "object" ? d.equipped : undefined;
+  const equipped = equippedRaw
+    ? normalizeEquippedMap(equippedRaw as Record<string, unknown>)
+    : undefined;
+  const hasInventoryKey = Object.prototype.hasOwnProperty.call(d, "inventory");
+  const inventory = hasInventoryKey ? normalizeInventory(d.inventory) : undefined;
+  const abilityRaw =
+    d.ability ?? (d as { abilitySelection?: unknown }).abilitySelection ?? undefined;
+  const ability = normalizeAbilitySelection(abilityRaw);
+  const hasAbility =
+    ability.abilityId !== null || ability.abilityLevel > 0 || ability.attunementPct > 0;
+  return {
+    upgradeLevels:
+      d.upgradeLevels && typeof d.upgradeLevels === "object" ? d.upgradeLevels : {},
+    equipmentModifiers: normalizeEquipment(d.equipmentModifiers),
+    ...(equipped ? { equipped } : {}),
+    ...(inventory !== undefined ? { inventory } : {}),
+    ...(hasAbility ? { ability } : {}),
+  };
+}
+
+export function loadStoredPlanner(): StoredPlannerPayload | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(EOC_BUILD_STORAGE_KEY);
+  if (!raw) return null;
+  return parseStoredPlannerJson(raw);
 }
 
 /** @deprecated use loadStoredPlanner */
@@ -277,6 +284,7 @@ function normalizeEquipment(
     physicalTakenAsFirePercentFromGear: Number(z.physicalTakenAsFirePercentFromGear) || 0,
     physicalTakenAsColdPercentFromGear: Number(z.physicalTakenAsColdPercentFromGear) || 0,
     physicalTakenAsLightningPercentFromGear: Number(z.physicalTakenAsLightningPercentFromGear) || 0,
+    reducedPhysicalDamageTakenFromGear: Number(z.reducedPhysicalDamageTakenFromGear) || 0,
     nonDamagingAilmentEffectIncreasedFromGear:
       Number(z.nonDamagingAilmentEffectIncreasedFromGear) || 0,
     chillInflictEffectMultFromGear:

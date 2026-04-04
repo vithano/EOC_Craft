@@ -93,7 +93,7 @@
         "% less energy shield"
       ],
       [
-        "Hits penetrate 10% of lighting resistance"
+        "Hits penetrate 10% of lightning resistance"
       ],
       [
         "Abilities gain additional base mana cost equal to 4% of maximum energy"
@@ -1310,7 +1310,7 @@
         "% increased local attack speed"
       ],
       [
-        "+((2-5)% local base critical hit chance"
+        "+(2-5)% local base critical hit chance"
       ],
       [
         "50% chance to inflict poison with attacks"
@@ -2544,7 +2544,7 @@
     "twoHanded": false,
     "rollLabels": [
       "Value% increased mana",
-      "Value% increased intelligence",
+      "Value% to intelligence",
       "+ % to armour effectiveness against chaos damage"
     ],
     "innate": [
@@ -2565,7 +2565,7 @@
           "min": 10.0,
           "max": 20.0
         },
-        "% increased intelligence"
+        "% to intelligence"
       ],
       [
         "+",
@@ -3981,7 +3981,7 @@
     "maxEnhancement": 10,
     "twoHanded": false,
     "rollLabels": [
-      "Value% increased strength",
+      "Value% to strength",
       "+ % chance to deal double damage with attacks",
       "+ % chance to deal triple damage with attacks"
     ],
@@ -3995,7 +3995,7 @@
           "min": 10.0,
           "max": 20.0
         },
-        "% increased strength"
+        "% to strength"
       ],
       [
         "15% less attack speed"
@@ -4171,7 +4171,7 @@
     "maxEnhancement": 10,
     "twoHanded": false,
     "rollLabels": [
-      "+ % to base ciritcal chance hit chance",
+      "+ % to base critcal hit chance",
       "+ % to critical damage multiplier"
     ],
     "innate": [
@@ -4185,7 +4185,7 @@
           "min": 3.0,
           "max": 5.0
         },
-        "% to base ciritcal chance hit chance"
+        "% to base critcal hit chance"
       ],
       [
         "+",
@@ -4829,60 +4829,6 @@
     "baseBlockChance": null
   },
   {
-    "id": "unique_phantomstep",
-    "name": "Phantomstep",
-    "slot": "Boots",
-    "itemType": "Boots",
-    "reqLevel": 42,
-    "reqStr": null,
-    "reqDex": 52,
-    "reqInt": 52,
-    "enhancementBonus": "0.40%",
-    "enhancementBonusPerLevel": 0.4,
-    "maxEnhancement": 10,
-    "twoHanded": false,
-    "rollLabels": [
-      "Value% increased dexterity",
-      "+ % to maximum chance to dodge"
-    ],
-    "innate": [
-      "+4% chance to dodge"
-    ],
-    "lines": [
-      [
-        {
-          "type": "range",
-          "min": 10.0,
-          "max": 30.0
-        },
-        "% increased dexterity"
-      ],
-      [
-        "+",
-        {
-          "type": "range",
-          "min": 5.0,
-          "max": 15.0
-        },
-        "% to maximum chance to dodge"
-      ],
-      [
-        "+1% chance to dodge per 10 dexterity"
-      ],
-      [
-        "You cannot evade"
-      ]
-    ],
-    "baseDamageMin": null,
-    "baseDamageMax": null,
-    "baseCritChance": null,
-    "baseAttackSpeed": null,
-    "baseArmor": null,
-    "baseEvasion": 45,
-    "baseEnergyShield": 23,
-    "baseBlockChance": null
-  },
-  {
     "id": "unique_indignity",
     "name": "Indignity",
     "slot": "Boots",
@@ -4896,7 +4842,7 @@
     "maxEnhancement": 10,
     "twoHanded": false,
     "rollLabels": [
-      "+ increased dexterity",
+      "+ to dexterity",
       "Value% increased attack and cast speed",
       "+ % chance to dodge"
     ],
@@ -4911,7 +4857,7 @@
           "min": 20.0,
           "max": 40.0
         },
-        " increased dexterity"
+        " to dexterity"
       ],
       [
         {
@@ -4941,6 +4887,111 @@
     "baseArmor": null,
     "baseEvasion": 41,
     "baseEnergyShield": 21,
+    "baseBlockChance": null
+  },
+  {
+    "id": "unique_phantomstep",
+    "name": "Phantomstep",
+    "slot": "Boots",
+    "itemType": "Boots",
+    "reqLevel": 42,
+    "reqStr": null,
+    "reqDex": 52,
+    "reqInt": 52,
+    "enhancementBonus": "0.40%",
+    "enhancementBonusPerLevel": 0.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% to dexterity",
+      "+ % to maximum chance to dodge"
+    ],
+    "innate": [
+      "+4% chance to dodge"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to dexterity"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 15.0
+        },
+        "% to maximum chance to dodge"
+      ],
+      [
+        "+1% chance to dodge per 10 dexterity"
+      ],
+      [
+        "You cannot evade"
+      ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 45,
+    "baseEnergyShield": 23,
+    "baseBlockChance": null
+  },
+  {
+    "id": "unique_the_parallax",
+    "name": "The Parallax",
+    "slot": "Boots",
+    "itemType": "Boots",
+    "reqLevel": 56,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 150,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum mana"
+    ],
+    "innate": [
+      "24% increased energy shield"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 200.0
+        },
+        " to maximum mana"
+      ],
+      [
+        "take (4 - 12) reduced physical damage"
+      ],
+      [
+        "sacrifice 25% of your current mana per second"
+      ],
+      [
+        "1% more attack and cast speed per 50 current mana"
+      ],
+      [
+        "enemies have 1% less attack and cast speed per 100 current mana"
+      ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": 60,
     "baseBlockChance": null
   },
   {
@@ -7874,7 +7925,7 @@
     "maxEnhancement": 10,
     "twoHanded": false,
     "rollLabels": [
-      "Value% increased intelligence",
+      "Value% to intelligence",
       "+ to energy shield"
     ],
     "innate": [
@@ -7887,7 +7938,7 @@
           "min": 10.0,
           "max": 20.0
         },
-        "% increased intelligence"
+        "% to intelligence"
       ],
       [
         "+",

@@ -22,14 +22,17 @@ interface DotInstance {
   expiresAt: number
 }
 
+interface NonDotAilmentInstance {
+  magnitudePct: number
+  expiresAt: number
+}
+
 interface EnemyAilmentRuntime {
   dots: DotInstance[]
-  /** Current % increased damage the enemy takes from shock (0–50 capped). */
-  shockMorePct: number
-  shockUntil: number
-  /** Action speed multiplier on enemy (1 = normal, 0.85 = 15% chill). */
-  chillActionMult: number
-  chillUntil: number
+  /** Stacking shock instances; total capped at 50% increased damage taken. */
+  shocks: NonDotAilmentInstance[]
+  /** Stacking chill instances; total chill% capped at 30. */
+  chills: NonDotAilmentInstance[]
 }
 
 function avgHitByDamageType(stats: ComputedBuildStats): {
@@ -392,23 +395,14 @@ const BASE_IGNITE_SEC = 4
 const BASE_SHOCK_CHILL_SEC = 4
 const DOT_LOG_INTERVAL = 0.45
 
-function refreshDebuffExpiry(state: EnemyAilmentRuntime, t: number): void {
-  if (state.shockUntil > 0 && t >= state.shockUntil) {
-    state.shockMorePct = 0
-    state.shockUntil = 0
-  }
-  if (state.chillUntil > 0 && t >= state.chillUntil) {
-    state.chillActionMult = 1
-    state.chillUntil = 0
-  }
-}
-
 function activeShockPct(state: EnemyAilmentRuntime, t: number): number {
-  return t < state.shockUntil ? state.shockMorePct : 0
+  const total = state.shocks.reduce((sum, s) => s.expiresAt > t ? sum + s.magnitudePct : sum, 0)
+  return Math.min(50, total)
 }
 
 function activeChillMult(state: EnemyAilmentRuntime, t: number): number {
-  return t < state.chillUntil ? state.chillActionMult : 1
+  const totalPct = state.chills.reduce((sum, c) => c.expiresAt > t ? sum + c.magnitudePct : sum, 0)
+  return 1 - Math.min(30, totalPct) / 100
 }
 
 function formatActiveEnemyAilmentSuffix(state: EnemyAilmentRuntime, t: number): string {
@@ -491,8 +485,7 @@ function applyPlayerAilmentsOnHit(
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.lightning, enemyMaxLife, 0)
       const shock = Math.min(50, Math.max(5, effectPct * 1.15 * ndMult))
       const dur = BASE_SHOCK_CHILL_SEC * durMult
-      state.shockMorePct = Math.max(state.shockMorePct, shock)
-      state.shockUntil = Math.max(state.shockUntil, t + dur)
+      state.shocks.push({ magnitudePct: shock, expiresAt: t + dur })
       debuffEvents.push({ t, kind: 'shock', magnitudePct: shock, durationSec: dur })
       tryLogAilment(
         `Ailment — Shock: enemy takes +${shock.toFixed(0)}% damage from your hits (${dur.toFixed(1)}s)`
@@ -506,10 +499,7 @@ function applyPlayerAilmentsOnHit(
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.cold, enemyMaxLife, 0)
       const chillPct = Math.min(30, Math.max(5, effectPct * 0.85 * ndMult * chillOutMult))
       const dur = BASE_SHOCK_CHILL_SEC * durMult
-      const mult = 1 - chillPct / 100
-      state.chillActionMult =
-        state.chillUntil > t ? Math.min(state.chillActionMult, mult) : mult
-      state.chillUntil = Math.max(state.chillUntil, t + dur)
+      state.chills.push({ magnitudePct: chillPct, expiresAt: t + dur })
       debuffEvents.push({ t, kind: 'chill', magnitudePct: chillPct, durationSec: dur })
       tryLogAilment(
         `Ailment — Chill: enemy action speed −${chillPct.toFixed(0)}% (${dur.toFixed(1)}s)`
@@ -648,10 +638,8 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
 
   const ailmentState: EnemyAilmentRuntime = {
     dots: [],
-    shockMorePct: 0,
-    shockUntil: 0,
-    chillActionMult: 1,
-    chillUntil: 0,
+    shocks: [],
+    chills: [],
   }
 
   const log: BattleLogEntry[] = [
@@ -670,9 +658,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     if (player.life <= 0) break
     if (enemyLife <= 0) break
 
-    refreshDebuffExpiry(ailmentState, t)
-
     ailmentState.dots = ailmentState.dots.filter((d) => d.expiresAt > t)
+    ailmentState.shocks = ailmentState.shocks.filter((s) => s.expiresAt > t)
+    ailmentState.chills = ailmentState.chills.filter((c) => c.expiresAt > t)
     let dotDpsBleed = 0
     let dotDpsPoison = 0
     let dotDpsIgnite = 0

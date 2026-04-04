@@ -375,7 +375,6 @@ export default function EquipmentPanel({
     // Compute effective base stats from current rolls
     const resolvedTexts = [resolved.innateText, ...resolved.lineTexts].filter((t) => t.trim());
     const patch = equipmentModifiersFromUniqueTexts(resolvedTexts, { isWeapon });
-    console.log('patch', patch)
     const baseStatRows: { label: string; value: string }[] = [];
     let weaponDamageByType: HitDamageTypeRow[] = [];
     if (isWeapon) {

@@ -25,7 +25,7 @@ import {
   type AbilitySelectionState,
 } from "../data/gameStats";
 import { abilityMatchesWeapon, EOC_ABILITY_BY_ID, weaponAbilityTagFromItemId } from "../data/eocAbilities";
-import { loadStoredPlanner, saveStoredPlanner } from "../lib/eocBuildStorage";
+import { loadStoredPlanner, parseStoredPlannerJson, saveStoredPlanner } from "../lib/eocBuildStorage";
 import { NEXUS_TIER_ROWS } from "../data/nexusEnemyScaling";
 
 function equipmentModifiersFromEquippedMap(equipped: Record<string, EquippedEntry>) {
@@ -80,6 +80,8 @@ export default function BuildPlanner() {
   }, [equipped, inventory]);
   const [incomingDamage, setIncomingDamage] = useState(100);
   const [nexusTier, setNexusTier] = useState(0);
+  const [buildJsonImport, setBuildJsonImport] = useState("");
+  const [buildJsonImportError, setBuildJsonImportError] = useState<string | null>(null);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -268,6 +270,45 @@ export default function BuildPlanner() {
     return ids.size;
   }, [upgradeLevels]);
 
+  const applyBuildJsonImport = useCallback(() => {
+    setBuildJsonImportError(null);
+    const trimmed = buildJsonImport.trim();
+    if (!trimmed) {
+      setBuildJsonImportError("Paste a JSON string first.");
+      return;
+    }
+    const saved = parseStoredPlannerJson(trimmed);
+    if (!saved) {
+      setBuildJsonImportError("Could not parse JSON (invalid syntax or not an object).");
+      return;
+    }
+    setUpgradeLevels(saved.upgradeLevels ?? {});
+    setEquipped(migrateEquippedFromSave(saved.equipped));
+    if (Object.prototype.hasOwnProperty.call(saved, "inventory")) {
+      setInventory(saved.inventory ?? []);
+    } else {
+      setInventory(DEFAULT_INVENTORY.map((s) => ({ ...s })));
+    }
+    if (saved.ability) {
+      setAbility(normalizeAbilitySelection(saved.ability));
+    } else {
+      setAbility({ abilityId: null, abilityLevel: 0, attunementPct: 0 });
+    }
+    setBuildJsonImport("");
+  }, [buildJsonImport]);
+
+  const copyBuildJsonToClipboard = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
+    const payload = {
+      upgradeLevels,
+      equipmentModifiers,
+      ability,
+      equipped,
+      inventory,
+    };
+    void navigator.clipboard.writeText(JSON.stringify(payload));
+  }, [upgradeLevels, equipmentModifiers, ability, equipped, inventory]);
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <header id="planner-top" className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
@@ -279,9 +320,56 @@ export default function BuildPlanner() {
               <code className="text-zinc-400">computeBuildStats</code>
             </p>
           </div>
-          <Link href="/battle" className="text-sm text-blue-400 hover:text-blue-300 shrink-0">
-            Demo encounter →
-          </Link>
+          <div className="flex flex-col items-stretch sm:items-end gap-2 shrink-0 w-full sm:w-auto">
+            <Link href="/battle" className="text-sm text-blue-400 hover:text-blue-300">
+              Demo encounter →
+            </Link>
+            <details className="text-sm border border-zinc-700 rounded-lg bg-zinc-900/90 min-w-[min(100%,280px)]">
+              <summary className="cursor-pointer select-none px-3 py-2 text-zinc-400 hover:text-zinc-200 list-inside">
+                Import / export build (localStorage JSON)
+              </summary>
+              <div className="px-3 pb-3 pt-1 border-t border-zinc-800 space-y-2">
+                <p className="text-xs text-zinc-500">
+                  Paste the same JSON stored under <code className="text-zinc-400">eocCraftBuild</code>. Applying
+                  replaces the planner and persists on the next save (same as editing the UI).
+                </p>
+                <textarea
+                  className="w-full min-h-[120px] rounded-md border border-zinc-700 bg-zinc-950 text-zinc-200 text-xs font-mono p-2 resize-y disabled:opacity-50"
+                  placeholder='{"upgradeLevels":{…},"equipmentModifiers":{…},…}'
+                  value={buildJsonImport}
+                  onChange={(e) => {
+                    setBuildJsonImport(e.target.value);
+                    setBuildJsonImportError(null);
+                  }}
+                  disabled={!hydrated}
+                  spellCheck={false}
+                />
+                {buildJsonImportError ? (
+                  <p className="text-xs text-red-400" role="alert">
+                    {buildJsonImportError}
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium px-3 py-1.5"
+                    disabled={!hydrated}
+                    onClick={applyBuildJsonImport}
+                  >
+                    Apply import
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md border border-zinc-600 hover:bg-zinc-800 disabled:opacity-50 text-zinc-200 text-xs font-medium px-3 py-1.5"
+                    disabled={!hydrated}
+                    onClick={copyBuildJsonToClipboard}
+                  >
+                    Copy current to clipboard
+                  </button>
+                </div>
+              </div>
+            </details>
+          </div>
         </div>
       </header>
       <main className="py-6">
