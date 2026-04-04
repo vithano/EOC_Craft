@@ -7,7 +7,7 @@ export interface DemoEnemyDef {
   id: string
   name: string
   maxLife: number
-  armor: number
+  armour: number
   evasionRating: number
   accuracy: number
   damageMin: number

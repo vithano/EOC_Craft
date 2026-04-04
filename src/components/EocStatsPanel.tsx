@@ -2,6 +2,7 @@
 
 import type { ComputedBuildStats } from "../data/gameStats";
 import {
+  BASE_SHOCK_CHILL_DURATION_SEC,
   computeEvasionChancePercent,
   computeHitChancePercent,
   computeNonDamagingAilmentEffectPercent,
@@ -52,16 +53,16 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
   const evasionVsSpells = computeEvasionChancePercent(enemyAccuracy, stats.evasionRating / 2, flatFinalEv);
   const hitChanceVsEnemy = computeHitChancePercent(stats.accuracy, enemyEvasion, 0);
 
-  // Armor DR by damage type
-  const drPhys = computeDamageReductionPercentFromArmour(stats.armor, incomingDamage, 0, 90);
+  // Armour DR by damage type
+  const drPhys = computeDamageReductionPercentFromArmour(stats.armour, incomingDamage, 0, 90);
   const drEle = computeDamageReductionPercentFromArmour(
-    stats.armor * stats.armorVsElementalMultiplier,
+    stats.armour * stats.armourVsElementalMultiplier,
     incomingDamage,
     0,
     90
   );
   const drChaos = computeDamageReductionPercentFromArmour(
-    stats.armor * stats.armorVsChaosMultiplier,
+    stats.armour * stats.armourVsChaosMultiplier,
     incomingDamage,
     0,
     90
@@ -70,7 +71,7 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
   // Shock stats
   const shockChance = Math.min(100, stats.elementalAilmentChance + stats.shockInflictChanceBonus);
   const shockEffectInc = stats.nonDamagingAilmentEffectIncreasedPercent;
-  const shockDuration = 4 * (1 + stats.ailmentDurationBonus / 100);
+  const shockDuration = BASE_SHOCK_CHILL_DURATION_SEC * (1 + stats.ailmentDurationBonus / 100);
 
   // Ailment effect preview (post-mit)
   const damageReductionForPreview = drPhys;
@@ -182,7 +183,7 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
           <SectionHeader label="Defensive" />
           <StatRow
             label="Armour"
-            value={stats.armor}
+            value={stats.armour}
             sub={`(${drPhys.toFixed(0)}% phys, ${drEle.toFixed(0)}% ele, ${drChaos.toFixed(0)}% chaos)`}
           />
           <StatRow

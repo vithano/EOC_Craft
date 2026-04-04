@@ -6,6 +6,12 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
+/**
+ * Base duration (seconds) for shock and chill before increased ailment duration.
+ * Tuned to match in-game character sheet (e.g. 40% inc. duration → 1.8×1.4 = 2.52s).
+ */
+export const BASE_SHOCK_CHILL_DURATION_SEC = 1.8;
+
 /** Level 100 reference values (Evasion_Accuracy.csv notes). */
 export const LEVEL_100_PLAYER_ACCURACY = 317;
 export const LEVEL_100_ENEMY_ACCURACY = 327;

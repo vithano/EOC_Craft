@@ -162,7 +162,7 @@ def main() -> None:
         dmg_min, dmg_max = parse_phys_damage(row.get("physical damage") or "")
         base_crit = to_float_maybe(row.get("base critical hit chance") or "")
         base_aps = to_float_maybe(row.get("attack speed") or "")
-        base_armor = to_int_maybe(row.get("armor") or "")
+        base_armour = to_int_maybe(row.get("armour") or "")
         base_evasion = to_int_maybe(row.get("evasion") or "")
         base_es = to_int_maybe(row.get("energy shield") or "")
         base_block = to_float_maybe(row.get("chance to block") or "")
@@ -190,7 +190,7 @@ def main() -> None:
             "baseDamageMax": dmg_max,
             "baseCritChance": base_crit,
             "baseAttackSpeed": base_aps,
-            "baseArmor": base_armor,
+            "baseArmour": base_armour,
             "baseEvasion": base_evasion,
             "baseEnergyShield": base_es,
             "baseBlockChance": base_block,

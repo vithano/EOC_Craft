@@ -19,7 +19,7 @@ export interface ComputedStats {
   health: number;
   mana: number;
   damage: number;
-  armor: number;
+  armour: number;
   evasion: number;
   critChance: number;
   effectiveDamage: number;
@@ -38,13 +38,13 @@ export const FORMULA_DESCRIPTIONS: Record<string, string> = {
   health: 'baseHealth + (vitality * 10) + equipmentHealth',
   mana: 'baseMana + (intelligence * 8) + equipmentMana',
   damage: 'baseDamage + equipmentDamage + (strength * 2) + (intelligence * 1.5) + (agility * 0.5) + critBonus',
-  armor: 'equipmentArmor + (vitality * 1.5) + upgradeArmor',
+  armour: 'equipmentArmour + (vitality * 1.5) + upgradeArmour',
   evasion: 'equipmentEvasion + (agility * 1.2) + (dexterity * 0.8) + upgradeEvasion',
   critChance:
-    'computeBuildStats: min(95, flat * (1 + inc%/100)); flat = weaponOrGameBase + assassin + attackCritGear + critChanceBonus (spells: spellBase + assassin + critBonus + spellCritGear); inc = increased crit upgrades + gear inc% + 2%/10 DEX (× attr mult)',
+    'computeBuildStats: min(100, flat * (1 + inc%/100)); flat = weaponOrGameBase + assassin + attackCritGear + critChanceBonus (spells: spellBase + assassin + critBonus + spellCritGear); inc = increased crit upgrades + gear inc% + 2%/10 DEX (× attr mult)',
   effectiveDamage: 'damage * (1 + critChance / 100 * critMultiplier)',
   damageReduction:
-    'min(90, (armor / (500 * (incomingDamage / (incomingDamage + 500)) * 18 + armor)) * 100 + physicalDamageReduction)',
+    'min(90, (armour / (500 * (incomingDamage / (incomingDamage + 500)) * 18 + armour)) * 100 + physicalDamageReduction)',
   evasionChanceVsEnemy:
     'clamp(0..90, (1 - ((enemyAccuracy * 1.35) / (enemyAccuracy + (evasion * 0.1)))) * 100 + flatFinalEvasionChance)',
   hitChanceVsEnemy: '100 - evasionChanceVsEnemy(same inputs)',
@@ -151,8 +151,8 @@ export function computeStats(
     intelligence * 1.5 +
     agility * 0.5;
 
-  // PLACEHOLDER FORMULA: armor = equipArmor + vitality*1.5 + upgradeArmor
-  const armor = (em.armor ?? 0) + vitality * 1.5 + (um.armor ?? 0);
+  // PLACEHOLDER FORMULA: armour = equipArmour + vitality*1.5 + upgradeArmour
+  const armour = (em.armour ?? 0) + vitality * 1.5 + (um.armour ?? 0);
 
   // PLACEHOLDER FORMULA: evasion = equipEvasion + agility*1.2 + dexterity*0.8 + upgradeEvasion
   const evasion = (em.evasion ?? 0) + agility * 1.2 + dexterity * 0.8 + (um.evasion ?? 0);
@@ -168,7 +168,7 @@ export function computeStats(
   const maxDamageReduction = ctx.maxDamageReduction ?? 90;
 
   const damageReduction = computeDamageReductionPercentFromArmour(
-    armor,
+    armour,
     incomingDamage,
     physicalDamageReduction,
     maxDamageReduction
@@ -214,7 +214,7 @@ export function computeStats(
     health: Math.round(health),
     mana: Math.round(mana),
     damage: Math.round(damage),
-    armor: Math.round(armor),
+    armour: Math.round(armour),
     evasion: Math.round(evasion * 10) / 10,
     critChance: Math.round(critChance * 10) / 10,
     effectiveDamage: Math.round(effectiveDamage * 10) / 10,

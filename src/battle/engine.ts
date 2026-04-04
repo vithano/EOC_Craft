@@ -1,4 +1,5 @@
 import {
+  BASE_SHOCK_CHILL_DURATION_SEC,
   computeEvasionChancePercent,
   computeNonDamagingAilmentEffectPercent,
 } from '../data/eocFormulas'
@@ -119,9 +120,9 @@ function chaosDamageFraction(stats: ComputedBuildStats): number {
   return a.chaos / a.total
 }
 
-function mitigatedPlayerHitVsArmor(enemy: DemoEnemyDef, stats: ComputedBuildStats, raw: number): number {
-  const effArmor = enemy.armor * (1 - stats.armorIgnorePercent / 100)
-  const red = computeDamageReductionPercentFromArmour(effArmor, raw, 0, 90)
+function mitigatedPlayerHitVsArmour(enemy: DemoEnemyDef, stats: ComputedBuildStats, raw: number): number {
+  const effArmour = enemy.armour * (1 - stats.armourIgnorePercent / 100)
+  const red = computeDamageReductionPercentFromArmour(effArmour, raw, 0, 90)
   let out = raw * (1 - red / 100)
   const elePen = stats.elementalPenetrationPercent ?? 0
   const fr = enemy.fireResistancePercent ?? 0
@@ -381,7 +382,7 @@ function resolvePlayerAttack(
     const shockPct = attackOpts?.targetTakesIncreasedDamagePct ?? 0
     if (shockPct > 0) base *= 1 + shockPct / 100
 
-    total += mitigatedPlayerHitVsArmor(enemy, stats, base)
+    total += mitigatedPlayerHitVsArmour(enemy, stats, base)
   }
 
   const outcome: PlayerHitOutcome =
@@ -392,7 +393,6 @@ function resolvePlayerAttack(
 const BASE_BLEED_SEC = 5
 const BASE_POISON_SEC = 4
 const BASE_IGNITE_SEC = 4
-const BASE_SHOCK_CHILL_SEC = 4
 const DOT_LOG_INTERVAL = 0.45
 
 function activeShockPct(state: EnemyAilmentRuntime, t: number): number {
@@ -484,7 +484,7 @@ function applyPlayerAilmentsOnHit(
     if (Math.random() * 100 < pShock) {
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.lightning, enemyMaxLife, 0)
       const shock = Math.min(50, Math.max(5, effectPct * 1.15 * ndMult))
-      const dur = BASE_SHOCK_CHILL_SEC * durMult
+      const dur = BASE_SHOCK_CHILL_DURATION_SEC * durMult
       state.shocks.push({ magnitudePct: shock, expiresAt: t + dur })
       debuffEvents.push({ t, kind: 'shock', magnitudePct: shock, durationSec: dur })
       tryLogAilment(
@@ -498,7 +498,7 @@ function applyPlayerAilmentsOnHit(
     if (Math.random() * 100 < pChill) {
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.cold, enemyMaxLife, 0)
       const chillPct = Math.min(30, Math.max(5, effectPct * 0.85 * ndMult * chillOutMult))
-      const dur = BASE_SHOCK_CHILL_SEC * durMult
+      const dur = BASE_SHOCK_CHILL_DURATION_SEC * durMult
       state.chills.push({ magnitudePct: chillPct, expiresAt: t + dur })
       debuffEvents.push({ t, kind: 'chill', magnitudePct: chillPct, durationSec: dur })
       tryLogAilment(
@@ -513,7 +513,7 @@ function resolveEnemyAttack(
   stats: ComputedBuildStats,
   playerState: BattleParticipantState,
   firstHitThisEncounter: { used: boolean }
-): { damageToDisplay: number; fullBeforeArmour: number; mitigatedByArmor: number; evaded: boolean; dodged: boolean; blocked: boolean } {
+): { damageToDisplay: number; fullBeforeArmour: number; mitigatedByArmour: number; evaded: boolean; dodged: boolean; blocked: boolean } {
   const acc = enemy.accuracy
   const eva = stats.evasionRating
   const flat = flatEvasionFromClassBonuses(stats)
@@ -522,7 +522,7 @@ function resolveEnemyAttack(
     return {
       damageToDisplay: 0,
       fullBeforeArmour: 0,
-      mitigatedByArmor: 0,
+      mitigatedByArmour: 0,
       evaded: true,
       dodged: false,
       blocked: false,
@@ -533,7 +533,7 @@ function resolveEnemyAttack(
     return {
       damageToDisplay: 0,
       fullBeforeArmour: 0,
-      mitigatedByArmor: 0,
+      mitigatedByArmour: 0,
       evaded: false,
       dodged: true,
       blocked: false,
@@ -579,14 +579,14 @@ function resolveEnemyAttack(
     afterPath *= stats.blockDamageTakenMult ?? DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
   }
 
-  // Demo enemy uses physical hits only → full armor effectiveness (not elemental multiplier).
-  const red = computeDamageReductionPercentFromArmour(stats.armor, afterPath, 0, 90)
+  // Demo enemy uses physical hits only → full armour effectiveness (not elemental multiplier).
+  const red = computeDamageReductionPercentFromArmour(stats.armour, afterPath, 0, 90)
   const afterArmour = afterPath * (1 - red / 100)
   const afterConversion = mitigatedPhysicalDamageAfterConversion(stats, afterArmour)
 
   const prevented = Math.max(0, afterPath - afterArmour)
   if (blocked && stats.classBonusesActive.includes('templar')) {
-    playerState.energyShield += stats.armor * 0.02
+    playerState.energyShield += stats.armour * 0.02
     if (playerState.energyShield > stats.maxEnergyShield) {
       playerState.energyShield = stats.maxEnergyShield
     }
@@ -610,7 +610,7 @@ function resolveEnemyAttack(
   return {
     damageToDisplay: dealt,
     fullBeforeArmour: raw,
-    mitigatedByArmor: prevented,
+    mitigatedByArmour: prevented,
     evaded: false,
     dodged: false,
     blocked,

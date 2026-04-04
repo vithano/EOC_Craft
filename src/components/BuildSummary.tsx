@@ -48,7 +48,7 @@ export default function BuildSummary({
   const damageRating = Math.min(100, (stats.dps / 80) * 100);
   const defenseRating = Math.min(
     100,
-    (stats.armor / 400) * 50 + (stats.evasionRating / 2000) * 50 + stats.blockChance * 0.3
+    (stats.armour / 400) * 50 + (stats.evasionRating / 2000) * 50 + stats.blockChance * 0.3
   );
   const utilityRating = Math.min(
     100,

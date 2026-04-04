@@ -14,7 +14,7 @@ function uniqueItemsForGameSlot(gameSlot: string): EquipmentItem[] {
 const RING_UNIQUES = uniqueItemsForGameSlot('Ring');
 
 export interface ItemModifiers {
-  armor?: number;
+  armour?: number;
   damage?: number;
   strength?: number;
   agility?: number;

@@ -26,7 +26,7 @@ function plannerHasUsefulData(p: StoredPlannerPayload | null): boolean {
   const flat = p.equipmentModifiers;
   return (
     (flat.flatLife ?? 0) +
-      (flat.flatArmor ?? 0) +
+      (flat.flatArmour ?? 0) +
       (flat.flatDamageMin ?? 0) +
       (flat.flatDamageMax ?? 0) +
       (flat.strBonus ?? 0) +
@@ -189,13 +189,13 @@ export default function BattleDemoPage() {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Armor</span>
+              <span className="text-zinc-500 text-xs">Armour</span>
               <input
                 type="number"
                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.armor}
+                value={enemyDraft.armour}
                 onChange={(e) =>
-                  setEnemyDraft((d) => ({ ...d, armor: Math.max(0, Number(e.target.value) || 0) }))
+                  setEnemyDraft((d) => ({ ...d, armour: Math.max(0, Number(e.target.value) || 0) }))
                 }
               />
             </label>
@@ -345,7 +345,7 @@ export default function BattleDemoPage() {
               )}
             </div>
             <div>
-              Armor {stats.armor} · Evasion {stats.evasionRating}
+              Armour {stats.armour} · Evasion {stats.evasionRating}
             </div>
             <div>
               Block {stats.blockChance}% · Dodge {stats.dodgeChance}% · Acc {stats.accuracy}
@@ -371,7 +371,7 @@ export default function BattleDemoPage() {
             </div>
             <div>
               Dmg {activeEnemy.damageMin}–{activeEnemy.damageMax} · acc {activeEnemy.accuracy} · eva{" "}
-              {activeEnemy.evasionRating} · arm {activeEnemy.armor}
+              {activeEnemy.evasionRating} · arm {activeEnemy.armour}
               {activeEnemy.blockChance != null && activeEnemy.blockChance > 0
                 ? ` · ${activeEnemy.blockChance}% block`
                 : ""}

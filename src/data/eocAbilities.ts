@@ -53,36 +53,83 @@ export const EOC_MELEE_WEAPON_TAGS = [
 ] as const;
 
 /**
- * Sheet footer (1.3.2): attacks — `A + (B × 0.05)` per level step, with A = multiplier at previous level
- * and B = multiplier at ability level 0. Equivalent closed form: `B × (1 + 0.05 × L)`.
+ * Sheet footer (1.3.2): attacks — each level step `A_next = A_prev + B × 0.05` where
+ * `B` is the damage multiplier at ability level 0. CSV lists the multiplier at
+ * {@link EocAbilityDefinition.startingAbilityLevel}, not at level 0, so we recover
+ * `B0 = multAtStart / (1 + 0.05 × start)` then `mult(L) = B0 × (1 + 0.05 × L)`.
  */
 export function attackDamageMultiplierAtAbilityLevel(
-  baseMultiplierPct: number,
+  multiplierPctAtStartingLevel: number,
+  startingAbilityLevel: number,
   abilityLevel: number
 ): number {
-  const B = baseMultiplierPct;
+  const S = Math.max(0, Math.floor(startingAbilityLevel));
   const L = Math.max(0, Math.floor(abilityLevel));
-  return B * (1 + 0.05 * L);
+  const b0 = multiplierPctAtStartingLevel / (1 + 0.05 * S);
+  return b0 * (1 + 0.05 * L);
 }
 
 /**
  * Sheet footer: spells — each level multiplies previous base damage by
  * `1 + 0.44 × 0.935^(B - 1)` where B is the new ability level (1-indexed step).
+ * CSV spell hit values are at {@link EocAbilityDefinition.startingAbilityLevel}; only
+ * levels above that apply scaling.
  */
 export function spellBaseDamageAtAbilityLevel(
   baseMin: number,
   baseMax: number,
-  abilityLevel: number
+  abilityLevel: number,
+  startingAbilityLevel = 0
 ): { min: number; max: number } {
   let min = baseMin;
   let max = baseMax;
   const L = Math.max(0, Math.floor(abilityLevel));
-  for (let B = 1; B <= L; B++) {
+  const S = Math.max(0, Math.floor(startingAbilityLevel));
+  for (let B = S + 1; B <= L; B++) {
     const factor = 1 + 0.44 * 0.935 ** (B - 1);
     min *= factor;
     max *= factor;
   }
   return { min, max };
+}
+
+/**
+ * Mana cost at a given ability level. For skills with a starting level &gt; 0, the sheet
+ * adds 5 mana per level above that starting level (matches Bladesurge 42 @ 12 → 67 @ 17).
+ * Tier-0 starter skills use the listed mana at all levels until we have sheet data.
+ */
+export function abilityManaCostAtLevel(
+  baseMana: number,
+  startingAbilityLevel: number,
+  abilityLevel: number
+): number {
+  const L = Math.max(0, Math.floor(abilityLevel));
+  const S = Math.max(0, Math.floor(startingAbilityLevel));
+  if (S <= 0) return Math.max(0, baseMana);
+  return Math.max(0, Math.round(baseMana + 5 * Math.max(0, L - S)));
+}
+
+/** Physical → elemental conversion % from ability line text (e.g. Bladesurge, Consecration). */
+export function physicalElementConversionFromAbilityLines(lines: string[]): {
+  toFire: number;
+  toCold: number;
+  toLightning: number;
+} {
+  const out = { toFire: 0, toCold: 0, toLightning: 0 };
+  for (const raw of lines) {
+    const l = raw.toLowerCase().trim();
+    const m = l.match(
+      /(?:convert|covert)\s+(\d+(?:\.\d+)?)\s*%\s+of\s+your\s+physical\s+damage\s+to\s+(fire|cold|lightning)(?:\s+damage)?\b/i
+    );
+    if (!m) continue;
+    const pct = Number(m[1]);
+    if (!Number.isFinite(pct)) continue;
+    const ele = m[2]!.toLowerCase();
+    if (ele === "fire") out.toFire += pct;
+    else if (ele === "cold") out.toCold += pct;
+    else if (ele === "lightning") out.toLightning += pct;
+  }
+  return out;
 }
 
 /** Scaled spell hit for a full ability definition, or null if not a spell with parsed hit. */
@@ -92,7 +139,12 @@ export function scaledSpellHitForAbility(
 ): { min: number; max: number; element: string } | null {
   const h = def.spellHit;
   if (!h) return null;
-  const { min, max } = spellBaseDamageAtAbilityLevel(h.min, h.max, abilityLevel);
+  const { min, max } = spellBaseDamageAtAbilityLevel(
+    h.min,
+    h.max,
+    abilityLevel,
+    def.startingAbilityLevel ?? 0
+  );
   return { min, max, element: h.element };
 }
 

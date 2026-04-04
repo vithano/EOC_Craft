@@ -40,7 +40,7 @@ export const CLASSES: CharacterClass[] = [
     id: 'paladin',
     name: 'Paladin',
     icon: '🛡️',
-    description: 'A holy warrior combining divine magic with heavy armor.',
+    description: 'A holy warrior combining divine magic with heavy armour.',
     baseStats: { strength: 18, agility: 8, intelligence: 14, vitality: 20, dexterity: 8 },
   },
   {

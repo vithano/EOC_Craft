@@ -409,8 +409,8 @@ export default function EquipmentPanel({
       }
     } else {
       const localDefPct = patch.localIncreasedDefencesPct ?? 0;
-      if (udef.baseArmor != null)
-        baseStatRows.push({ label: "Armour", value: String(Math.round(udef.baseArmor * (1 + localDefPct / 100))) });
+      if (udef.baseArmour != null)
+        baseStatRows.push({ label: "Armour", value: String(Math.round(udef.baseArmour * (1 + localDefPct / 100))) });
       if (udef.baseEvasion != null)
         baseStatRows.push({ label: "Evasion Rating", value: String(Math.round(udef.baseEvasion * (1 + localDefPct / 100))) });
       if (udef.baseEnergyShield != null)

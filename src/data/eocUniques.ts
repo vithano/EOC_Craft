@@ -25,9 +25,9 @@ export interface EocUniqueDefinition {
   baseCritChance: number | null;
   /** Base attacks per second. */
   baseAttackSpeed: number | null;
-  /** Base armor value (armor pieces only). */
-  baseArmor: number | null;
-  /** Base evasion rating (armor/evasion pieces only). */
+  /** Base armour value (armour pieces only). */
+  baseArmour: number | null;
+  /** Base evasion rating (armour/evasion pieces only). */
   baseEvasion: number | null;
   /** Base energy shield (ES pieces only). */
   baseEnergyShield: number | null;

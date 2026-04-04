@@ -2,7 +2,7 @@
 export interface UniqueGearStatPatch {
   flatLife?: number;
   flatMana?: number;
-  flatArmor?: number;
+  flatArmour?: number;
   flatEvasion?: number;
   flatDamageMin?: number;
   flatDamageMax?: number;
@@ -27,7 +27,7 @@ export interface UniqueGearStatPatch {
   flatAccuracy?: number;
   pctIncreasedLifeFromGear?: number;
   pctIncreasedManaFromGear?: number;
-  pctIncreasedArmorFromGear?: number;
+  pctIncreasedArmourFromGear?: number;
   pctIncreasedEvasionFromGear?: number;
   pctIncreasedEnergyShieldFromGear?: number;
   increasedMeleeDamageFromGear?: number;
@@ -38,7 +38,7 @@ export interface UniqueGearStatPatch {
   /** Global (non-local) attack speed increases from gear. */
   pctIncreasedAttackSpeedFromGear?: number;
   doubleDamageChanceFromGear?: number;
-  armorIgnoreFromGear?: number;
+  armourIgnoreFromGear?: number;
   pctToAllElementalResFromGear?: number;
   pctChaosResFromGear?: number;
   manaCostReductionFromGear?: number;
@@ -48,7 +48,7 @@ export interface UniqueGearStatPatch {
   localIncreasedPhysDamagePct?: number;
   /** "X% increased/reduced local attack speed" — applies to weapon base APS only. */
   localIncreasedApsPct?: number;
-  /** "X% increased local defences" — applies to armor/shield base defenses only. */
+  /** "X% increased local defences" — applies to armour/shield base defenses only. */
   localIncreasedDefencesPct?: number;
   /** "X% increased local block chance" — multiplies the shield's base block. */
   localIncreasedBlockPct?: number;
@@ -115,7 +115,7 @@ export interface UniqueGearStatPatch {
 
   blockPowerPctFromGear?: number;
 
-  armorEffectivenessVsChaosFromGear?: number;
+  armourEffectivenessVsChaosFromGear?: number;
 
   increasedLightningDamageFromGear?: number;
   increasedChaosDamageFromGear?: number;
@@ -473,7 +473,7 @@ export function equipmentModifiersFromUniqueTexts(
     if (m) add({ blockPowerPctFromGear: num(m)! });
 
     m = l.match(/\+?(\d+)%\s+to\s+armou?r\s+effectiveness\s+against\s+chaos\s+damage\b/i);
-    if (m) add({ armorEffectivenessVsChaosFromGear: num(m)! / 100 });
+    if (m) add({ armourEffectivenessVsChaosFromGear: num(m)! / 100 });
 
     m = l.match(/([\d.]+)%\s+increased\s+lightning\s+damage\b/i);
     if (m) add({ increasedLightningDamageFromGear: num(m)! });
@@ -591,7 +591,7 @@ export function equipmentModifiersFromUniqueTexts(
     if (m) add({ pctIncreasedAccuracyFromGear: num(m)! });
 
     m = l.match(/([\d.]+)%\s+increased\s+amou?r\b/i);
-    if (m) add({ pctIncreasedArmorFromGear: num(m)! });
+    if (m) add({ pctIncreasedArmourFromGear: num(m)! });
 
     m = l.match(/([\d.]+)%\s+increase(?:d)?\s+energy\s+shield\b/i);
     if (m) add({ pctIncreasedEnergyShieldFromGear: num(m)! });
@@ -635,8 +635,8 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/\+(\d+)\s+to\s+maximum\s+mana\b/i);
     if (m) add({ flatMana: num(m)! });
 
-    m = l.match(/\+(\d+)\s+to\s+armor\b/i);
-    if (m) add({ flatArmor: num(m)! });
+    m = l.match(/\+(\d+)\s+to\s+armour\b/i);
+    if (m) add({ flatArmour: num(m)! });
 
     m = l.match(/\+(\d+)\s+to\s+evasion\s+rating\b/i);
     if (m) add({ flatEvasion: num(m)! });
@@ -668,15 +668,15 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/([\d.]+)%\s+increased\s+mana\b/i);
     if (m) add({ pctIncreasedManaFromGear: num(m)! });
 
-    m = l.match(/([\d.]+)%\s+increased\s+armor\b/i);
-    if (m) add({ pctIncreasedArmorFromGear: num(m)! });
+    m = l.match(/([\d.]+)%\s+increased\s+armour\b/i);
+    if (m) add({ pctIncreasedArmourFromGear: num(m)! });
 
     m = l.match(/([\d.]+)%\s+increased\s+evasion\s+rating\b/i);
     if (m) add({ pctIncreasedEvasionFromGear: num(m)! });
 
-    // "increased defences" (global, no "local") — applies % globally to all armor/evasion
+    // "increased defences" (global, no "local") — applies % globally to all armour/evasion
     m = l.match(/([\d.]+)%\s+increased\s+defences\b/i);
-    if (m && !/local/i.test(l)) add({ pctIncreasedArmorFromGear: num(m)!, pctIncreasedEvasionFromGear: num(m)! });
+    if (m && !/local/i.test(l)) add({ pctIncreasedArmourFromGear: num(m)!, pctIncreasedEvasionFromGear: num(m)! });
 
     m = l.match(/([\d.]+)%\s+increased\s+energy\s+shield\b/i);
     if (m) add({ pctIncreasedEnergyShieldFromGear: num(m)! });
@@ -771,7 +771,7 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(
       /(?:hits\s+)?ignore\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+enemy\s+armou?r\b/i
     );
-    if (m) add({ armorIgnoreFromGear: pctFromParenOrSingle(m) });
+    if (m) add({ armourIgnoreFromGear: pctFromParenOrSingle(m) });
 
     m = l.match(/([\d.]+)%\s+to\s+all\s+elemental\s+resistances\b/i);
     if (m) add({ pctToAllElementalResFromGear: num(m)! });
@@ -945,7 +945,7 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/\+\(([\d.-]+)\s+to\s+([\d.-]+)\)\s+increased\s+defences\b/i);
     if (m) {
       const mid = (Number(m[1]) + Number(m[2])) / 2;
-      if (Number.isFinite(mid)) add({ pctIncreasedArmorFromGear: mid, pctIncreasedEvasionFromGear: mid });
+      if (Number.isFinite(mid)) add({ pctIncreasedArmourFromGear: mid, pctIncreasedEvasionFromGear: mid });
     }
 
     m = l.match(/\+\(([\d.-]+)\s+to\s+([\d.-]+)\)\s+increased\s+dexterity\b/i);

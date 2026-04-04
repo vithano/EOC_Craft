@@ -3,8 +3,8 @@ export type UpgradeModifierKey =
   | 'increasedAttackDamage' | 'increasedMeleeDamage' | 'increasedDamage'
   | 'increasedElementalDamage' | 'increasedElementalDamageWithAttacks'
   | 'increasedCriticalHitChance' | 'increasedAttackCriticalHitChance'
-  | 'increasedSpellCriticalHitChance' | 'increasedArmor'
-  | 'increasedArmorAndEvasionRating' | 'increasedArmorAndEnergyShield'
+  | 'increasedSpellCriticalHitChance' | 'increasedArmour'
+  | 'increasedArmourAndEvasionRating' | 'increasedArmourAndEnergyShield'
   | 'increasedEvasionRating' | 'increasedEvasionRatingAndEnergyShield'
   | 'increasedMana' | 'increasedManaRegeneration'
   | 'increasedAllElementalResistances' | 'increasedChaosResistance'
@@ -121,7 +121,7 @@ const fighter: ClassDef = {
   classBonusDescription: '+15% to all resistances, 5% increased experience gain',
   upgrades: [
     upg('increasedLife', 'Increased Life', 4),
-    upg('increasedArmorAndEvasionRating', 'Increased Armor and Evasion Rating', 6),
+    upg('increasedArmourAndEvasionRating', 'Increased Armour and Evasion Rating', 6),
     upg('increasedAttackDamage', 'Increased Attack Damage', 4),
   ],
   requirement: { type: 'none' },
@@ -137,7 +137,7 @@ const warrior: ClassDef = {
   classBonusDescription: '+100 to maximum life, 15% increased strength',
   upgrades: [
     upg('increasedLife', 'Increased Life', 4),
-    upg('increasedArmor', 'Increased Armor', 6),
+    upg('increasedArmour', 'Increased Armour', 6),
     upg('increasedMeleeDamage', 'Increased Melee Damage', 4),
   ],
   requirement: { type: 'none' },
@@ -153,7 +153,7 @@ const acolyte: ClassDef = {
   classBonusDescription: '25% increased recovery from all sources',
   upgrades: [
     upg('increasedLife', 'Increased Life', 4),
-    upg('increasedArmorAndEnergyShield', 'Increased Armor and Energy Shield', 6),
+    upg('increasedArmourAndEnergyShield', 'Increased Armour and Energy Shield', 6),
     upg('increasedDamage', 'Increased Damage', 4),
   ],
   requirement: { type: 'none' },
@@ -209,7 +209,7 @@ const guardian: ClassDef = {
   classBonusDescription: '+30 to all attributes, the inherent bonuses gained from attributes are doubled',
   upgrades: [
     upg('increasedLife', 'Increased Life', 4),
-    upg('increasedArmorAndEnergyShield', 'Increased Armor and Energy Shield', 9),
+    upg('increasedArmourAndEnergyShield', 'Increased Armour and Energy Shield', 9),
     upg('increasedMana', 'Increased Mana', 6),
     upg('increasedChanceToBlock', 'Increased Chance to Block', 3),
     upg('increasedChaosResistance', 'Increased Chaos Resistance', 6),
@@ -227,7 +227,7 @@ const zealot: ClassDef = {
   classBonusDescription: 'When you hit an enemy your base damage is rolled twice and the higher result is used, when you are hit by an enemy their base damage is rolled twice and the lower result is used',
   upgrades: [
     upg('increasedLife', 'Increased Life', 6),
-    upg('increasedArmorAndEnergyShield', 'Increased Armor and Energy Shield', 9),
+    upg('increasedArmourAndEnergyShield', 'Increased Armour and Energy Shield', 9),
     upg('increasedElementalDamage', 'Increased Elemental Damage', 6),
     upg('increasedCriticalHitChance', 'Increased Critical Hit Chance', 12),
     upg('increasedChanceToInflictElementalAilments', 'Increased Chance to Inflict Elemental Ailments', 10),
@@ -242,10 +242,10 @@ const juggernaut: ClassDef = {
   maxLevel: 25,
   classBonusRequiredPoints: 15,
   perLevel: { str: 3, int: 1 },
-  classBonusDescription: '+50% to armor effectiveness against elemental damage, +25% to armor effectiveness against chaos damage, when hit recover life equal to 4% of prevented damage',
+  classBonusDescription: '+50% to armour effectiveness against elemental damage, +25% to armour effectiveness against chaos damage, when hit recover life equal to 4% of prevented damage',
   upgrades: [
     upg('increasedLife', 'Increased Life', 6),
-    upg('increasedArmor', 'Increased Armor', 9),
+    upg('increasedArmour', 'Increased Armour', 9),
     upg('increasedMeleeDamage', 'Increased Melee Damage', 6),
     upg('increasedAllElementalResistances', 'Increased All Elemental Resistances', 3),
     upg('increasedLifeRecovery', 'Increased Life Recovery', 4),
@@ -260,7 +260,7 @@ const barbarian: ClassDef = {
   maxLevel: 25,
   classBonusRequiredPoints: 15,
   perLevel: { str: 3, dex: 1 },
-  classBonusDescription: '+10% chance to deal double damage with attacks, hits ignore 50% of enemy armor',
+  classBonusDescription: '+10% chance to deal double damage with attacks, hits ignore 50% of enemy armour',
   upgrades: [
     upg('increasedLife', 'Increased Life', 6),
     upg('increasedMeleeDamage', 'Increased Melee Damage', 6),
@@ -281,7 +281,7 @@ const champion: ClassDef = {
   classBonusDescription: 'Take 1% reduced damage per 4% missing life, once per stage if you would die your life is set to 1 instead',
   upgrades: [
     upg('increasedLife', 'Increased Life', 6),
-    upg('increasedArmorAndEvasionRating', 'Increased Armor and Evasion Rating', 9),
+    upg('increasedArmourAndEvasionRating', 'Increased Armour and Evasion Rating', 9),
     upg('increasedAttackSpeed', 'Increased Attack Speed', 4),
     upg('increasedChanceToInflictBleedingWithAttacks', 'Increased Chance to Inflict Bleeding with Attacks', 10),
     upg('increasedChanceToBlock', 'Increased Chance to Block', 3),
@@ -299,7 +299,7 @@ const mercenary: ClassDef = {
   classBonusDescription: '+5 to strength and dexterity per class level, 1% increased attack speed per 10 strength or dexterity whichever is lower',
   upgrades: [
     upg('increasedLife', 'Increased Life', 6),
-    upg('increasedArmorAndEvasionRating', 'Increased Armor and Evasion Rating', 9),
+    upg('increasedArmourAndEvasionRating', 'Increased Armour and Evasion Rating', 9),
     upg('increasedAttackDamage', 'Increased Attack Damage', 6),
     upg('increasedAllElementalResistances', 'Increased All Elemental Resistances', 3),
     upg('increasedAccuracyRating', 'Increased Accuracy Rating', 9),
@@ -426,9 +426,9 @@ const templar: ClassDef = {
   maxLevel: 25,
   classBonusRequiredPoints: 15,
   perLevel: { str: 2, int: 2 },
-  classBonusDescription: '+50% to armor effectiveness against chaos damage, recover energy shield equal to 2% of armor when you block',
+  classBonusDescription: '+50% to armour effectiveness against chaos damage, recover energy shield equal to 2% of armour when you block',
   upgrades: [
-    upg('increasedArmorAndEnergyShield', 'Increased Armor and Energy Shield', 12),
+    upg('increasedArmourAndEnergyShield', 'Increased Armour and Energy Shield', 12),
     upg('increasedElementalDamage', 'Increased Elemental Damage', 8),
     upg('increasedCriticalHitChance', 'Increased Critical Hit Chance', 16),
     upg('increasedMana', 'Increased Mana', 8),
@@ -447,7 +447,7 @@ const chieftain: ClassDef = {
   classBonusDescription: 'Take 25% of physical damage as fire damage, +5% to maximum fire resistance, enemies take 40% increased elemental damage',
   upgrades: [
     upg('increasedLife', 'Increased Life', 8),
-    upg('increasedArmorAndEnergyShield', 'Increased Armor and Energy Shield', 12),
+    upg('increasedArmourAndEnergyShield', 'Increased Armour and Energy Shield', 12),
     upg('increasedElementalDamageWithAttacks', 'Increased Elemental Damage with Attacks', 8),
     upg('increasedAllElementalResistances', 'Increased All Elemental Resistances', 4),
     upg('increasedAilmentDuration', 'Increased Ailment Duration', 12),
@@ -465,7 +465,7 @@ const destroyer: ClassDef = {
   classBonusDescription: '+25% chance to deal double damage with attacks, +1% chance to deal triple damage with attacks per 2% chance to deal double damage with attacks',
   upgrades: [
     upg('increasedLife', 'Increased Life', 8),
-    upg('increasedArmor', 'Increased Armor', 12),
+    upg('increasedArmour', 'Increased Armour', 12),
     upg('increasedMeleeDamage', 'Increased Melee Damage', 8),
     upg('increasedStrength', 'Increased Strength', 6),
     upg('gainLifeOnKill', 'Gain Life on Kill', 60, true),
@@ -501,7 +501,7 @@ const dragoon: ClassDef = {
   classBonusDescription: '+25% to maximum chance to block, enemies take 1% increased damage per 1% missing combined life and energy shield',
   upgrades: [
     upg('increasedLife', 'Increased Life', 8),
-    upg('increasedArmorAndEvasionRating', 'Increased Armor and Evasion Rating', 12),
+    upg('increasedArmourAndEvasionRating', 'Increased Armour and Evasion Rating', 12),
     upg('increasedMeleeDamage', 'Increased Melee Damage', 8),
     upg('increasedDamageOverTimeMultiplier', 'Increased Damage Over Time Multiplier', 8),
     upg('increasedChanceToBlock', 'Increased Chance to Block', 4),

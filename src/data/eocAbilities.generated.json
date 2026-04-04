@@ -98,7 +98,7 @@
     "manaCost": 7,
     "lines": [
       "25% increased defences",
-      "hits ignore 50% of enemy armor"
+      "hits ignore 50% of enemy armour"
     ],
     "attunement0": "0% increased damage",
     "attunement100": "",
@@ -260,7 +260,7 @@
       "adds 1-4 lightning damage to attacks per 1 mana cost"
     ],
     "attunement0": "hits penetrate 0% of enemy elemental resistances",
-    "attunement100": "",
+    "attunement100": "hits penetrate 20% of enemy elemental resistances",
     "spellHit": null
   },
   {
@@ -286,7 +286,7 @@
     "lines": [
       "perform an attack when you are hit",
       "base damage and base critical hit chance of your weapons are not applied",
-      "gain added base physical damage equal to 5% of your armor"
+      "gain added base physical damage equal to 5% of your armour"
     ],
     "attunement0": "0% increased defences",
     "attunement100": "",
@@ -344,7 +344,7 @@
     "manaCost": 8,
     "lines": [
       "2% more attack speed per hit dealt during a stage, up to 40%",
-      "at maximum effect, your hits additionally ignore 50% of enemy armor"
+      "at maximum effect, your hits additionally ignore 50% of enemy armour"
     ],
     "attunement0": "0% increased attack speed",
     "attunement100": "",
@@ -374,7 +374,7 @@
       "+50% chance to inflict shock"
     ],
     "attunement0": "0% increased strikes per attack",
-    "attunement100": "20% increased strikes per attack",
+    "attunement100": "",
     "spellHit": null
   },
   {
@@ -590,7 +590,7 @@
       "+2% to critical damage multiplier per 1% critical hit chance above 100%"
     ],
     "attunement0": "0% increased critical hit chance",
-    "attunement100": "",
+    "attunement100": "80% increased critical hit chance",
     "spellHit": null
   },
   {
@@ -616,7 +616,7 @@
       "100% more bleed damage"
     ],
     "attunement0": "+0% to damage over time multiplier",
-    "attunement100": "",
+    "attunement100": "+30% to damage over time multiplier",
     "spellHit": null
   },
   {
@@ -711,7 +711,7 @@
     "manaCost": 10,
     "lines": [
       "deals 42-49 physical damage",
-      "hits ignore 50% of enemy armor"
+      "hits ignore 50% of enemy armour"
     ],
     "attunement0": "0% increased cast speed",
     "attunement100": "",
@@ -865,7 +865,7 @@
     "manaCost": 17,
     "lines": [
       "deals 76-102 physical damage",
-      "hits ignore 50% of enemy armor",
+      "hits ignore 50% of enemy armour",
       "gain 1% more critical hit chance per hit dealt during a stage, up to 50%",
       "at maximum effect, additionally gain +50% to critical damage multiplier"
     ],
@@ -1029,7 +1029,7 @@
       "deal 1% more fire damage per 40 combined current life and energy shield"
     ],
     "attunement0": "hits penetrate 0% of enemy elemental resistances",
-    "attunement100": "",
+    "attunement100": "hits penetrate 20% of enemy elemental resistances",
     "spellHit": {
       "min": 102,
       "max": 153,

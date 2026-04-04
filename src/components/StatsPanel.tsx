@@ -8,7 +8,7 @@ export default function StatsPanel({ stats }: StatsPanelProps) {
   const statBlocks = [
     { label: 'Damage', value: stats.damage, sub: 'base dmg', color: 'text-orange-400', highlight: true },
     { label: 'Eff. Damage', value: stats.effectiveDamage, sub: 'with crits', color: 'text-red-400', highlight: true },
-    { label: 'Armor', value: stats.armor, sub: `${stats.damageReduction}% dmg red.`, color: 'text-blue-400', highlight: false },
+    { label: 'Armour', value: stats.armour, sub: `${stats.damageReduction}% dmg red.`, color: 'text-blue-400', highlight: false },
     { label: 'Evasion', value: stats.evasion, sub: 'rating', color: 'text-purple-400', highlight: false },
     { label: 'Health', value: stats.health, sub: 'hp pool', color: 'text-emerald-400', highlight: false },
     { label: 'Mana', value: stats.mana, sub: 'mana pool', color: 'text-blue-400', highlight: false },

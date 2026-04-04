@@ -8,12 +8,14 @@ import {
 } from './gameClasses'
 import { getItemDefinition, type ItemModifiers } from './equipment'
 import {
+  abilityManaCostAtLevel,
   abilityMatchesWeapon,
   attackDamageMultiplierAtAbilityLevel,
   EOC_ABILITY_BY_ID,
   extraStrikesFromAbilityLines,
   inflictAilmentBonusesFromAbilityLines,
   interpolateAttunementModifier,
+  physicalElementConversionFromAbilityLines,
   scaledSpellHitForAbility,
   weaponAbilityTagFromItemId,
   type EocAbilityType,
@@ -93,7 +95,7 @@ export interface AbilityContributionSummary {
 export interface EquipmentModifiers {
   flatLife: number
   flatMana: number
-  flatArmor: number
+  flatArmour: number
   flatEvasion: number
   /** Physical hit contribution (base + local physical adds + generic item damage). */
   flatDamageMin: number
@@ -114,7 +116,7 @@ export interface EquipmentModifiers {
   flatAccuracy: number
   pctIncreasedLifeFromGear: number
   pctIncreasedManaFromGear: number
-  pctIncreasedArmorFromGear: number
+  pctIncreasedArmourFromGear: number
   pctIncreasedEvasionFromGear: number
   pctIncreasedEnergyShieldFromGear: number
   increasedMeleeDamageFromGear: number
@@ -124,7 +126,7 @@ export interface EquipmentModifiers {
   pctIncreasedAccuracyFromGear: number
   pctIncreasedAttackSpeedFromGear: number
   doubleDamageChanceFromGear: number
-  armorIgnoreFromGear: number
+  armourIgnoreFromGear: number
   pctToAllElementalResFromGear: number
   pctChaosResFromGear: number
   manaCostReductionFromGear: number
@@ -200,7 +202,7 @@ export interface EquipmentModifiers {
   blockPowerPctFromGear: number
 
   /** Additive to armour effectiveness vs chaos (fraction of hit). */
-  armorEffectivenessVsChaosFromGear: number
+  armourEffectivenessVsChaosFromGear: number
 
   increasedLightningDamageFromGear: number
   increasedChaosDamageFromGear: number
@@ -304,7 +306,7 @@ export interface ComputedBuildStats {
   maxEnergyShield: number
 
   // Defenses
-  armor: number
+  armour: number
   evasionRating: number
   blockChance: number  // 0-75 (or 0-100 for Dragoon)
   dodgeChance: number  // 0-75
@@ -362,7 +364,7 @@ export interface ComputedBuildStats {
 
   // Combat modifier flags (for battle engine)
   doubleDamageChance: number
-  armorIgnorePercent: number          // % of enemy armor ignored
+  armourIgnorePercent: number          // % of enemy armour ignored
   /** Multiplicative with (1 + damageOverTimeMultiplier/100) for damaging ailments in demo combat. */
   dotDamageMoreMultiplier: number
   /** % of enemy lightning resistance ignored (lightning portion of hit only, when enemy has res). */
@@ -421,8 +423,8 @@ export interface ComputedBuildStats {
 
   manaShieldActive: boolean           // Druid: 25% of damage taken to mana above 50%
   chaosNotBypassES: boolean           // Arcanist bonus
-  armorVsElementalMultiplier: number  // 0.5 base; 1.0 with Juggernaut
-  armorVsChaosMultiplier: number      // 0.25 base; modified by Juggernaut/Templar/Chieftain
+  armourVsElementalMultiplier: number  // 0.5 base; 1.0 with Juggernaut
+  armourVsChaosMultiplier: number      // 0.25 base; modified by Juggernaut/Templar/Chieftain
 
   // Which class bonuses are active (for battle engine use)
   classBonusesActive: string[]
@@ -442,7 +444,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
   return {
     flatLife: 0,
     flatMana: 0,
-    flatArmor: 0,
+    flatArmour: 0,
     flatEvasion: 0,
     flatDamageMin: 0,
     flatDamageMax: 0,
@@ -461,7 +463,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     flatAccuracy: 0,
     pctIncreasedLifeFromGear: 0,
     pctIncreasedManaFromGear: 0,
-    pctIncreasedArmorFromGear: 0,
+    pctIncreasedArmourFromGear: 0,
     pctIncreasedEvasionFromGear: 0,
     pctIncreasedEnergyShieldFromGear: 0,
     increasedMeleeDamageFromGear: 0,
@@ -471,7 +473,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     pctIncreasedAccuracyFromGear: 0,
     pctIncreasedAttackSpeedFromGear: 0,
     doubleDamageChanceFromGear: 0,
-    armorIgnoreFromGear: 0,
+    armourIgnoreFromGear: 0,
     pctToAllElementalResFromGear: 0,
     pctChaosResFromGear: 0,
     manaCostReductionFromGear: 0,
@@ -535,7 +537,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
 
     blockPowerPctFromGear: 0,
 
-    armorEffectivenessVsChaosFromGear: 0,
+    armourEffectivenessVsChaosFromGear: 0,
 
     increasedLightningDamageFromGear: 0,
     increasedChaosDamageFromGear: 0,
@@ -629,7 +631,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
 function addItemModifiersToEquipment(eq: EquipmentModifiers, m: ItemModifiers) {
   eq.flatLife += m.health ?? 0
   eq.flatMana += m.mana ?? 0
-  eq.flatArmor += m.armor ?? 0
+  eq.flatArmour += m.armour ?? 0
   eq.flatEvasion += m.evasion ?? 0
   eq.flatDamageMin += (m.damage ?? 0) * 0.5
   eq.flatDamageMax += m.damage ?? 0
@@ -649,7 +651,7 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
   if (p.flatLife !== undefined) addNum('flatLife', p.flatLife)
   if (p.flatMana !== undefined) addNum('flatMana', p.flatMana)
-  if (p.flatArmor !== undefined) addNum('flatArmor', p.flatArmor)
+  if (p.flatArmour !== undefined) addNum('flatArmour', p.flatArmour)
   if (p.flatEvasion !== undefined) addNum('flatEvasion', p.flatEvasion)
   if (p.flatDamageMin !== undefined) addNum('flatDamageMin', p.flatDamageMin)
   if (p.flatDamageMax !== undefined) addNum('flatDamageMax', p.flatDamageMax)
@@ -675,7 +677,7 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.flatAccuracy !== undefined) addNum('flatAccuracy', p.flatAccuracy)
   if (p.pctIncreasedLifeFromGear !== undefined) addNum('pctIncreasedLifeFromGear', p.pctIncreasedLifeFromGear)
   if (p.pctIncreasedManaFromGear !== undefined) addNum('pctIncreasedManaFromGear', p.pctIncreasedManaFromGear)
-  if (p.pctIncreasedArmorFromGear !== undefined) addNum('pctIncreasedArmorFromGear', p.pctIncreasedArmorFromGear)
+  if (p.pctIncreasedArmourFromGear !== undefined) addNum('pctIncreasedArmourFromGear', p.pctIncreasedArmourFromGear)
   if (p.pctIncreasedEvasionFromGear !== undefined) addNum('pctIncreasedEvasionFromGear', p.pctIncreasedEvasionFromGear)
   if (p.pctIncreasedEnergyShieldFromGear !== undefined) {
     addNum('pctIncreasedEnergyShieldFromGear', p.pctIncreasedEnergyShieldFromGear)
@@ -699,7 +701,7 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.doubleDamageChanceFromGear !== undefined) {
     addNum('doubleDamageChanceFromGear', p.doubleDamageChanceFromGear)
   }
-  if (p.armorIgnoreFromGear !== undefined) addNum('armorIgnoreFromGear', p.armorIgnoreFromGear)
+  if (p.armourIgnoreFromGear !== undefined) addNum('armourIgnoreFromGear', p.armourIgnoreFromGear)
   if (p.pctToAllElementalResFromGear !== undefined) {
     addNum('pctToAllElementalResFromGear', p.pctToAllElementalResFromGear)
   }
@@ -811,8 +813,8 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
     addNum('tripleDamageChanceFromGear', p.tripleDamageChanceFromGear)
   }
   if (p.blockPowerPctFromGear !== undefined) addNum('blockPowerPctFromGear', p.blockPowerPctFromGear)
-  if (p.armorEffectivenessVsChaosFromGear !== undefined) {
-    addNum('armorEffectivenessVsChaosFromGear', p.armorEffectivenessVsChaosFromGear)
+  if (p.armourEffectivenessVsChaosFromGear !== undefined) {
+    addNum('armourEffectivenessVsChaosFromGear', p.armourEffectivenessVsChaosFromGear)
   }
   if (p.increasedLightningDamageFromGear !== undefined) {
     addNum('increasedLightningDamageFromGear', p.increasedLightningDamageFromGear)
@@ -1044,10 +1046,10 @@ export function aggregateEquippedToEquipmentModifiers(
           eq.weaponBaseCritChance = def.baseCritChance
         }
       } else {
-        // Apply armor/shield base defenses scaled by local defences %
+        // Apply armour/shield base defenses scaled by local defences %
         const localDefPct = patch.localIncreasedDefencesPct ?? 0
-        if (def.baseArmor != null) {
-          eq.flatArmor += Math.round(def.baseArmor * (1 + localDefPct / 100))
+        if (def.baseArmour != null) {
+          eq.flatArmour += Math.round(def.baseArmour * (1 + localDefPct / 100))
         }
         if (def.baseEvasion != null) {
           eq.flatEvasion += Math.round(def.baseEvasion * (1 + localDefPct / 100))
@@ -1217,20 +1219,20 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   )
 
   // -------------------------------------------------------------------------
-  // 10. Armor
+  // 10. Armour
   // -------------------------------------------------------------------------
   // "2% increased defenses per 10 dex" treated as a fraction of dex
   const defFromDex = (dex * attrDefMult * 2) / 100  // multiplier increment (e.g. 0.06 for 30 dex)
 
-  const totalIncreasedArmor =
-    u('increasedArmor') +
-    u('increasedArmorAndEvasionRating') +
-    u('increasedArmorAndEnergyShield') +
-    eq.pctIncreasedArmorFromGear
+  const totalIncreasedArmour =
+    u('increasedArmour') +
+    u('increasedArmourAndEvasionRating') +
+    u('increasedArmourAndEnergyShield') +
+    eq.pctIncreasedArmourFromGear
 
-  let armor = Math.round(
-    eq.flatArmor
-    * (1 + totalIncreasedArmor / 100)
+  let armour = Math.round(
+    eq.flatArmour
+    * (1 + totalIncreasedArmour / 100)
     * (1 + defFromDex)
     * eq.defencesLessMultFromGear
   )
@@ -1240,7 +1242,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   const totalIncreasedEvasion =
     u('increasedEvasionRating') +
-    u('increasedArmorAndEvasionRating') +
+    u('increasedArmourAndEvasionRating') +
     u('increasedEvasionRatingAndEnergyShield') +
     eq.pctIncreasedEvasionFromGear
 
@@ -1510,18 +1512,29 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       const attPct = Math.round(attPctRaw)
       const attMult = bonus('archmage') ? 2 : 1
       const attMod = interpolateAttunementModifier(def, attPctRaw, attMult)
-      const manaFromAbility = def.manaCost != null ? def.manaCost : manaCostPerAttack
+      const baseAbilityMana = def.manaCost != null ? def.manaCost : manaCostPerAttack
+      const startLvl = def.startingAbilityLevel ?? 0
 
       if (def.type === 'Melee' || def.type === 'Ranged') {
         const baseDm = def.damageMultiplierPct ?? 100
-        const scaledDm = attackDamageMultiplierAtAbilityLevel(baseDm, level)
+        const scaledDm = attackDamageMultiplierAtAbilityLevel(baseDm, startLvl, level)
         const aspFactor = (def.attackSpeedMultiplierPct ?? 100) / 100
         hitDamageByType = scaleHitDamageByType(hitDamageByType, scaledDm / 100)
+        const abConv = physicalElementConversionFromAbilityLines(def.lines)
+        if (abConv.toFire > 0 || abConv.toCold > 0 || abConv.toLightning > 0) {
+          hitDamageByType = applyGearPhysicalConversion(
+            hitDamageByType,
+            abConv.toFire,
+            abConv.toCold,
+            abConv.toLightning
+          )
+          hitDamageByType = buildHitDamageByType(hitDamageByType)
+        }
         hitSum = sumHitDamageRange(hitDamageByType)
         hitDamageMin = hitSum.min
         hitDamageMax = hitSum.max
         aps = aps * aspFactor
-        manaCostPerAttack = manaFromAbility
+        manaCostPerAttack = abilityManaCostAtLevel(baseAbilityMana, startLvl, level)
         avgHit = (hitDamageMin + hitDamageMax) / 2
         avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
         dps = avgEffectiveDamage * aps
@@ -1574,7 +1587,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           spellDamageMax: null,
           spellElement: null,
           effectiveCastTimeSeconds: null,
-          manaCost: def.manaCost,
+          manaCost: manaCostPerAttack,
           baselineHitMin,
           baselineHitMax,
           baselineAps,
@@ -1627,7 +1640,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           hitDamageMin = hitSum.min
           hitDamageMax = hitSum.max
           aps = castsPerSec
-          manaCostPerAttack = manaFromAbility
+          manaCostPerAttack = abilityManaCostAtLevel(baseAbilityMana, startLvl, level)
           avgHit = (hitDamageMin + hitDamageMax) / 2
           avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
           dps = avgEffectiveDamage * aps
@@ -1644,7 +1657,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             spellDamageMax: hitDamageMax,
             spellElement: scaledHit.element,
             effectiveCastTimeSeconds: effectiveCastTime,
-            manaCost: def.manaCost,
+            manaCost: manaCostPerAttack,
             baselineHitMin,
             baselineHitMax,
             baselineAps,
@@ -1657,7 +1670,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   if (attunementDefencesPct !== 0) {
     const df = 1 + attunementDefencesPct / 100
-    armor = Math.round(armor * df)
+    armour = Math.round(armour * df)
     evasionRating = Math.round(evasionRating * df)
     maxEnergyShield = Math.round(maxEnergyShield * df)
   }
@@ -1715,10 +1728,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   const tripleDamageChance = Math.min(100, eq.tripleDamageChanceFromGear)
 
-  // Barbarian class bonus: hits ignore 50% of enemy armor
-  const armorIgnorePercent = Math.min(
+  // Barbarian class bonus: hits ignore 50% of enemy armour
+  const armourIgnorePercent = Math.min(
     100,
-    (bonus('barbarian') ? 50 : 0) + eq.armorIgnoreFromGear
+    (bonus('barbarian') ? 50 : 0) + eq.armourIgnoreFromGear
   )
 
   // Druid class bonus: 25% of damage taken applied to mana first (while above 50% mana)
@@ -1727,22 +1740,22 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // Arcanist class bonus: chaos damage does not bypass energy shield
   const chaosNotBypassES = bonus('arcanist')
 
-  // Armor effectiveness vs elemental damage:
+  // Armour effectiveness vs elemental damage:
   //   Default: 50% effective → multiplier 0.5
   //   Juggernaut: +50% → multiplier 1.0 (full effectiveness)
-  const armorVsElementalMultiplier = 0.5 + (bonus('juggernaut') ? 0.5 : 0)
+  const armourVsElementalMultiplier = 0.5 + (bonus('juggernaut') ? 0.5 : 0)
 
-  // Armor effectiveness vs chaos damage:
+  // Armour effectiveness vs chaos damage:
   //   Default: 25% effective → multiplier 0.25
   //   Juggernaut: +25% → 0.50
   //   Templar:    +50% → 0.75 (stacks with juggernaut → 1.00)
   //   Chieftain:  +50% → can combine with others (capped logic left to battle engine)
-  const armorVsChaosMultiplier =
+  const armourVsChaosMultiplier =
     0.25
     + (bonus('juggernaut') ? 0.25 : 0)
     + (bonus('templar')    ? 0.50 : 0)
     + (bonus('chieftain')  ? 0.50 : 0)
-    + eq.armorEffectivenessVsChaosFromGear
+    + eq.armourEffectivenessVsChaosFromGear
 
   // -------------------------------------------------------------------------
   // 25. Class levels active (for display)
@@ -1858,7 +1871,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     maxEnergyShield,
 
     // Defenses
-    armor,
+    armour,
     evasionRating,
     blockChance,
     dodgeChance,
@@ -1912,7 +1925,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     // Combat modifier flags
     doubleDamageChance,
     tripleDamageChance,
-    armorIgnorePercent,
+    armourIgnorePercent,
     dotDamageMoreMultiplier,
     lightningPenetrationPercent,
     firePenetrationPercent,
@@ -1955,8 +1968,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     manaCostPaidWithLife,
     manaShieldActive,
     chaosNotBypassES,
-    armorVsElementalMultiplier,
-    armorVsChaosMultiplier,
+    armourVsElementalMultiplier,
+    armourVsChaosMultiplier,
 
     // Meta
     classBonusesActive,
