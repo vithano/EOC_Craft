@@ -9,13 +9,16 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CSV_PATH = ROOT / "Echos of Creation List of Uniques (1.1.0) - Sheet1.csv"
+CSV_PATH = ROOT / "Echos of Creation List of Uniques (1.3.2) - Sheet1(1).csv"
 OUT_PATH = ROOT / "src" / "data" / "eocUniques.generated.json"
 
 RANGE_RE = re.compile(
     r"\(\s*(-?\d+(?:\.\d+)?)\s*%?\s+to\s+(-?\d+(?:\.\d+)?)\s*%?\s*\)",
     re.IGNORECASE,
 )
+
+# "33-50" or "79-118" in the physical damage column
+DASH_RANGE_RE = re.compile(r"^(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)$")
 
 
 def slugify(name: str) -> str:
@@ -50,6 +53,16 @@ def to_int_maybe(v: str) -> int | None:
         return None
 
 
+def to_float_maybe(v: str) -> float | None:
+    v = (v or "").strip().replace("%", "").strip()
+    if not v:
+        return None
+    try:
+        return float(v)
+    except ValueError:
+        return None
+
+
 TWO_HANDED_TYPES = frozenset(
     {"Warhammer", "Greatsword", "Bow", "Magestave", "Battlestave"}
 )
@@ -63,6 +76,22 @@ def parse_enhancement_percent(s: str) -> float:
         return float(t)
     except ValueError:
         return 0.0
+
+
+def parse_phys_damage(s: str) -> tuple[float | None, float | None]:
+    """Parse "33-50" into (33.0, 50.0), or return (None, None)."""
+    s = (s or "").strip()
+    if not s:
+        return None, None
+    m = DASH_RANGE_RE.match(s)
+    if m:
+        return float(m.group(1)), float(m.group(2))
+    # single value
+    try:
+        v = float(s)
+        return v, v
+    except ValueError:
+        return None, None
 
 
 def collect_roll_labels(innate: list, lines: list) -> list[str]:
@@ -128,6 +157,16 @@ def main() -> None:
         line_cols = [row.get(f"Line {i}") or "" for i in range(1, 7)]
         lines = [parse_pieces(lc) for lc in line_cols if (lc or "").strip()]
         itype = row["Item Type"].strip()
+
+        # Base stats
+        dmg_min, dmg_max = parse_phys_damage(row.get("physical damage") or "")
+        base_crit = to_float_maybe(row.get("base critical hit chance") or "")
+        base_aps = to_float_maybe(row.get("attack speed") or "")
+        base_armor = to_int_maybe(row.get("armor") or "")
+        base_evasion = to_int_maybe(row.get("evasion") or "")
+        base_es = to_int_maybe(row.get("energy shield") or "")
+        base_block = to_float_maybe(row.get("chance to block") or "")
+
         u = {
             "id": uid,
             "name": row["Name"].strip(),
@@ -146,6 +185,15 @@ def main() -> None:
             "rollLabels": collect_roll_labels(innate, lines),
             "innate": innate,
             "lines": lines,
+            # Base item stats (None = not applicable for this item type)
+            "baseDamageMin": dmg_min,
+            "baseDamageMax": dmg_max,
+            "baseCritChance": base_crit,
+            "baseAttackSpeed": base_aps,
+            "baseArmor": base_armor,
+            "baseEvasion": base_evasion,
+            "baseEnergyShield": base_es,
+            "baseBlockChance": base_block,
         }
         uniques.append(u)
 

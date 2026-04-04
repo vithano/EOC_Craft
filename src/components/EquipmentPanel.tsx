@@ -9,7 +9,6 @@ import {
   getItemDefinition,
   INVENTORY_MAX_SLOTS,
   slotCategory,
-  weaponUsesBothHands,
 } from "../data/equipment";
 import {
   EOC_UNIQUE_DEFINITIONS,
@@ -21,7 +20,9 @@ import {
   rollBoundsForUnique,
   rollLabelForIndex,
   type EocUniqueDefinition,
+  type UniqueModPiece,
 } from "../data/eocUniques";
+import { equipmentModifiersFromUniqueTexts } from "../data/uniqueGearMods";
 import EocStatsPanel from "./EocStatsPanel";
 
 const rarityTone: Record<Rarity, string> = {
@@ -312,224 +313,258 @@ export default function EquipmentPanel({
     if (!effectiveDetail) {
       return (
         <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 px-4 py-8 text-center">
-          <div
-            className="h-16 w-16 shrink-0 rounded-sm border border-[#5c4d3d]/80 bg-[#0d0a08]"
-            aria-hidden
-          />
-          <p className="max-w-[14rem] font-serif text-sm leading-snug text-[#9a8b78]">
-            Select gear to inspect
-          </p>
+          <div className="h-16 w-16 shrink-0 rounded-sm border border-[#5c4d3d]/80 bg-[#0d0a08]" aria-hidden />
+          <p className="max-w-[14rem] font-serif text-sm leading-snug text-[#9a8b78]">Select gear to inspect</p>
         </div>
       );
     }
+
     const slot = effectiveDetail.kind === "equipped" ? effectiveDetail.slot : effectiveDetail.stack.slot;
     const entry: EquippedEntry =
       effectiveDetail.kind === "equipped"
         ? effectiveDetail.entry
-        : {
-            itemId: effectiveDetail.stack.itemId,
-            rolls: effectiveDetail.stack.rolls,
-            enhancement: effectiveDetail.stack.enhancement,
-          };
+        : { itemId: effectiveDetail.stack.itemId, rolls: effectiveDetail.stack.rolls, enhancement: effectiveDetail.stack.enhancement };
     const itemId = entry.itemId;
     const item = getItemDefinition(slot, itemId);
-    if (!item) {
-      return (
-        <p className="p-6 text-center font-serif text-sm text-[#8a7d6b]">Unknown item</p>
-      );
-    }
-    const udef = isUniqueItemId(itemId) ? EOC_UNIQUE_BY_ID[itemId] : undefined;
-    const parsedRolls = udef ? parseRollTextsToValues(udef, detailRollTexts) : [];
-    const resolved = udef
-      ? resolveUniqueMods(udef, parsedRolls, detailEnhancement)
-      : null;
+    if (!item) return <p className="p-6 text-center font-serif text-sm text-[#8a7d6b]">Unknown item</p>;
+
     const mods = item.modifiers ?? {};
-    const detailMutedBtn =
-      "rounded-sm border border-[#5c4d3d] bg-[#1c1814] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#c9baa8] hover:border-[#8b7355] hover:text-[#e8dcc8]";
-    return (
-      <div className="flex h-full max-h-[min(70vh,520px)] flex-col items-stretch gap-3 overflow-y-auto px-3 py-4 text-center sm:px-4">
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-sm border border-[#5c4d3d] bg-[#0d0a08]">
+    const udef = isUniqueItemId(itemId) ? EOC_UNIQUE_BY_ID[itemId] : undefined;
+
+    const mutedBtn = "rounded-sm border border-[#5c4d3d] bg-[#1c1814] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#c9baa8] hover:border-[#8b7355] hover:text-[#e8dcc8]";
+
+    // ── Non-unique fallback ───────────────────────────────────────────────────
+    if (!udef) {
+      return (
+        <div className="flex h-full max-h-[min(70vh,520px)] flex-col items-center gap-3 overflow-y-auto px-4 py-5 text-center">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-sm border border-[#5c4d3d] bg-[#0d0a08]">
             <ItemGlyph slot={slot} itemId={itemId} />
           </div>
-          <div>
-            <h3
-              className={`font-serif text-lg tracking-wide ${item.rarity ? rarityTone[item.rarity] : "text-[#e8dcc8]"}`}
-            >
-              {item.name}
-            </h3>
-            <p className="mt-1 text-xs uppercase tracking-widest text-[#7a6b5a]">{slot}</p>
-            {udef && (
-              <p className="mt-2 text-left text-[11px] leading-snug text-[#8a7d6b]">
-                Lv {udef.reqLevel}
-                {udef.reqStr != null ? ` · Str ${udef.reqStr}` : ""}
-                {udef.reqDex != null ? ` · Dex ${udef.reqDex}` : ""}
-                {udef.reqInt != null ? ` · Int ${udef.reqInt}` : ""}
-                {udef.enhancementBonus ? ` · +Enh ${udef.enhancementBonus}/lvl innate` : ""}
-              </p>
+          <h3 className={`font-serif text-lg tracking-wide ${item.rarity ? rarityTone[item.rarity] : "text-[#e8dcc8]"}`}>
+            {item.name}
+          </h3>
+          <p className="text-xs uppercase tracking-widest text-[#7a6b5a]">{slot}</p>
+          {Object.keys(mods).length > 0 && (
+            <ul className="w-full max-w-xs space-y-1 text-left text-sm text-[#c4b5a0]">
+              {Object.entries(mods).map(([k, v]) => (
+                <li key={k} className="flex justify-between border-b border-[#2a2318] py-1">
+                  <span className="capitalize text-[#8a7d6b]">{k}</span>
+                  <span className="text-[#9fd4a8]">+{v}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
+            {effectiveDetail.kind === "inventory" && (
+              <button type="button" className={brassBtn} onClick={() => onEquipStack(effectiveDetail.stack.id)}>Equip</button>
             )}
-            {udef && detailEnhancement > 0 && (
-              <p className="mt-1 text-left text-[11px] text-[#c9a227]">
-                Enhancement +{detailEnhancement} (max {maxEnhancementForUnique(udef)})
-              </p>
-            )}
-            {!udef && (entry.enhancement ?? 0) > 0 && (
-              <p className="mt-1 text-left text-[11px] text-[#c9a227]">
-                Enhancement +{entry.enhancement}
-              </p>
-            )}
-            {slot === "Weapon" && weaponUsesBothHands(itemId) && (
-              <p className="mt-1 text-left text-[10px] uppercase tracking-wide text-[#b45309]">
-                Two-handed — blocks off-hand
-              </p>
+            {effectiveDetail.kind === "equipped" && (
+              <button type="button" className={brassBtn} onClick={() => onUnequipSlot(effectiveDetail.slot)}>Unequip</button>
             )}
           </div>
         </div>
-        {udef && rollBoundsForUnique(udef).length > 0 && (
-          <div className="mx-auto w-full max-w-md space-y-2 border-b border-[#2a2318] pb-3 text-left">
-            <p className="text-[10px] uppercase tracking-wider text-[#8a7d6b]">Variable rolls</p>
-            {rollBoundsForUnique(udef).map((b, i) => {
-              const lo = Math.min(b.min, b.max);
-              const hi = Math.max(b.min, b.max);
-              const fallback = (lo + hi) / 2;
-              const label = rollLabelForIndex(udef, i);
-              const ph = `${lo} – ${hi}`;
-              const commitRollText = (raw: string) => {
-                const t = raw.trim();
-                const parsed = t === "" || t === "-" || t === "." || t === "-." ? NaN : Number(t);
-                const v = Number.isFinite(parsed) ? parsed : fallback;
-                const c = clampRollAtDef(udef, i, v);
-                setDetailRollTexts((prev) => {
-                  const next = [...prev];
-                  while (next.length <= i) next.push(String(fallback));
-                  next[i] = String(c);
-                  return next;
-                });
-              };
-              return (
-                <div key={i}>
-                  <label className="mb-0.5 block text-[10px] leading-snug text-[#a89070]">{label}</label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    autoComplete="off"
-                    className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
-                    placeholder={ph}
-                    value={detailRollTexts[i] ?? ""}
-                    onChange={(e) => {
-                      const t = e.target.value;
-                      setDetailRollTexts((prev) => {
-                        const next = [...prev];
-                        while (next.length <= i) next.push(String(fallback));
-                        next[i] = t;
-                        return next;
-                      });
-                    }}
-                    onBlur={(e) => commitRollText(e.target.value)}
-                  />
-                </div>
-              );
-            })}
+      );
+    }
+
+    // ── Unique item: game-style tooltip ───────────────────────────────────────
+    const parsedRolls = parseRollTextsToValues(udef, detailRollTexts);
+    const resolved = resolveUniqueMods(udef, parsedRolls, detailEnhancement);
+    const isWeapon = slot === "Weapon";
+    const mx = maxEnhancementForUnique(udef);
+
+    // Compute effective base stats from current rolls
+    const resolvedTexts = [resolved.innateText, ...resolved.lineTexts].filter((t) => t.trim());
+    const patch = equipmentModifiersFromUniqueTexts(resolvedTexts, { isWeapon });
+    const baseStatRows: { label: string; value: string }[] = [];
+    if (isWeapon) {
+      if (udef.baseDamageMin != null && udef.baseDamageMax != null) {
+        const localPct = patch.localIncreasedPhysDamagePct ?? 0;
+        const flatMin = (patch.flatDamageMin ?? 0) * 2;
+        const flatMax = patch.flatDamageMax ?? 0;
+        const effMin = Math.round(udef.baseDamageMin * (1 + localPct / 100) + flatMin);
+        const effMax = Math.round(udef.baseDamageMax * (1 + localPct / 100) + flatMax);
+        baseStatRows.push({ label: "Physical Damage", value: `${effMin}-${effMax}` });
+      }
+      if (udef.baseCritChance != null) {
+        const localCrit = patch.critChanceBonus ?? 0;
+        baseStatRows.push({ label: "Base Critical Hit Chance", value: `${(udef.baseCritChance + localCrit).toFixed(0)}%` });
+      }
+      if (udef.baseAttackSpeed != null) {
+        const localApsPct = patch.localIncreasedApsPct ?? 0;
+        baseStatRows.push({ label: "Attack Speed", value: (udef.baseAttackSpeed * (1 + localApsPct / 100)).toFixed(2) });
+      }
+    } else {
+      const localDefPct = patch.localIncreasedDefencesPct ?? 0;
+      if (udef.baseArmor != null)
+        baseStatRows.push({ label: "Armour", value: String(Math.round(udef.baseArmor * (1 + localDefPct / 100))) });
+      if (udef.baseEvasion != null)
+        baseStatRows.push({ label: "Evasion Rating", value: String(Math.round(udef.baseEvasion * (1 + localDefPct / 100))) });
+      if (udef.baseEnergyShield != null)
+        baseStatRows.push({ label: "Energy Shield", value: String(Math.round(udef.baseEnergyShield * (1 + localDefPct / 100))) });
+      if (udef.baseBlockChance != null) {
+        const block = udef.baseBlockChance * (1 + (patch.localIncreasedBlockPct ?? 0) / 100) + (patch.flatBlockChanceFromGear ?? 0);
+        baseStatRows.push({ label: "Chance to Block", value: `${block.toFixed(0)}%` });
+      }
+    }
+
+    // Inline piece renderer — ranges become editable inputs, rollIdx shared across all sections
+    const rollIdx = { i: 0 };
+    const renderPieces = (pieces: UniqueModPiece[]) =>
+      pieces.map((p, pi) => {
+        if (typeof p === "string") return <span key={pi}>{p}</span>;
+        const ri = rollIdx.i++;
+        const lo = Math.min(p.min, p.max);
+        const hi = Math.max(p.min, p.max);
+        const cur = detailRollTexts[ri] ?? String(Math.round((lo + hi) / 2));
+        return (
+          <input
+            key={pi}
+            type="text"
+            inputMode="decimal"
+            value={cur}
+            style={{ width: `${Math.max(2, cur.replace("-", "").length + (cur.startsWith("-") ? 1.5 : 0.5))}ch` }}
+            className="inline-block bg-transparent text-center text-[#c9a227] underline decoration-dotted outline-none focus:decoration-solid"
+            onChange={(e) => {
+              const val = e.target.value;
+              setDetailRollTexts((prev) => { const n = [...prev]; while (n.length <= ri) n.push(""); n[ri] = val; return n; });
+            }}
+            onBlur={(e) => {
+              const t = e.target.value.trim();
+              const parsed = ["", "-", ".", "-."].includes(t) ? NaN : Number(t);
+              const v = Number.isFinite(parsed) ? parsed : (lo + hi) / 2;
+              const c = String(Math.min(hi, Math.max(lo, v)));
+              setDetailRollTexts((prev) => { const n = [...prev]; while (n.length <= ri) n.push(""); n[ri] = c; return n; });
+            }}
+          />
+        );
+      });
+
+    // Sub-label for each mod line
+    const lineSubLabel = (pieces: UniqueModPiece[]) => {
+      const local = pieces.some((p) => typeof p === "string" && /\blocal\b/i.test(p));
+      const ranges = pieces.filter((p): p is { type: "range"; min: number; max: number } => typeof p !== "string");
+      const locality = local ? "LOCAL" : "GLOBAL";
+      if (ranges.length === 0) return `UNIQUE · ${locality}`;
+      const rangeStr = ranges.map((r) => `${Math.min(r.min, r.max)}-${Math.max(r.min, r.max)}`).join(", ");
+      return `UNIQUE · ${locality} · (${rangeStr})`;
+    };
+
+    const reqParts: string[] = [`Level ${udef.reqLevel}`];
+    if (udef.reqStr != null) reqParts.push(`${udef.reqStr} Str`);
+    if (udef.reqDex != null) reqParts.push(`${udef.reqDex} Dex`);
+    if (udef.reqInt != null) reqParts.push(`${udef.reqInt} Int`);
+
+    const typeLabel = `${udef.twoHanded ? "Two-Handed " : ""}${udef.itemType}`;
+
+    const Divider = () => (
+      <div className="relative my-1 flex items-center px-4">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#6b4e1a] to-[#6b4e1a]" />
+        <div className="mx-1.5 h-1.5 w-1.5 rotate-45 bg-[#c9a227]/70" />
+        <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[#6b4e1a] to-[#6b4e1a]" />
+      </div>
+    );
+
+    return (
+      <div className="flex h-full max-h-[min(80vh,640px)] flex-col overflow-y-auto bg-[#0a0805] text-center">
+        {/* ── Header ── */}
+        <div className="px-4 pb-3 pt-4">
+          <div className="relative mb-1 flex items-start justify-between">
+            {/* Level badge */}
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-[#7a5c20] bg-[#1a1008] text-sm font-bold text-[#c9a870]">
+              {udef.reqLevel}
+            </div>
+            {/* Name */}
+            <h3 className="flex-1 px-2 font-serif text-xl font-bold uppercase tracking-widest text-[#d4af37]">
+              {udef.name}
+            </h3>
+            {/* Icon */}
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center">
+              <ItemGlyph slot={slot} itemId={itemId} />
+            </div>
+          </div>
+
+          {/* Type */}
+          <p className="text-[11px] uppercase tracking-widest text-[#7a6b5a]">
+            Unique {typeLabel}
+          </p>
+
+          {/* Base stats */}
+          {baseStatRows.length > 0 && (
+            <div className="mt-2 space-y-0.5">
+              {baseStatRows.map(({ label, value }) => (
+                <p key={label} className="text-sm">
+                  <span className="text-[#9a8b78]">{label}: </span>
+                  <span className="font-bold text-[#d4af37]">{value}</span>
+                </p>
+              ))}
+            </div>
+          )}
+
+          {/* Requirements */}
+          <p className="mt-2 text-[11px] text-[#5c5040]">Requires {reqParts.join(", ")}</p>
+
+          {/* Enhancement slider */}
+          {mx > 0 && (
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <span className="text-[10px] uppercase tracking-wider text-[#6b5f50]">
+                Enhancement +{udef.enhancementBonusPerLevel}%/lvl
+              </span>
+              <input
+                type="range" min={0} max={mx} value={detailEnhancement}
+                className="h-1 w-28 cursor-pointer accent-[#c9a227]"
+                onChange={(e) => { const n = parseInt(e.target.value, 10); setDetailEnhancement(isNaN(n) ? 0 : Math.min(mx, Math.max(0, n))); }}
+              />
+              <span className="w-6 text-xs font-bold text-[#c9a870]">+{detailEnhancement}</span>
+            </div>
+          )}
+        </div>
+
+        <Divider />
+
+        {/* ── Innate ── (resolved text has enhancement applied) */}
+        {resolved.innateText.trim() && (
+          <div className="px-6 py-2 text-sm font-semibold uppercase tracking-wide text-[#c9a227]">
+            {resolved.innateText}
           </div>
         )}
-        {udef && (
-          <div className="mx-auto w-full max-w-md text-left">
-            <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">
-              Enhancement (0–{maxEnhancementForUnique(udef)} · +{udef.enhancementBonusPerLevel}% /lvl to first % in
-              innate)
-            </label>
-            <input
-              type="number"
-              className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8]"
-              placeholder={`0 – ${maxEnhancementForUnique(udef)}`}
-              min={0}
-              max={maxEnhancementForUnique(udef)}
-              step={1}
-              value={detailEnhancement}
-              onChange={(e) => {
-                const n = Math.floor(Number(e.target.value));
-                const mx = maxEnhancementForUnique(udef);
-                if (Number.isNaN(n)) {
-                  setDetailEnhancement(0);
-                  return;
-                }
-                setDetailEnhancement(Math.min(mx, Math.max(0, n)));
-              }}
-            />
+
+        {/* ── Mod lines ── */}
+        {udef.lines.map((line, i) => (
+          <div key={i}>
+            <Divider />
+            <div className="px-4 py-1.5">
+              <p className="mb-0.5 text-[9px] uppercase tracking-widest text-[#5c5040]">
+                {lineSubLabel(line)}
+              </p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-[#e8dcc8]">
+                {renderPieces(line)}
+              </p>
+            </div>
           </div>
-        )}
-        {resolved && (
-          <ul className="w-full max-w-md space-y-1.5 text-left text-xs leading-snug text-[#c9baa8]">
-            {resolved.innateText.trim() && (
-              <li className="border-b border-[#2a2318] pb-1.5">
-                <span className="text-[#a89070]">Innate: </span>
-                {resolved.innateText}
-              </li>
-            )}
-            {resolved.lineTexts.map((t, i) =>
-              t.trim() ? (
-                <li key={i} className="border-b border-[#2a2318]/80 py-1">
-                  {t}
-                </li>
-              ) : null
-            )}
-          </ul>
-        )}
-        {!resolved && Object.keys(mods).length > 0 && (
-          <ul className="w-full max-w-xs space-y-1 text-left text-sm text-[#c4b5a0]">
-            {Object.entries(mods).map(([k, v]) => (
-              <li key={k} className="flex justify-between border-b border-[#2a2318] py-1">
-                <span className="capitalize text-[#8a7d6b]">{k}</span>
-                <span className="text-[#9fd4a8]">+{v}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="mx-auto mt-1 flex w-full max-w-xs flex-col gap-2">
+        ))}
+
+        {/* ── Action buttons ── */}
+        <div className="mt-3 flex flex-col gap-2 px-4 pb-5">
           {effectiveDetail.kind === "inventory" && (
-            <button
-              type="button"
-              className={brassBtn}
-              onClick={() => {
-                if (udef) {
-                  const rolls = parseRollTextsToValues(udef, detailRollTexts);
-                  onEquipStack(effectiveDetail.stack.id, { rolls, enhancement: detailEnhancement });
-                } else {
-                  onEquipStack(effectiveDetail.stack.id);
-                }
-              }}
-            >
-              Equip
-            </button>
+            <button type="button" className={brassBtn} onClick={() => {
+              const rolls = parseRollTextsToValues(udef, detailRollTexts);
+              onEquipStack(effectiveDetail.stack.id, { rolls, enhancement: detailEnhancement });
+            }}>Equip</button>
           )}
-          {effectiveDetail.kind === "inventory" && udef && (
-            <button
-              type="button"
-              className={detailMutedBtn}
-              onClick={() => {
-                const rolls = parseRollTextsToValues(udef, detailRollTexts);
-                onUpdateInventoryStack(effectiveDetail.stack.id, rolls, detailEnhancement);
-              }}
-            >
-              Update bag
-            </button>
-          )}
-          {effectiveDetail.kind === "equipped" && udef && (
-            <button
-              type="button"
-              className={detailMutedBtn}
-              onClick={() => {
-                const rolls = parseRollTextsToValues(udef, detailRollTexts);
-                onUpdateEquippedSlot(effectiveDetail.slot, rolls, detailEnhancement);
-              }}
-            >
-              Apply worn
-            </button>
+          {effectiveDetail.kind === "inventory" && (
+            <button type="button" className={mutedBtn} onClick={() => {
+              const rolls = parseRollTextsToValues(udef, detailRollTexts);
+              onUpdateInventoryStack(effectiveDetail.stack.id, rolls, detailEnhancement);
+            }}>Update bag</button>
           )}
           {effectiveDetail.kind === "equipped" && (
-            <button type="button" className={brassBtn} onClick={() => onUnequipSlot(effectiveDetail.slot)}>
-              Unequip
-            </button>
+            <button type="button" className={mutedBtn} onClick={() => {
+              const rolls = parseRollTextsToValues(udef, detailRollTexts);
+              onUpdateEquippedSlot(effectiveDetail.slot, rolls, detailEnhancement);
+            }}>Apply worn</button>
+          )}
+          {effectiveDetail.kind === "equipped" && (
+            <button type="button" className={brassBtn} onClick={() => onUnequipSlot(effectiveDetail.slot)}>Unequip</button>
           )}
         </div>
       </div>

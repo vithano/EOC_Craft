@@ -21,6 +21,7 @@ export interface UniqueGearStatPatch {
   increasedDamageFromGear?: number;
   increasedSpellDamageFromGear?: number;
   pctIncreasedAccuracyFromGear?: number;
+  /** Global (non-local) attack speed increases from gear. */
   pctIncreasedAttackSpeedFromGear?: number;
   doubleDamageChanceFromGear?: number;
   armorIgnoreFromGear?: number;
@@ -29,6 +30,16 @@ export interface UniqueGearStatPatch {
   manaCostReductionFromGear?: number;
   energyShieldLessMultFromGear?: number;
   flatEnergyShieldFromGear?: number;
+  /** "X% increased local physical damage" — applies to weapon base damage only. */
+  localIncreasedPhysDamagePct?: number;
+  /** "X% increased/reduced local attack speed" — applies to weapon base APS only. */
+  localIncreasedApsPct?: number;
+  /** "X% increased local defences" — applies to armor/shield base defenses only. */
+  localIncreasedDefencesPct?: number;
+  /** "X% increased local block chance" — multiplies the shield's base block. */
+  localIncreasedBlockPct?: number;
+  /** "+X% chance to block" — flat block bonus (any item). */
+  flatBlockChanceFromGear?: number;
 }
 
 function num(m: RegExpMatchArray | null, g = 1): number | null {
@@ -112,8 +123,13 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/([\d.]+)%\s+increased\s+evasion\s+rating\b/i);
     if (m) add({ pctIncreasedEvasionFromGear: num(m)! });
 
+    // "increased defences" (global, no "local") — applies % globally to all armor/evasion
     m = l.match(/([\d.]+)%\s+increased\s+defences\b/i);
-    if (m) add({ pctIncreasedArmorFromGear: num(m)!, pctIncreasedEvasionFromGear: num(m)! });
+    if (m && !/local/i.test(l)) add({ pctIncreasedArmorFromGear: num(m)!, pctIncreasedEvasionFromGear: num(m)! });
+
+    // "increased local defences" — stored separately; applied to the item's own base in aggregation
+    m = l.match(/([\d.]+)%\s+increased\s+local\s+defences?\b/i);
+    if (m) add({ localIncreasedDefencesPct: num(m)! });
 
     m = l.match(/([\d.]+)%\s+increased\s+energy\s+shield\b/i);
     if (m) add({ pctIncreasedEnergyShieldFromGear: num(m)! });
@@ -134,13 +150,19 @@ export function equipmentModifiersFromUniqueTexts(
     if (m) add({ pctIncreasedAccuracyFromGear: num(m)! });
 
     if (ctx.isWeapon) {
+      // Local attack speed — stored separately; applied to weapon base APS in aggregation
       m = l.match(/([\d.-]+)%\s+increased\s+local\s+attack\s+speed\b/i);
-      if (m) add({ pctIncreasedAttackSpeedFromGear: num(m)! });
+      if (m) add({ localIncreasedApsPct: num(m)! });
 
       m = l.match(/([\d.-]+)%\s+reduced\s+local\s+attack\s+speed\b/i);
-      if (m) add({ pctIncreasedAttackSpeedFromGear: -Math.abs(num(m)!) });
+      if (m) add({ localIncreasedApsPct: -Math.abs(num(m)!) });
+
+      // "increased local physical damage" — stored separately; applied to weapon base in aggregation
+      m = l.match(/([\d.]+)%?\s+increased\s+local\s+physical\s+damage\b/i);
+      if (m) add({ localIncreasedPhysDamagePct: num(m)! });
     }
 
+    // Global (non-local) attack speed
     m = l.match(/([\d.]+)%\s+increased\s+attack\s+speed\b/i);
     if (m && !/local/i.test(l)) add({ pctIncreasedAttackSpeedFromGear: num(m)! });
 
@@ -151,6 +173,7 @@ export function equipmentModifiersFromUniqueTexts(
     if (m) add({ pctIncreasedAttackSpeedFromGear: num(m)! });
 
     if (ctx.isWeapon) {
+      // Flat local damage adds (elemental/physical from "Adds X to Y local ..." mods)
       m = l.match(/adds\s+([\d.]+)\s+to\s+([\d.]+)\s+local\s+/i);
       if (m) {
         const a = num(m, 1)!;
@@ -199,6 +222,17 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/\+(\d+)\s+to\s+energy\s+shield\b/i);
     if (m) add({ flatEnergyShieldFromGear: num(m)! });
+
+    // Block chance — flat bonus from any item slot
+    m = l.match(/\+\s*([\d.]+)%\s+(?:chance\s+to\s+block|to\s+block)\b/i);
+    if (m) add({ flatBlockChanceFromGear: num(m)! });
+
+    m = l.match(/\+([\d.]+)%\s+to\s+block\b/i);
+    if (m) add({ flatBlockChanceFromGear: num(m)! });
+
+    // "X% increased local block chance" — stored separately; multiplied against shield base in aggregation
+    m = l.match(/([\d.]+)%\s+increased\s+local\s+block\s+chance\b/i);
+    if (m) add({ localIncreasedBlockPct: num(m)! });
   }
 
   if (esLessMult !== 1) {

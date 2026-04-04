@@ -18,6 +18,21 @@ export interface EocUniqueDefinition {
   rollLabels: string[];
   innate: UniqueModPiece[];
   lines: UniqueModPiece[][];
+  /** Base physical damage range before local modifiers (weapons only). */
+  baseDamageMin: number | null;
+  baseDamageMax: number | null;
+  /** Base critical hit chance in percent (e.g. 9 for 9%). */
+  baseCritChance: number | null;
+  /** Base attacks per second. */
+  baseAttackSpeed: number | null;
+  /** Base armor value (armor pieces only). */
+  baseArmor: number | null;
+  /** Base evasion rating (armor/evasion pieces only). */
+  baseEvasion: number | null;
+  /** Base energy shield (ES pieces only). */
+  baseEnergyShield: number | null;
+  /** Base block chance in percent (shields only). */
+  baseBlockChance: number | null;
 }
 
 export const EOC_UNIQUE_DEFINITIONS: EocUniqueDefinition[] =
@@ -111,19 +126,33 @@ export function applyEnhancementToResolvedInnate(
 ): string {
   if (enhancementLevel <= 0 || perLevel === 0 || !resolvedInnate.trim()) return resolvedInnate;
   const delta = enhancementLevel * perLevel;
-  const re = /(\d+(?:\.\d+)?)(\s*%)/;
-  const m = resolvedInnate.match(re);
-  if (!m || m.index === undefined) return resolvedInnate;
-  const base = parseFloat(m[1]);
-  if (Number.isNaN(base)) return resolvedInnate;
-  const nv = base + delta;
-  const formatted =
-    Number.isInteger(nv) || Math.abs(nv - Math.round(nv)) < 1e-6
-      ? String(Math.round(nv))
-      : String(Math.round(nv * 100) / 100);
-  return (
-    resolvedInnate.slice(0, m.index) + formatted + m[2] + resolvedInnate.slice(m.index + m[0].length)
-  );
+
+  function applyDelta(text: string, idx: number, rawMatch: string, numStr: string, suffix: string): string {
+    const base = parseFloat(numStr);
+    if (Number.isNaN(base)) return text;
+    const nv = base + delta;
+    const formatted =
+      Number.isInteger(nv) || Math.abs(nv - Math.round(nv)) < 1e-6
+        ? String(Math.round(nv))
+        : String(Math.round(nv * 100) / 100);
+    return text.slice(0, idx) + formatted + suffix + text.slice(idx + rawMatch.length);
+  }
+
+  // First priority: find a number immediately followed by % (e.g. "30%")
+  const rePct = /(\d+(?:\.\d+)?)(\s*%)/;
+  const mPct = resolvedInnate.match(rePct);
+  if (mPct && mPct.index !== undefined) {
+    return applyDelta(resolvedInnate, mPct.index, mPct[0], mPct[1], mPct[2]);
+  }
+
+  // Fallback: find the first standalone number (flat stats like "+40 to maximum life")
+  const reNum = /(\d+(?:\.\d+)?)/;
+  const mNum = resolvedInnate.match(reNum);
+  if (mNum && mNum.index !== undefined) {
+    return applyDelta(resolvedInnate, mNum.index, mNum[0], mNum[1], "");
+  }
+
+  return resolvedInnate;
 }
 
 export function defaultRollsForUnique(def: EocUniqueDefinition): number[] {

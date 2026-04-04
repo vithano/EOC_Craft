@@ -54,6 +54,12 @@ export interface EquipmentModifiers {
   /** Multiplies final ES (1 = no change). Each “% less energy shield” stacks multiplicatively. */
   energyShieldLessMultFromGear: number
   flatEnergyShieldFromGear: number
+  /** Weapon base APS after local attack-speed mods. Null when no weapon (falls back to BASE_GAME_STATS.baseAps). */
+  weaponEffectiveAps: number | null
+  /** Weapon base critical hit chance %. Null when no weapon (falls back to BASE_GAME_STATS.baseCritChance). */
+  weaponBaseCritChance: number | null
+  /** Total block chance contribution from equipped gear (base shield block + local block mods + flat block bonuses). */
+  blockChanceFromGear: number
 }
 
 export interface ComputedBuildStats {
@@ -161,6 +167,9 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     manaCostReductionFromGear: 0,
     energyShieldLessMultFromGear: 1,
     flatEnergyShieldFromGear: 0,
+    weaponEffectiveAps: null,
+    weaponBaseCritChance: null,
+    blockChanceFromGear: 0,
   }
 }
 
@@ -233,6 +242,9 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.energyShieldLessMultFromGear !== undefined) {
     eq.energyShieldLessMultFromGear *= p.energyShieldLessMultFromGear
   }
+  if (p.flatBlockChanceFromGear !== undefined) {
+    add('blockChanceFromGear', p.flatBlockChanceFromGear)
+  }
 }
 
 /** Sum static items and rolled uniques for all worn slots. */
@@ -255,7 +267,46 @@ export function aggregateEquippedToEquipmentModifiers(
         entry?.enhancement ?? 0
       )
       const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
-      const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon: slot === 'Weapon' })
+      const isWeapon = slot === 'Weapon'
+      const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
+
+      if (isWeapon) {
+        // Apply weapon base physical damage scaled by local physical damage %
+        const baseDmgMin = def.baseDamageMin ?? 0
+        const baseDmgMax = def.baseDamageMax ?? 0
+        if (baseDmgMin > 0 || baseDmgMax > 0) {
+          const localPhysPct = patch.localIncreasedPhysDamagePct ?? 0
+          eq.flatDamageMin += baseDmgMin * (1 + localPhysPct / 100)
+          eq.flatDamageMax += baseDmgMax * (1 + localPhysPct / 100)
+        }
+        // Weapon base APS with local attack speed applied
+        if (def.baseAttackSpeed != null) {
+          const localApsPct = patch.localIncreasedApsPct ?? 0
+          eq.weaponEffectiveAps = def.baseAttackSpeed * (1 + localApsPct / 100)
+        }
+        // Weapon base critical hit chance
+        if (def.baseCritChance != null) {
+          eq.weaponBaseCritChance = def.baseCritChance
+        }
+      } else {
+        // Apply armor/shield base defenses scaled by local defences %
+        const localDefPct = patch.localIncreasedDefencesPct ?? 0
+        if (def.baseArmor != null) {
+          eq.flatArmor += Math.round(def.baseArmor * (1 + localDefPct / 100))
+        }
+        if (def.baseEvasion != null) {
+          eq.flatEvasion += Math.round(def.baseEvasion * (1 + localDefPct / 100))
+        }
+        if (def.baseEnergyShield != null) {
+          eq.flatEnergyShieldFromGear += Math.round(def.baseEnergyShield * (1 + localDefPct / 100))
+        }
+        // Shield block chance: base * (1 + local block %) + flat block bonuses
+        if (slot === 'Off-hand' && def.baseBlockChance != null) {
+          const localBlockPct = patch.localIncreasedBlockPct ?? 0
+          eq.blockChanceFromGear += def.baseBlockChance * (1 + localBlockPct / 100)
+        }
+      }
+
       mergeUniqueGearPatch(eq, patch)
       continue
     }
@@ -434,7 +485,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // Dragoon class bonus: +25% to maximum block chance (75 → 100)
   const maxBlockChance = bonus('dragoon') ? 100 : 75
-  const blockChance = Math.min(maxBlockChance, u('increasedChanceToBlock'))
+  const blockChance = Math.min(maxBlockChance, u('increasedChanceToBlock') + eq.blockChanceFromGear)
   const dodgeChance = Math.min(75, u('increasedChanceToDodge'))
 
   // -------------------------------------------------------------------------
@@ -471,14 +522,15 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 16. Critical hit chance
   // -------------------------------------------------------------------------
-  // Base 5.1% + 2% per 10 DEX (doubled for guardian) + Assassin +8% + upgrades
+  // Weapon base crit (or game base 5.1%) + 2% per 10 DEX (doubled for guardian) + Assassin +8% + upgrades
+  const baseCritChance   = eq.weaponBaseCritChance ?? BASE_GAME_STATS.baseCritChance
   const critFromDex      = (dex * attrCritMult * 2) / 100  // percentage points
   const critFromAssassin = bonus('assassin') ? 8 : 0
   const critFromUpgrades = u('increasedCriticalHitChance') + u('increasedAttackCriticalHitChance')
   // Upgrades are "increased" — multiply the base; additive flat bonuses applied separately
   const critChance = Math.min(
     95,
-    BASE_GAME_STATS.baseCritChance * (1 + critFromUpgrades / 100)
+    baseCritChance * (1 + critFromUpgrades / 100)
     + critFromDex
     + critFromAssassin
     + eq.critChanceBonus
@@ -497,8 +549,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + mercenaryAspIncPct
     + eq.pctIncreasedAttackSpeedFromGear
   // Rogue class bonus: 10% more APS (multiplicative)
+  // Use weapon effective APS (base * local mods) when a weapon is equipped; fall back to game base 1.0
   const rogueMult = bonus('rogue') ? 1.10 : 1.0
-  const aps = BASE_GAME_STATS.baseAps * (1 + totalIncreasedAtk / 100) * rogueMult
+  const aps = (eq.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps) * (1 + totalIncreasedAtk / 100) * rogueMult
 
   // -------------------------------------------------------------------------
   // 18. Mana cost per attack

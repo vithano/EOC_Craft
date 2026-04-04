@@ -54,7 +54,15 @@
         },
         "% reduced mana cost of abilities"
       ]
-    ]
+    ],
+    "baseDamageMin": 33.0,
+    "baseDamageMax": 50.0,
+    "baseCritChance": 9.0,
+    "baseAttackSpeed": 1.15,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_skysplitter",
@@ -93,7 +101,15 @@
       [
         "Adds 1-5 local lightning damage per 10 maximum energy shield"
       ]
-    ]
+    ],
+    "baseDamageMin": 79.0,
+    "baseDamageMax": 118.0,
+    "baseCritChance": 9.0,
+    "baseAttackSpeed": 0.85,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_rimefrost",
@@ -150,7 +166,15 @@
       [
         "Enemies are unaffected by chill"
       ]
-    ]
+    ],
+    "baseDamageMin": 79.0,
+    "baseDamageMax": 118.0,
+    "baseCritChance": 9.0,
+    "baseAttackSpeed": 0.85,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_tested_faith",
@@ -182,7 +206,15 @@
       [
         "Adds 4 to 6 local fire damage per 10 strength"
       ]
-    ]
+    ],
+    "baseDamageMin": 76.0,
+    "baseDamageMax": 115.0,
+    "baseCritChance": 9.0,
+    "baseAttackSpeed": 0.72,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_hemophage",
@@ -221,7 +253,93 @@
       [
         "Adds 4 to 6 local physical damage per 40 maximum life"
       ]
-    ]
+    ],
+    "baseDamageMin": 98.0,
+    "baseDamageMax": 147.0,
+    "baseCritChance": 9.0,
+    "baseAttackSpeed": 0.85,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
+  },
+  {
+    "id": "unique_dusk_and_dawn",
+    "name": "Dusk and Dawn",
+    "slot": "Weapon",
+    "itemType": "Warhammer",
+    "reqLevel": 49,
+    "reqStr": 117,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "4.00%",
+    "enhancementBonusPerLevel": 4.0,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Adds to",
+      "to local cold damage",
+      "Adds to",
+      "to local fire damage",
+      "Value% increased local attack speed"
+    ],
+    "innate": [
+      "Hits Ignore 40% of Enemy Armor"
+    ],
+    "lines": [
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 60.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 150.0
+        },
+        " local cold damage"
+      ],
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 60.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 150.0
+        },
+        " local fire damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased local attack speed"
+      ],
+      [
+        "counts as dual-wielding"
+      ],
+      [
+        "100% more hits per attack"
+      ]
+    ],
+    "baseDamageMin": 88.0,
+    "baseDamageMax": 132.0,
+    "baseCritChance": 9.0,
+    "baseAttackSpeed": 0.98,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_shimori_ori",
@@ -266,7 +384,15 @@
       [
         "+1% chance to deal double damage with attacks per 10 strength"
       ]
-    ]
+    ],
+    "baseDamageMin": 112.0,
+    "baseDamageMax": 168.0,
+    "baseCritChance": 9.0,
+    "baseAttackSpeed": 0.85,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_the_redblade",
@@ -311,7 +437,15 @@
       [
         "+50% chance to inflict bleeding with attacks"
       ]
-    ]
+    ],
+    "baseDamageMin": 19.0,
+    "baseDamageMax": 44.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.32,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_honored_vow",
@@ -378,7 +512,15 @@
         },
         "% chance to block"
       ]
-    ]
+    ],
+    "baseDamageMin": 36.0,
+    "baseDamageMax": 87.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.15,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_shard_of_entropy",
@@ -423,7 +565,15 @@
       [
         "Attacks have a 100% chance to inflict ailments"
       ]
-    ]
+    ],
+    "baseDamageMin": 40.0,
+    "baseDamageMax": 95.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.32,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_seversting",
@@ -474,7 +624,15 @@
       [
         "Hits ignore 50% of enemy armor"
       ]
-    ]
+    ],
+    "baseDamageMin": 55.0,
+    "baseDamageMax": 111.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.15,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_gorefeast",
@@ -530,7 +688,15 @@
       [
         "Adds 4 to 6 physical damage to attacks per 40 missing life"
       ]
-    ]
+    ],
+    "baseDamageMin": 55.0,
+    "baseDamageMax": 111.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.15,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_galesong",
@@ -598,7 +764,15 @@
       [
         "4% increased strikes per attack with strike abilities per 10 dexterity"
       ]
-    ]
+    ],
+    "baseDamageMin": 64.0,
+    "baseDamageMax": 127.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.15,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_siegebreaker",
@@ -645,7 +819,15 @@
       [
         "When you block a hit, gain local fire damage qual to 50% of total prevented damage, then perform a counter attack"
       ]
-    ]
+    ],
+    "baseDamageMin": 43.0,
+    "baseDamageMax": 61.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.15,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_lornfell",
@@ -726,7 +908,15 @@
         },
         "% increased local attack speed"
       ]
-    ]
+    ],
+    "baseDamageMin": 66.0,
+    "baseDamageMax": 94.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 0.98,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_against_the_darkness",
@@ -778,7 +968,15 @@
       [
         "Your hits cannot be evaded"
       ]
-    ]
+    ],
+    "baseDamageMin": 55.0,
+    "baseDamageMax": 79.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.32,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_splinterrain",
@@ -838,7 +1036,15 @@
         },
         "% of physical damage as extra lightning damage"
       ]
-    ]
+    ],
+    "baseDamageMin": 37.0,
+    "baseDamageMax": 51.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.15,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_fated_winds",
@@ -891,7 +1097,15 @@
       [
         "Convert 50% of your physical damage to cold damage"
       ]
-    ]
+    ],
+    "baseDamageMin": 99.0,
+    "baseDamageMax": 138.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 0.85,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_blackflame",
@@ -941,7 +1155,15 @@
       [
         "Your chaos damage can ignite"
       ]
-    ]
+    ],
+    "baseDamageMin": 86.0,
+    "baseDamageMax": 120.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.0,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_titansbane",
@@ -987,7 +1209,15 @@
       [
         "2% increased range attack damage per 10 strength"
       ]
-    ]
+    ],
+    "baseDamageMin": 93.0,
+    "baseDamageMax": 131.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 1.0,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_heavensreach",
@@ -1041,7 +1271,15 @@
       [
         "Your hits cannot be evaded"
       ]
-    ]
+    ],
+    "baseDamageMin": 107.0,
+    "baseDamageMax": 151.0,
+    "baseCritChance": 12.0,
+    "baseAttackSpeed": 0.85,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_basilisk_fang",
@@ -1080,7 +1318,15 @@
       [
         "Adds 8-12 local chaos damage per poison applied to enemies"
       ]
-    ]
+    ],
+    "baseDamageMin": 15.0,
+    "baseDamageMax": 20.0,
+    "baseCritChance": 15.0,
+    "baseAttackSpeed": 1.32,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_devouring_blade",
@@ -1091,7 +1337,7 @@
     "reqStr": null,
     "reqDex": 45,
     "reqInt": 45,
-    "enhancementBonus": "0.9",
+    "enhancementBonus": "+0.9",
     "enhancementBonusPerLevel": 0.9,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -1132,7 +1378,15 @@
       [
         "Excess recovery from life leech is applied to your energy shield instead"
       ]
-    ]
+    ],
+    "baseDamageMin": 43.0,
+    "baseDamageMax": 55.0,
+    "baseCritChance": 15.0,
+    "baseAttackSpeed": 1.32,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_darkloom",
@@ -1186,7 +1440,15 @@
       [
         "While your off-hand is empty, your action bar is set to 100% at the begninning of an encounter"
       ]
-    ]
+    ],
+    "baseDamageMin": 60.0,
+    "baseDamageMax": 76.0,
+    "baseCritChance": 15.0,
+    "baseAttackSpeed": 0.98,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_ancestral_echo",
@@ -1239,7 +1501,15 @@
       [
         "When you cast a spell, it is repeated once without cost"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_lumaris",
@@ -1300,7 +1570,15 @@
         },
         "% of life as extra base energy shield"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_sealing_pact",
@@ -1340,7 +1618,15 @@
       [
         "Abilities have no cost"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_soulpierce",
@@ -1385,7 +1671,15 @@
       [
         "Your hits cannot be evaded"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_riftshaper",
@@ -1430,7 +1724,15 @@
       [
         "After you cast a spell, your action bar is set to 50%"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_salvation",
@@ -1481,7 +1783,15 @@
       [
         "When you cast a spell, recover life equal to its cost"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_frostspire",
@@ -1520,7 +1830,15 @@
       [
         "Chill effects you inflict have infinite duration"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_ashen_fate",
@@ -1572,7 +1890,15 @@
         },
         "% increase ailment duration"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_leyweve",
@@ -1625,7 +1951,15 @@
       [
         "+1% to critical damage multiplier per 20 accuracy rating"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_tide_of_corruption",
@@ -1636,8 +1970,8 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": 117,
-    "enhancementBonus": "",
-    "enhancementBonusPerLevel": 0.0,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
     "maxEnhancement": 10,
     "twoHanded": true,
     "rollLabels": [
@@ -1647,7 +1981,7 @@
       "Hits penetrate % of enemy chaos resistance"
     ],
     "innate": [
-      "% increased cast speed"
+      "24% increased cast speed"
     ],
     "lines": [
       [
@@ -1684,7 +2018,15 @@
         },
         "% of enemy chaos resistance"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_annihilation",
@@ -1731,7 +2073,15 @@
       [
         "Take chaos damage equal to 400% of ability cost when you cast a spell"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_skyward",
@@ -1784,7 +2134,15 @@
       [
         "Adds 1 to 4 local lightning damage per character level"
       ]
-    ]
+    ],
+    "baseDamageMin": 37.0,
+    "baseDamageMax": 51.0,
+    "baseCritChance": 15.0,
+    "baseAttackSpeed": 1.15,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_apotheosis",
@@ -1823,7 +2181,15 @@
       [
         "12% increased melee critical hit chance per 10 intelligence"
       ]
-    ]
+    ],
+    "baseDamageMin": 49.0,
+    "baseDamageMax": 69.0,
+    "baseCritChance": 15.0,
+    "baseAttackSpeed": 1.0,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_enigmatic_rod",
@@ -1893,7 +2259,15 @@
         },
         "% of your physical damage to fire damage"
       ]
-    ]
+    ],
+    "baseDamageMin": 82.0,
+    "baseDamageMax": 114.0,
+    "baseCritChance": 15.0,
+    "baseAttackSpeed": 1.0,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_echoing_conviction",
@@ -1954,7 +2328,15 @@
       [
         "When you deal a critical hit, perform an additional hit with a 50% chance"
       ]
-    ]
+    ],
+    "baseDamageMin": 73.0,
+    "baseDamageMax": 102.0,
+    "baseCritChance": 15.0,
+    "baseAttackSpeed": 1.15,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_solspire",
@@ -2001,7 +2383,15 @@
       [
         "When you attack while your mana is above 50% of maximum mana, sacrifice all mana to deal 6 to 9 additional fire damage per 10 mana sacrificed this way"
       ]
-    ]
+    ],
+    "baseDamageMin": 99.0,
+    "baseDamageMax": 138.0,
+    "baseCritChance": 15.0,
+    "baseAttackSpeed": 0.85,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_divinarius",
@@ -2068,7 +2458,15 @@
         },
         "% chance to block"
       ]
-    ]
+    ],
+    "baseDamageMin": 93.0,
+    "baseDamageMax": 131.0,
+    "baseCritChance": 15.0,
+    "baseAttackSpeed": 1.0,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_traitors_garb",
@@ -2121,7 +2519,15 @@
       [
         "Take 100% increased damage while you are below 50% of maximum life"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 161,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_mind_bulwark",
@@ -2173,7 +2579,15 @@
       [
         "Gain armor equal to 40% of maximum mana"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 81,
+    "baseEvasion": null,
+    "baseEnergyShield": 40,
+    "baseBlockChance": null
   },
   {
     "id": "unique_eternal_penance",
@@ -2234,7 +2648,15 @@
         },
         "% of elemental damage as chaos damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 97,
+    "baseEvasion": null,
+    "baseEnergyShield": 48,
+    "baseBlockChance": null
   },
   {
     "id": "unique_solemn_oath",
@@ -2281,7 +2703,67 @@
       [
         "+16 armour per 10 intelligence"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 165,
+    "baseEvasion": null,
+    "baseEnergyShield": 82,
+    "baseBlockChance": null
+  },
+  {
+    "id": "unique_the_ascetic",
+    "name": "The Ascetic",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 49,
+    "reqStr": 45,
+    "reqDex": null,
+    "reqInt": 45,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "+ to maximum mana"
+    ],
+    "innate": [
+      "+6% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 100.0
+        },
+        " to maximum life"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 100.0
+        },
+        " to maximum mana"
+      ],
+      [
+        "100% increased effect of modifiers gained from class passives while you are not wearing a helmet gloves and boots"
+      ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 165,
+    "baseEvasion": null,
+    "baseEnergyShield": 82,
+    "baseBlockChance": null
   },
   {
     "id": "unique_forgeheart",
@@ -2341,7 +2823,15 @@
         },
         "% of physical damage as fire damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 363,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_adaptive_mail",
@@ -2387,7 +2877,15 @@
       [
         "Your armor has no effect while you are below 50% of maximum life"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 213,
+    "baseEvasion": 213,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_the_carapace",
@@ -2433,7 +2931,15 @@
       [
         "Take no extra damage from critical hits"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 482,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_tempests_embrace",
@@ -2486,7 +2992,15 @@
       [
         "Once per stage, if you would die, recover 25% of maximum life and permanently inflict 50% shock on yourself"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 482,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_lightshroud",
@@ -2539,7 +3053,79 @@
       [
         "Your energy shield cannot be reduced below its maximum by damage taken"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": 242,
+    "baseBlockChance": null
+  },
+  {
+    "id": "unique_wraithguard",
+    "name": "Wraithguard",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": 70,
+    "reqInt": 70,
+    "enhancementBonus": "0.40%",
+    "enhancementBonusPerLevel": 0.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defences",
+      "Gain life on kill",
+      "+ % chance to dodge"
+    ],
+    "innate": [
+      "+4% chance to dodge"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 300.0
+        },
+        " life on kill"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 12.0
+        },
+        "% chance to dodge"
+      ],
+      [
+        "when you would be hit while at maximum life, your chance to dodge is rolled twice and the better result is used"
+      ],
+      [
+        "when you would be hit while below maximum life, your chance to dodge is rolled twice and the worse result is used"
+      ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 213,
+    "baseEnergyShield": 106,
+    "baseBlockChance": null
   },
   {
     "id": "unique_mask_of_the_broken",
@@ -2617,7 +3203,15 @@
         },
         "% increased damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": 8,
+    "baseBlockChance": null
   },
   {
     "id": "unique_shroud_of_avarice",
@@ -2669,7 +3263,15 @@
         },
         "% increased item quantity"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 11,
+    "baseEnergyShield": 5,
+    "baseBlockChance": null
   },
   {
     "id": "unique_crest_of_ascension",
@@ -2727,7 +3329,15 @@
         },
         "% of life as extra base energy shield"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 57,
+    "baseEvasion": null,
+    "baseEnergyShield": 28,
+    "baseBlockChance": null
   },
   {
     "id": "unique_crown_of_scorn",
@@ -2766,7 +3376,15 @@
       [
         "Enemies deal 25% less damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 130,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_crimson_visage",
@@ -2818,7 +3436,15 @@
       [
         "Cannot recover life while above 50% of maximum life"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 148,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_dreadveil",
@@ -2871,7 +3497,15 @@
       [
         "Enemies lose 25% of maximum life at the beginning of combat"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 74,
+    "baseEnergyShield": 37,
+    "baseBlockChance": null
   },
   {
     "id": "unique_prowlsight",
@@ -2924,7 +3558,15 @@
       [
         "10% more accuracy rating per 0.1 seconds of attack time"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 165,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_gimpse_of_serenity",
@@ -2976,7 +3618,15 @@
       [
         "50% of mana regeneration per second applies to your energy shield instead"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": 82,
+    "baseBlockChance": null
   },
   {
     "id": "unique_flowing_crown",
@@ -2987,8 +3637,8 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": 88,
-    "enhancementBonus": "",
-    "enhancementBonusPerLevel": 0.0,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
     "maxEnhancement": 10,
     "twoHanded": false,
     "rollLabels": [
@@ -2996,7 +3646,7 @@
       "Regenerate % of energy shield per second"
     ],
     "innate": [
-      "% increased energy shield"
+      "12% increased energy shield"
     ],
     "lines": [
       [
@@ -3022,7 +3672,15 @@
       [
         "You have no mana"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": 91,
+    "baseBlockChance": null
   },
   {
     "id": "unique_the_hollow_revenant",
@@ -3068,7 +3726,15 @@
       [
         "If your death was prevented during the current stage, gain 40% more speed and take 1.000 chaos damage per second"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 99,
+    "baseEvasion": null,
+    "baseEnergyShield": 49,
+    "baseBlockChance": null
   },
   {
     "id": "unique_cowl_of_the_kinjal",
@@ -3107,7 +3773,15 @@
       [
         "Take 1% reduced damage per 200 evasion rating while you have energy shield, up to 50%"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 106,
+    "baseEnergyShield": 53,
+    "baseBlockChance": null
   },
   {
     "id": "unique_verdant_soul",
@@ -3167,7 +3841,15 @@
       [
         "2% increased armor per 1% fire resistance above your maximum fire resistance"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 8,
+    "baseEvasion": null,
+    "baseEnergyShield": 4,
+    "baseBlockChance": null
   },
   {
     "id": "unique_thiefs_grip",
@@ -3213,7 +3895,15 @@
       [
         "+2% to critical damage multiplier per 1% increased item quantity"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 16,
+    "baseEnergyShield": 8,
+    "baseBlockChance": null
   },
   {
     "id": "unique_frostbound",
@@ -3267,7 +3957,15 @@
       [
         "Your hits inflict chill as though dealing 100% more damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 16,
+    "baseEvasion": null,
+    "baseEnergyShield": 8,
+    "baseBlockChance": null
   },
   {
     "id": "unique_oscilliarm",
@@ -3320,7 +4018,15 @@
         },
         "% chance to deal triple damage with attacks"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 65,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_truestrike",
@@ -3374,7 +4080,15 @@
       [
         "Adds 2-3 physical damage to attacks per 50 accuracy rating"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 65,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_soul_rippers",
@@ -3433,7 +4147,15 @@
         },
         "% increased cricital hit chance"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 33,
+    "baseEnergyShield": 16,
+    "baseBlockChance": null
   },
   {
     "id": "unique_woe_touch",
@@ -3480,7 +4202,15 @@
       [
         "Ailments  inflicted with critical hits gain 1% more duration per 1% critical damage multiplier"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 41,
+    "baseEnergyShield": 21,
+    "baseBlockChance": null
   },
   {
     "id": "unique_arcanima",
@@ -3532,7 +4262,15 @@
       [
         "The local damage of your weapons applies to spells as well"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 41,
+    "baseEvasion": null,
+    "baseEnergyShield": 21,
+    "baseBlockChance": null
   },
   {
     "id": "unique_surgewrath",
@@ -3591,7 +4329,15 @@
         },
         "% to maximum shock effect"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 41,
+    "baseEvasion": null,
+    "baseEnergyShield": 21,
+    "baseBlockChance": null
   },
   {
     "id": "unique_carnage_pact",
@@ -3651,7 +4397,15 @@
         },
         "% increased attack speed"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 91,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_entropic_grasp",
@@ -3697,7 +4451,15 @@
       [
         "Your chance to inflict elemental ailments is 50%"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": 49,
+    "baseBlockChance": null
   },
   {
     "id": "unique_hands_of_the_fateweaver",
@@ -3750,7 +4512,15 @@
       [
         "2% increased cast speed per 10 dexterity"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 53,
+    "baseEnergyShield": 27,
+    "baseBlockChance": null
   },
   {
     "id": "unique_inner_tranquility",
@@ -3803,7 +4573,15 @@
       [
         "While your energy shield is below its maximum, scarifice 10% of your maximum life per secon to recover that much energy shield"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": 53,
+    "baseBlockChance": null
   },
   {
     "id": "unique_ironstance",
@@ -3856,7 +4634,15 @@
       [
         "Your total evasion rating is converted into armour"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 20,
+    "baseEvasion": 20,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_wintermarch",
@@ -3910,7 +4696,15 @@
       [
         "You are unaffected by chill"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 20,
+    "baseEvasion": null,
+    "baseEnergyShield": 10,
+    "baseBlockChance": null
   },
   {
     "id": "unique_preystride",
@@ -3963,7 +4757,15 @@
       [
         "1% more evasion rating per 1% missing life"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 48,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_stormchasers",
@@ -4016,7 +4818,15 @@
       [
         "Every 1 second, inflict 10% shock on yourself and enemies"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 65,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_phantomstep",
@@ -4062,7 +4872,76 @@
       [
         "You cannot evade"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 45,
+    "baseEnergyShield": 23,
+    "baseBlockChance": null
+  },
+  {
+    "id": "unique_indignity",
+    "name": "Indignity",
+    "slot": "Boots",
+    "itemType": "Boots",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": 45,
+    "reqInt": 45,
+    "enhancementBonus": "0.40%",
+    "enhancementBonusPerLevel": 0.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ increased dexterity",
+      "Value% increased attack and cast speed",
+      "+ % chance to dodge"
+    ],
+    "innate": [
+      "+4% chance to dodge"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " increased dexterity"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased attack and cast speed"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 8.0
+        },
+        "% chance to dodge"
+      ],
+      [
+        "+25% chance to skip non-elite enemy encounters"
+      ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 41,
+    "baseEnergyShield": 21,
+    "baseBlockChance": null
   },
   {
     "id": "unique_brittleguard",
@@ -4108,7 +4987,15 @@
       [
         "50% chance to reduce no damage on block"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 20,
+    "baseEvasion": 20,
+    "baseEnergyShield": null,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_remnant_of_the_ages",
@@ -4168,24 +5055,83 @@
         },
         "% of mana as extra base energy shield"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": 40,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_gift_to_the_stalwart",
     "name": "Gift to the Stalwart",
     "slot": "Off-hand",
     "itemType": "Shield",
-    "reqLevel": 1,
-    "reqStr": null,
+    "reqLevel": 28,
+    "reqStr": 26,
     "reqDex": null,
-    "reqInt": null,
-    "enhancementBonus": "",
-    "enhancementBonusPerLevel": 0.0,
+    "reqInt": 26,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
     "maxEnhancement": 10,
     "twoHanded": false,
-    "rollLabels": [],
-    "innate": [],
-    "lines": []
+    "rollLabels": [
+      "Recover % of life on block",
+      "Recover % of mana on block",
+      "Recover % of energy shield on block",
+      "Value% increased local block chance"
+    ],
+    "innate": [
+      "+6% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "Recover ",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 4.0
+        },
+        "% of life on block"
+      ],
+      [
+        "Recover ",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 4.0
+        },
+        "% of mana on block"
+      ],
+      [
+        "Recover ",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 4.0
+        },
+        "% of energy shield on block"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased local block chance"
+      ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 57,
+    "baseEvasion": null,
+    "baseEnergyShield": 28,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_mirror_of_deceit",
@@ -4224,7 +5170,15 @@
       [
         "Your chance to block is halved"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 65,
+    "baseEnergyShield": 33,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_volturnus",
@@ -4284,7 +5238,15 @@
         },
         "% of physical damage as fire damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": 65,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_eluvenar",
@@ -4336,7 +5298,15 @@
       [
         "2% increased evasion rating per 10 dexterity"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": 165,
+    "baseEnergyShield": null,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_force_prism",
@@ -4389,24 +5359,75 @@
       [
         "Your action bar is filled by 40% when you block"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 82,
+    "baseEvasion": null,
+    "baseEnergyShield": 41,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_supreme_bulwark",
     "name": "Supreme Bulwark",
     "slot": "Off-hand",
     "itemType": "Shield",
-    "reqLevel": 1,
-    "reqStr": null,
-    "reqDex": null,
+    "reqLevel": 46,
+    "reqStr": 61,
+    "reqDex": 61,
     "reqInt": null,
-    "enhancementBonus": "",
-    "enhancementBonusPerLevel": 0.0,
+    "enhancementBonus": "+4",
+    "enhancementBonusPerLevel": 4.0,
     "maxEnhancement": 10,
     "twoHanded": false,
-    "rollLabels": [],
-    "innate": [],
-    "lines": []
+    "rollLabels": [
+      "+ to all attributes",
+      "Value% increased local defense",
+      "Value% increased local block chance"
+    ],
+    "innate": [
+      "+40 to maximum life"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        " to all attributes"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 120.0
+        },
+        "% increased local defense"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        "% increased local block chance"
+      ],
+      [
+        "+20 to armor and evasion rating per 1% chance to block above your maximum chance to block"
+      ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 99,
+    "baseEvasion": 99,
+    "baseEnergyShield": null,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_primordial_aegis",
@@ -4459,7 +5480,15 @@
       [
         "+100% chance to avoid elemental ailments"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": 106,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_dawnbreak",
@@ -4480,7 +5509,7 @@
       "+ % to maximum chaos resistance"
     ],
     "innate": [
-      "8% to all elemental resistances"
+      "+8% to all elemental resistances"
     ],
     "lines": [
       [
@@ -4512,7 +5541,15 @@
       [
         "Every 5 seconds, regenerate 25% of maximum life over 1 second"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 106,
+    "baseEvasion": null,
+    "baseEnergyShield": 53,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_the_fortress",
@@ -4557,7 +5594,15 @@
         },
         "% increased local block chance"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": 241,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": 25.0
   },
   {
     "id": "unique_aspirants_legacy",
@@ -4616,7 +5661,15 @@
         },
         "% increased experience gain"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_heart_of_the_protector",
@@ -4662,7 +5715,15 @@
       [
         "Your chance to block is doubled"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_soulstone_talisman",
@@ -4722,7 +5783,15 @@
         },
         "% of mana per second"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_the_undying_flame",
@@ -4774,7 +5843,15 @@
       [
         "Ignite effects carry on to subsequent enemies"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_flashfire",
@@ -4819,7 +5896,15 @@
       [
         "75% less ignite duration"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_eternal_gaze",
@@ -4871,7 +5956,15 @@
       [
         "Chill effects carry on to subsequent enemies"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_inward_focus",
@@ -4917,7 +6010,15 @@
       [
         "Your armor has no effect against physical damage taken"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_venofrenzy",
@@ -4956,7 +6057,15 @@
       [
         "Take 90% less poison damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_the_melding",
@@ -4998,7 +6107,15 @@
       [
         "Regenerate 5% of maximum life per second while you are ignited"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_eye_of_the_storm",
@@ -5043,7 +6160,15 @@
       [
         "The aggregated effect of shock you inflict is not limited by your maximum shock effect"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_adorned_lineage",
@@ -5095,7 +6220,15 @@
       [
         "+60 to energy shield per equipped unique item"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_shard_of_creation",
@@ -5149,7 +6282,15 @@
       [
         "1% increased damage per 10 combined strength, dexterity, and intelligence"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_praxis",
@@ -5207,7 +6348,15 @@
         },
         "% increased experience gain"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_broken_legacy",
@@ -5250,7 +6399,15 @@
       [
         "Your hits cannot be evaded"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_winterstorm",
@@ -5289,7 +6446,15 @@
       [
         "30% increased effect of non-damaging ailments"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_timeclasp",
@@ -5334,7 +6499,15 @@
       [
         "Hits you take cannot be critical"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_blood_price",
@@ -5387,24 +6560,69 @@
       [
         "Mana cost of abilities is paid with life instead"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_constancy",
     "name": "Constancy",
     "slot": "Ring",
     "itemType": "Ring",
-    "reqLevel": 1,
+    "reqLevel": 21,
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "",
-    "enhancementBonusPerLevel": 0.0,
+    "enhancementBonus": "1.60%",
+    "enhancementBonusPerLevel": 1.6,
     "maxEnhancement": 10,
     "twoHanded": false,
-    "rollLabels": [],
-    "innate": [],
-    "lines": []
+    "rollLabels": [
+      "+ to all attributes",
+      "Value% increased damage"
+    ],
+    "innate": [
+      "16% increased mana regeneration"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " to all attributes"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased damage"
+      ],
+      [
+        "you cannot deal critical hits"
+      ],
+      [
+        "your hits cannot be evaded"
+      ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_conflux_of_thunder",
@@ -5451,7 +6669,15 @@
       [
         "All elemental damage types can shock"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_conflux_of_frost",
@@ -5498,7 +6724,15 @@
       [
         "All elemental damage types can chill"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_conflux_of_flame",
@@ -5545,7 +6779,15 @@
       [
         "All elemental damage types can ignite"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_savage_legacy",
@@ -5598,7 +6840,15 @@
       [
         "Take 10% increased damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_lionheart_signet",
@@ -5658,7 +6908,15 @@
         },
         "% chance to block"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_sanguine_eye",
@@ -5711,7 +6969,15 @@
       [
         "Your leech effects also apply to damage over time inflicted through bleeding"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_the_confluence",
@@ -5750,7 +7016,15 @@
       [
         "Convert 33% of your physical damage to fire damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_glitterbind",
@@ -5809,7 +7083,15 @@
         },
         "% increased item rarity"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_primordial_resonance",
@@ -5862,7 +7144,15 @@
       [
         "Critital hits have a 100% chance to inflict elemental ailments"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_soulthirst",
@@ -5915,7 +7205,15 @@
       [
         "Life leech effects apply to your energy shield instead"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_disintegration_catalyst",
@@ -5960,7 +7258,15 @@
       [
         "Critical hits have a 100% chance to inflict poison"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_tanglecoil",
@@ -6014,7 +7320,15 @@
       [
         "Elemental resistances of enemies are equal to yours"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_singularity",
@@ -6066,7 +7380,15 @@
       [
         "Convert 100% of your elemental damage to chaos damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_aspirants_will",
@@ -6117,7 +7439,15 @@
       [
         "regenerate 1 life per second per character level"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_mothers_embrace",
@@ -6163,7 +7493,15 @@
       [
         "Take no extra damage from critical hits"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_surge_strap",
@@ -6220,7 +7558,15 @@
         },
         "% increased damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_flow_tether",
@@ -6280,7 +7626,15 @@
         },
         "% of damage taken is applied to your mana first"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_fleshbind",
@@ -6332,7 +7686,15 @@
         },
         "% of life per second"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_fundamentality",
@@ -6372,7 +7734,15 @@
       [
         "+30 to all attributes per rare item equipped"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_shattered_divinity",
@@ -6433,7 +7803,15 @@
         },
         "% to all elemental resistances"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_titansblood",
@@ -6472,7 +7850,15 @@
       [
         "While you have at least 400 intelligence gain +60% to critical damage multiplier"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_circling_thoughts",
@@ -6518,7 +7904,15 @@
       [
         "Regenerate 1% of energy shield per second per 150 intelligence"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   },
   {
     "id": "unique_twilight_eminence",
@@ -6579,6 +7973,14 @@
         },
         "% of elemental damage as chaos damage"
       ]
-    ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmor": null,
+    "baseEvasion": null,
+    "baseEnergyShield": null,
+    "baseBlockChance": null
   }
 ]
