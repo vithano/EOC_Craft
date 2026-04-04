@@ -124,16 +124,31 @@ function normalizeEquippedMap(raw: Record<string, unknown>): Record<string, Equi
   return out;
 }
 
+/** Read numeric field, falling back to pre–British-spelling keys in old saves / exports. */
+function pickEquipNum(
+  z: Record<string, unknown>,
+  key: string,
+  legacyKey?: string
+): number {
+  const a = z[key];
+  if (a != null && a !== "" && Number.isFinite(Number(a))) return Number(a);
+  if (legacyKey) {
+    const b = z[legacyKey];
+    if (b != null && b !== "" && Number.isFinite(Number(b))) return Number(b);
+  }
+  return 0;
+}
+
 function normalizeEquipment(
   m: Partial<BuildConfig["equipmentModifiers"]> | undefined
 ): BuildConfig["equipmentModifiers"] {
   const d = emptyEquipmentModifiers();
-  const z = m ?? {};
+  const z = (m ?? {}) as Record<string, unknown>;
   return {
     ...d,
     flatLife: Number(z.flatLife) || 0,
     flatMana: Number(z.flatMana) || 0,
-    flatArmour: Number(z.flatArmour) || 0,
+    flatArmour: pickEquipNum(z, "flatArmour", "flatArmor"),
     flatEvasion: Number(z.flatEvasion) || 0,
     flatDamageMin: Number(z.flatDamageMin) || 0,
     flatDamageMax: Number(z.flatDamageMax) || 0,
@@ -155,7 +170,7 @@ function normalizeEquipment(
     flatAccuracy: Number(z.flatAccuracy) || 0,
     pctIncreasedLifeFromGear: Number(z.pctIncreasedLifeFromGear) || 0,
     pctIncreasedManaFromGear: Number(z.pctIncreasedManaFromGear) || 0,
-    pctIncreasedArmourFromGear: Number(z.pctIncreasedArmourFromGear) || 0,
+    pctIncreasedArmourFromGear: pickEquipNum(z, "pctIncreasedArmourFromGear", "pctIncreasedArmorFromGear"),
     pctIncreasedEvasionFromGear: Number(z.pctIncreasedEvasionFromGear) || 0,
     pctIncreasedEnergyShieldFromGear: Number(z.pctIncreasedEnergyShieldFromGear) || 0,
     increasedMeleeDamageFromGear: Number(z.increasedMeleeDamageFromGear) || 0,
@@ -165,7 +180,7 @@ function normalizeEquipment(
     pctIncreasedAccuracyFromGear: Number(z.pctIncreasedAccuracyFromGear) || 0,
     pctIncreasedAttackSpeedFromGear: Number(z.pctIncreasedAttackSpeedFromGear) || 0,
     doubleDamageChanceFromGear: Number(z.doubleDamageChanceFromGear) || 0,
-    armourIgnoreFromGear: Number(z.armourIgnoreFromGear) || 0,
+    armourIgnoreFromGear: pickEquipNum(z, "armourIgnoreFromGear", "armorIgnoreFromGear"),
     pctToAllElementalResFromGear: Number(z.pctToAllElementalResFromGear) || 0,
     pctChaosResFromGear: Number(z.pctChaosResFromGear) || 0,
     manaCostReductionFromGear: Number(z.manaCostReductionFromGear) || 0,
@@ -229,7 +244,11 @@ function normalizeEquipment(
     spellBaseCritChanceBonusFromGear: Number(z.spellBaseCritChanceBonusFromGear) || 0,
     tripleDamageChanceFromGear: Number(z.tripleDamageChanceFromGear) || 0,
     blockPowerPctFromGear: Number(z.blockPowerPctFromGear) || 0,
-    armourEffectivenessVsChaosFromGear: Number(z.armourEffectivenessVsChaosFromGear) || 0,
+    armourEffectivenessVsChaosFromGear: pickEquipNum(
+      z,
+      "armourEffectivenessVsChaosFromGear",
+      "armorEffectivenessVsChaosFromGear"
+    ),
     increasedLightningDamageFromGear: Number(z.increasedLightningDamageFromGear) || 0,
     increasedChaosDamageFromGear: Number(z.increasedChaosDamageFromGear) || 0,
     pctIncreasedDamageOverTimeFromGear: Number(z.pctIncreasedDamageOverTimeFromGear) || 0,

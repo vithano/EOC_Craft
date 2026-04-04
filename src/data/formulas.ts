@@ -1,3 +1,8 @@
+/**
+ * Sheet-aligned helpers (armour DR, shared with battle + Eoc stats panel) and legacy
+ * class-stub {@link computeStats}. **Build planner numbers** come from
+ * {@link computeBuildStats} in `gameStats.ts`, not from `computeStats`.
+ */
 import type { ItemModifiers } from './equipment';
 import type { BaseStats } from './classes';
 import {
@@ -42,7 +47,10 @@ export const FORMULA_DESCRIPTIONS: Record<string, string> = {
   evasion: 'equipmentEvasion + (agility * 1.2) + (dexterity * 0.8) + upgradeEvasion',
   critChance:
     'computeBuildStats: min(100, flat * (1 + inc%/100)); flat = weaponOrGameBase + assassin + attackCritGear + critChanceBonus (spells: spellBase + assassin + critBonus + spellCritGear); inc = increased crit upgrades + gear inc% + 2%/10 DEX (× attr mult)',
-  effectiveDamage: 'damage * (1 + critChance / 100 * critMultiplier)',
+  critMultiplier:
+    'computeBuildStats: (baseCritMult + flatCritMultBonus) * (1 + (increasedCritMultFromGear + attunement) / 100) — same flat×(1+inc%) shape as crit chance; recomputeCritMultiplier() after DPS',
+  effectiveDamage:
+    'computeBuildStats: avgHit * (1 + (critChance/100) * (critMultiplier - 1)) — only the portion above a non-crit uses (M-1), not M',
   damageReduction:
     'min(90, (armour / (500 * (incomingDamage / (incomingDamage + 500)) * 18 + armour)) * 100 + physicalDamageReduction)',
   evasionChanceVsEnemy:
@@ -160,8 +168,9 @@ export function computeStats(
   // Legacy placeholder (not EOC computeBuildStats): additive crit — see gameStats crit section for real formula
   const critChance = base.baseCritChance + (em.critChance ?? 0) + (um.critChance ?? 0);
 
-  // PLACEHOLDER FORMULA: effectiveDamage = damage * (1 + critChance/100 * critMultiplier)
-  const effectiveDamage = damage * (1 + (critChance / 100) * base.critMultiplier);
+  // Expected damage per hit (same structure as computeBuildStats avgEffectiveDamage)
+  const effectiveDamage =
+    damage * (1 + (critChance / 100) * (base.critMultiplier - 1));
 
   const incomingDamage = ctx.incomingDamage ?? 100;
   const physicalDamageReduction = ctx.physicalDamageReduction ?? 0;

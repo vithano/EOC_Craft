@@ -12,9 +12,10 @@ export default function FormulaViewer() {
         <p className="text-zinc-400 text-sm mb-4">
           Core combat formulas match the exported Google Sheets under <code className="text-zinc-500">formulas/</code>.
           The main planner uses <code className="text-blue-400">computeBuildStats</code> in{" "}
-          <code className="text-zinc-500">src/data/gameStats.ts</code> (Echoes class data + equipment). The legacy{" "}
-          <code className="text-zinc-500">computeStats</code> path in <code className="text-zinc-500">formulas.ts</code>{" "}
-          remains for armour / ailment preview helpers used inside that pipeline.
+          <code className="text-zinc-500">src/data/gameStats.ts</code> (Echoes class data + equipment).{" "}
+          <code className="text-zinc-500">formulas.ts</code> exports{" "}
+          <code className="text-zinc-500">computeDamageReductionPercentFromArmour</code> (shared DR);{" "}
+          <code className="text-zinc-500">computeStats</code> there is an unused legacy stub, not the planner engine.
         </p>
         <div className="grid grid-cols-2 gap-2 mb-6">
           {Object.entries(FORMULA_DESCRIPTIONS).map(([name, formula]) => (

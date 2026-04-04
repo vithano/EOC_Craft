@@ -1230,13 +1230,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     u('increasedArmourAndEnergyShield') +
     eq.pctIncreasedArmourFromGear
 
+  // Flat armour rating × (1 + increased armour %) × dex defence factor × less mult (same shape as accuracy / crit).
+  const armourFlatBase = eq.flatArmour
   let armour = Math.round(
-    eq.flatArmour
+    armourFlatBase
     * (1 + totalIncreasedArmour / 100)
     * (1 + defFromDex)
     * eq.defencesLessMultFromGear
   )
-
   // -------------------------------------------------------------------------
   // 11. Evasion rating
   // -------------------------------------------------------------------------
@@ -1246,8 +1247,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     u('increasedEvasionRatingAndEnergyShield') +
     eq.pctIncreasedEvasionFromGear
 
+  const evasionFlatBase = BASE_GAME_STATS.baseEvasion + eq.flatEvasion
   let evasionRating = Math.round(
-    (BASE_GAME_STATS.baseEvasion + eq.flatEvasion)
+    evasionFlatBase
     * (1 + totalIncreasedEvasion / 100)
     * (1 + defFromDex)
     * eq.evasionMoreMultFromGear
@@ -1298,11 +1300,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 14. Offense — accuracy
   // -------------------------------------------------------------------------
-  // Rogue class bonus: +150 to accuracy rating
+  // Flat: base + Rogue + gear flat. Increased: tree + gear % — same pattern as crit chance §16.
+  const accuracyFlatBase =
+    BASE_GAME_STATS.baseAccuracy + (bonus('rogue') ? 150 : 0) + eq.flatAccuracy
+  const accuracyFromUpgrades =
+    u('increasedAccuracyRating') + eq.pctIncreasedAccuracyFromGear
   const accuracy = Math.round(
-    (BASE_GAME_STATS.baseAccuracy + (bonus('rogue') ? 150 : 0) + eq.flatAccuracy)
-    * (1 + (u('increasedAccuracyRating') + eq.pctIncreasedAccuracyFromGear) / 100)
-    * eq.accuracyLessMultFromGear
+    accuracyFlatBase * (1 + accuracyFromUpgrades / 100) * eq.accuracyLessMultFromGear
   )
 
   // -------------------------------------------------------------------------
@@ -1373,7 +1377,22 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const attackCritFlatBase =
     baseCritChance + critFromAssassin + eq.attackBaseCritChanceBonusFromGear + eq.critChanceBonus
   let critChance = Math.min(100, attackCritFlatBase * (1 + critFromUpgrades / 100))
-  let critMultiplier = BASE_GAME_STATS.critMultiplier
+
+  // -------------------------------------------------------------------------
+  // 16b. Critical damage multiplier (same shape: flat base × (1 + increased%/100))
+  // -------------------------------------------------------------------------
+  // Flat: game base + flat bonus to multiplier (parallel to attackCritFlatBase + critChanceBonus).
+  // Increased: gear + ability attunement — one combined % bucket, like critFromUpgrades.
+  const baseCritMultiplier = BASE_GAME_STATS.critMultiplier
+  const critMultFlatBonus = eq.flatCriticalDamageMultiplierBonusFromGear / 100
+  const attackCritMultFlatBase = baseCritMultiplier + critMultFlatBonus
+  let attunementIncreasedCritMultiplierPct = 0
+  const critMultFromUpgrades = () =>
+    eq.increasedCriticalDamageMultiplierFromGear + attunementIncreasedCritMultiplierPct
+  const recomputeCritMultiplier = () => {
+    critMultiplier = attackCritMultFlatBase * (1 + critMultFromUpgrades() / 100)
+  }
+  let critMultiplier = attackCritMultFlatBase * (1 + critMultFromUpgrades() / 100)
   // -------------------------------------------------------------------------
   // 17. Attacks per second
   // -------------------------------------------------------------------------
@@ -1385,13 +1404,11 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + mercenaryAspIncPct
     + eq.pctIncreasedAttackSpeedFromGear
   // Rogue class bonus: 10% more APS (multiplicative)
-  // Use weapon effective APS (base * local mods) when a weapon is equipped; fall back to game base 1.0
+  // Flat weapon APS × (1 + increased attack speed %) × more / less (same pattern as §16).
   const rogueMult = bonus('rogue') ? 1.10 : 1.0
+  const apsFlatBase = eq.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps
   let aps =
-    (eq.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps)
-    * (1 + totalIncreasedAtk / 100)
-    * rogueMult
-    * eq.attackSpeedLessMultFromGear
+    apsFlatBase * (1 + totalIncreasedAtk / 100) * rogueMult * eq.attackSpeedLessMultFromGear
 
   // -------------------------------------------------------------------------
   // 18. Mana cost per attack
@@ -1560,7 +1577,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           } else if (k === 'chance to deal double damage') {
             attunementFlatDoubleChance += v
           } else if (k === 'to critical damage multiplier') {
-            critMultiplier *= 1 + v / 100
+            attunementIncreasedCritMultiplierPct += v
+            recomputeCritMultiplier()
           } else if (k === 'to damage over time multiplier') {
             damageOverTimeMultiplier += v
           } else if (k === 'increased defences') {
@@ -1605,8 +1623,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             if (k === 'increased damage') spellAttIncDmg = v
             else if (k === 'increased cast speed') spellAttCast = v
             else if (k === 'increased critical hit chance') spellAttCritInc = v
-            else if (k === 'to critical damage multiplier') critMultiplier *= 1 + v / 100
-            else if (k === 'to damage over time multiplier') damageOverTimeMultiplier += v
+            else if (k === 'to critical damage multiplier') {
+              attunementIncreasedCritMultiplierPct += v
+              recomputeCritMultiplier()
+            } else if (k === 'to damage over time multiplier') damageOverTimeMultiplier += v
             else if (k === 'chance to deal double damage') attunementFlatDoubleChance += v
             else if (k === 'increased defences') attunementDefencesPct += v
           }
@@ -1800,8 +1820,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     dps = avgEffectiveDamage * aps * strikesPerAttack
   }
 
-  critMultiplier *= 1 + eq.increasedCriticalDamageMultiplierFromGear / 100
-  critMultiplier += eq.flatCriticalDamageMultiplierBonusFromGear / 100
+  recomputeCritMultiplier()
 
   if (eq.cannotDealCriticalStrikesFromGear) critChance = 0
 

@@ -333,40 +333,49 @@ export default function BuildPlanner() {
                   Paste the same JSON stored under <code className="text-zinc-400">eocCraftBuild</code>. Applying
                   replaces the planner and persists on the next save (same as editing the UI).
                 </p>
-                <textarea
-                  className="w-full min-h-[120px] rounded-md border border-zinc-700 bg-zinc-950 text-zinc-200 text-xs font-mono p-2 resize-y disabled:opacity-50"
-                  placeholder='{"upgradeLevels":{…},"equipmentModifiers":{…},…}'
-                  value={buildJsonImport}
-                  onChange={(e) => {
-                    setBuildJsonImport(e.target.value);
-                    setBuildJsonImportError(null);
-                  }}
-                  disabled={!hydrated}
-                  spellCheck={false}
-                />
-                {buildJsonImportError ? (
-                  <p className="text-xs text-red-400" role="alert">
-                    {buildJsonImportError}
-                  </p>
-                ) : null}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="rounded-md bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium px-3 py-1.5"
-                    disabled={!hydrated}
-                    onClick={applyBuildJsonImport}
-                  >
-                    Apply import
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-md border border-zinc-600 hover:bg-zinc-800 disabled:opacity-50 text-zinc-200 text-xs font-medium px-3 py-1.5"
-                    disabled={!hydrated}
-                    onClick={copyBuildJsonToClipboard}
-                  >
-                    Copy current to clipboard
-                  </button>
-                </div>
+                {hydrated ? (
+                  <>
+                    <textarea
+                      className="w-full min-h-[120px] rounded-md border border-zinc-700 bg-zinc-950 text-zinc-200 text-xs font-mono p-2 resize-y"
+                      placeholder='{"upgradeLevels":{…},"equipmentModifiers":{…},…}'
+                      value={buildJsonImport}
+                      onChange={(e) => {
+                        setBuildJsonImport(e.target.value);
+                        setBuildJsonImportError(null);
+                      }}
+                      spellCheck={false}
+                    />
+                    {buildJsonImportError ? (
+                      <p className="text-xs text-red-400" role="alert">
+                        {buildJsonImportError}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium px-3 py-1.5"
+                        onClick={applyBuildJsonImport}
+                      >
+                        Apply import
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-md border border-zinc-600 hover:bg-zinc-800 text-zinc-200 text-xs font-medium px-3 py-1.5"
+                        onClick={copyBuildJsonToClipboard}
+                      >
+                        Copy current to clipboard
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2" aria-busy="true" aria-label="Loading import controls">
+                    <div className="w-full min-h-[120px] rounded-md border border-zinc-700 bg-zinc-900/50 animate-pulse" />
+                    <div className="flex flex-wrap gap-2">
+                      <div className="h-7 w-24 rounded-md bg-zinc-800 animate-pulse" />
+                      <div className="h-7 w-40 rounded-md bg-zinc-800 animate-pulse" />
+                    </div>
+                  </div>
+                )}
               </div>
             </details>
           </div>
@@ -427,7 +436,9 @@ export default function BuildPlanner() {
                     <div>
                       Phys hit {row.physMin}–{row.physMax} · avg {avgPhys}
                     </div>
-                    <div>Enemy HP {row.health.toLocaleString()} · acc {row.accuracy} / eva {row.evasion}</div>
+                    <div>
+                      Enemy HP {row.health.toLocaleString("en-US")} · acc {row.accuracy} / eva {row.evasion}
+                    </div>
                     <button
                       type="button"
                       className="mt-2 text-amber-400/90 hover:text-amber-300 text-xs underline underline-offset-2"
