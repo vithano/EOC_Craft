@@ -12,6 +12,7 @@ import {
   attackDamageMultiplierAtAbilityLevel,
   EOC_ABILITY_BY_ID,
   extraStrikesFromAbilityLines,
+  interpolateAttunementModifier,
   scaledSpellHitForAbility,
   weaponAbilityTagFromItemId,
   type EocAbilityType,
@@ -356,6 +357,18 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
 }
 
+function scaleHitDamageRowsOfType(
+  rows: HitDamageTypeRow[],
+  type: HitDamageTypeRow['type'],
+  factor: number
+): HitDamageTypeRow[] {
+  return rows.map((r) =>
+    r.type === type
+      ? { ...r, min: Math.round(r.min * factor), max: Math.round(r.max * factor) }
+      : r
+  )
+}
+
 /** Sum static items and rolled uniques for all worn slots. */
 export function aggregateEquippedToEquipmentModifiers(
   slots: string[],
@@ -552,7 +565,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const esIncreasedPct    = u('increasedEnergyShield') + eq.pctIncreasedEnergyShieldFromGear
   // Occultist class bonus: 40% MORE energy shield (multiplicative)
   const occultistMoreES   = bonus('occultist') ? 1.40 : 1.0
-  const maxEnergyShield   = Math.round(
+  let maxEnergyShield   = Math.round(
     esBase * (1 + esIncreasedPct / 100) * occultistMoreES * eq.energyShieldLessMultFromGear
   )
 
@@ -568,7 +581,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     u('increasedArmorAndEnergyShield') +
     eq.pctIncreasedArmorFromGear
 
-  const armor = Math.round(
+  let armor = Math.round(
     eq.flatArmor
     * (1 + totalIncreasedArmor / 100)
     * (1 + defFromDex)
@@ -583,7 +596,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     u('increasedEvasionRatingAndEnergyShield') +
     eq.pctIncreasedEvasionFromGear
 
-  const evasionRating = Math.round(
+  let evasionRating = Math.round(
     (BASE_GAME_STATS.baseEvasion + eq.flatEvasion)
     * (1 + totalIncreasedEvasion / 100)
     * (1 + defFromDex)
@@ -661,7 +674,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + eq.critChanceBonus
   )
 
-  const critMultiplier = BASE_GAME_STATS.critMultiplier
+  let critMultiplier = BASE_GAME_STATS.critMultiplier
 
   // -------------------------------------------------------------------------
   // 17. Attacks per second
@@ -709,7 +722,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // Occultist class bonus: 1% increased damage per 100 maximum energy shield
   const occultistDmgFromEsPct   = bonus('occultist') ? maxEnergyShield / 100 : 0
   const increasedDamage         = u('increasedDamage') + occultistDmgFromEsPct + eq.increasedDamageFromGear
-  const damageOverTimeMultiplier= u('increasedDamageOverTimeMultiplier')
+  let damageOverTimeMultiplier= u('increasedDamageOverTimeMultiplier')
 
   // -------------------------------------------------------------------------
   // 21. Average hit and DPS
@@ -731,11 +744,18 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const weaponItemId = config.equippedWeaponItemId ?? 'none'
   const weaponTag = weaponAbilityTagFromItemId(weaponItemId)
 
+  let attunementStrikesIncPct = 0
+  let attunementFlatDoubleChance = 0
+  let attunementDefencesPct = 0
+
   if (sel?.abilityId) {
     const def = EOC_ABILITY_BY_ID[sel.abilityId]
     const level = Math.min(20, Math.max(0, Math.floor(sel.abilityLevel)))
-    const attPct = Math.min(100, Math.max(0, Math.floor(sel.attunementPct)))
     if (def && abilityMatchesWeapon(def, weaponTag)) {
+      const attPctRaw = Math.min(100, Math.max(0, Number(sel.attunementPct) || 0))
+      const attPct = Math.round(attPctRaw)
+      const attMult = bonus('archmage') ? 2 : 1
+      const attMod = interpolateAttunementModifier(def, attPctRaw, attMult)
       const manaFromAbility = def.manaCost != null ? def.manaCost : manaCostPerAttack
 
       if (def.type === 'Melee' || def.type === 'Ranged') {
@@ -751,6 +771,45 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         avgHit = (hitDamageMin + hitDamageMax) / 2
         avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
         dps = avgEffectiveDamage * aps
+
+        if (attMod) {
+          const v = attMod.value
+          const k = attMod.key
+          if (k === 'increased damage') {
+            hitDamageByType = scaleHitDamageByType(hitDamageByType, 1 + v / 100)
+          } else if (k === 'increased fire damage') {
+            hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'fire', 1 + v / 100)
+          } else if (k === 'increased physical damage') {
+            hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'physical', 1 + v / 100)
+          } else if (k === 'increased attack speed') {
+            aps *= 1 + v / 100
+          } else if (k === 'increased critical hit chance') {
+            critChance = Math.min(
+              95,
+              baseCritChance * (1 + (critFromUpgrades + v) / 100)
+                + critFromDex
+                + critFromAssassin
+                + eq.critChanceBonus
+            )
+          } else if (k === 'increased strikes per attack') {
+            attunementStrikesIncPct += v
+          } else if (k === 'chance to deal double damage') {
+            attunementFlatDoubleChance += v
+          } else if (k === 'to critical damage multiplier') {
+            critMultiplier *= 1 + v / 100
+          } else if (k === 'to damage over time multiplier') {
+            damageOverTimeMultiplier += v
+          } else if (k === 'increased defences') {
+            attunementDefencesPct += v
+          }
+          hitSum = sumHitDamageRange(hitDamageByType)
+          hitDamageMin = hitSum.min
+          hitDamageMax = hitSum.max
+          avgHit = (hitDamageMin + hitDamageMax) / 2
+          avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
+          dps = avgEffectiveDamage * aps
+        }
+
         abilityContribution = {
           id: def.id,
           name: def.name,
@@ -773,18 +832,33 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       } else if (def.type === 'Spells') {
         const scaledHit = scaledSpellHitForAbility(def, level)
         if (scaledHit) {
+          let spellAttIncDmg = 0
+          let spellAttCast = 0
+          let spellAttCritInc = 0
+          if (attMod) {
+            const v = attMod.value
+            const k = attMod.key
+            if (k === 'increased damage') spellAttIncDmg = v
+            else if (k === 'increased cast speed') spellAttCast = v
+            else if (k === 'increased critical hit chance') spellAttCritInc = v
+            else if (k === 'to critical damage multiplier') critMultiplier *= 1 + v / 100
+            else if (k === 'to damage over time multiplier') damageOverTimeMultiplier += v
+            else if (k === 'chance to deal double damage') attunementFlatDoubleChance += v
+            else if (k === 'increased defences') attunementDefencesPct += v
+          }
           const added = (def.addedDamageMultiplierPct ?? 100) / 100
           const isEle = ['fire', 'cold', 'lightning'].includes(scaledHit.element)
           const incFrac =
-            (increasedSpellDamage + increasedDamage + (isEle ? increasedElementalDamage : 0)) / 100
+            (increasedSpellDamage + increasedDamage + spellAttIncDmg + (isEle ? increasedElementalDamage : 0)) / 100
           const castBase = def.castTimeSeconds != null && def.castTimeSeconds > 0 ? def.castTimeSeconds : 0.5
-          const castSpeedInc = u('increasedCastSpeed') + u('increasedAttackSpeedAndCastSpeed')
+          const castSpeedInc =
+            u('increasedCastSpeed') + u('increasedAttackSpeedAndCastSpeed') + spellAttCast
           const effectiveCastTime = castBase / (1 + castSpeedInc / 100)
           const castsPerSec = 1 / effectiveCastTime
           const spellBaseCrit = def.baseCritChancePct ?? BASE_GAME_STATS.baseCritChance
           critChance = Math.min(
             95,
-            spellBaseCrit * (1 + critFromUpgrades / 100)
+            spellBaseCrit * (1 + (critFromUpgrades + spellAttCritInc) / 100)
             + critFromDex
             + critFromAssassin
             + eq.critChanceBonus
@@ -826,6 +900,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     }
   }
 
+  if (attunementDefencesPct !== 0) {
+    const df = 1 + attunementDefencesPct / 100
+    armor = Math.round(armor * df)
+    evasionRating = Math.round(evasionRating * df)
+    maxEnergyShield = Math.round(maxEnergyShield * df)
+  }
+
   // -------------------------------------------------------------------------
   // 22. Post-encounter recovery
   // -------------------------------------------------------------------------
@@ -859,7 +940,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     100,
     (bonus('barbarian') ? 10 : 0) +
       (bonus('destroyer') ? 25 : 0) +
-      eq.doubleDamageChanceFromGear
+      eq.doubleDamageChanceFromGear +
+      attunementFlatDoubleChance
   )
 
   // Barbarian class bonus: hits ignore 50% of enemy armor
@@ -911,7 +993,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       ab && (ab.type === 'Melee' || ab.type === 'Ranged') ? extraStrikesFromAbilityLines(ab.lines) : 0
     const baseStrikes = 1 + eq.flatStrikesPerAttack + abStrikes
     const incStrikes =
-      eq.increasedStrikesPerAttackFromGear + eq.strikesIncPctPer10DexFromGear * (dex / 10)
+      eq.increasedStrikesPerAttackFromGear +
+      eq.strikesIncPctPer10DexFromGear * (dex / 10) +
+      attunementStrikesIncPct
     strikesPerAttack = Math.max(1, Math.round(baseStrikes * (1 + incStrikes / 100)))
   }
 

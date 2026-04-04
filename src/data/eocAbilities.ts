@@ -142,7 +142,55 @@ export function abilitiesUsableWithWeapon(weaponTag: string | null): EocAbilityD
   return EOC_ABILITY_DEFINITIONS.filter((a) => abilityMatchesWeapon(a, weaponTag));
 }
 
-/** Interpolate attunement description: 0 → attunement0, 100 → attunement100, linear in between (display helper). */
+/** Parsed attunement line → stable key + numeric magnitude (for pairing 0% vs 100% rows). */
+export interface ParsedAttunementLine {
+  key: string
+  value: number
+}
+
+/**
+ * Parse a single attunement description into a normalized key and its % value.
+ * `attunement0` / `attunement100` must yield the same `key` to interpolate.
+ */
+export function parseAttunementLine(raw: string): ParsedAttunementLine | null {
+  const t = raw.trim()
+  if (!t) return null
+
+  const pen = t.match(
+    /^hits\s+penetrate\s+(\d+(?:\.\d+)?)\s*%\s+of\s+enemy\s+elemental\s+resistances\.?$/i
+  )
+  if (pen) return { key: 'hits penetrate % of enemy elemental resistances', value: Number(pen[1]) }
+
+  const exec = t.match(
+    /^enemies\s+left\s+below\s+(\d+(?:\.\d+)?)\s*%\s+of\s+maximum\s+life\s+with\s+hits\s+are\s+executed\.?$/i
+  )
+  if (exec) return { key: 'execute below % max life', value: Number(exec[1]) }
+
+  const m = t.match(/^([+-]?\d+(?:\.\d+)?)\s*%\s*(.+)$/i)
+  if (!m) return null
+  const suffix = m[2].trim().replace(/\s+/g, ' ').toLowerCase().replace(/\.$/, '')
+  return { key: suffix, value: Number(m[1]) }
+}
+
+/**
+ * Linear attunement between `attunement0` (t=0) and `attunement100` (t=1).
+ * Empty `attunement100` is treated as identical to `attunement0` (no scaling range).
+ * `effectivenessMult`: Archmage uses 2 (100% increased effect of attunement modifiers).
+ */
+export function interpolateAttunementModifier(
+  def: EocAbilityDefinition,
+  attunementPct: number,
+  effectivenessMult: number
+): { key: string; value: number } | null {
+  const p0 = parseAttunementLine(def.attunement0)
+  const raw100 = def.attunement100.trim() ? def.attunement100 : def.attunement0
+  const p1 = parseAttunementLine(raw100)
+  if (!p0 || !p1 || p0.key !== p1.key) return null
+  const t = Math.min(1, Math.max(0, attunementPct / 100))
+  const v = p0.value + (p1.value - p0.value) * t * effectivenessMult
+  return { key: p0.key, value: v }
+}
+
 /** Extra strikes beyond the default first strike (attack abilities only). */
 export function extraStrikesFromAbilityLines(lines: string[]): number {
   let add = 0;
@@ -169,6 +217,21 @@ export function extraStrikesFromAbilityLines(lines: string[]): number {
 
 export function attunementLabel(def: EocAbilityDefinition, attunementPct: number): string {
   const t = Math.min(100, Math.max(0, attunementPct));
+  const mod = interpolateAttunementModifier(def, t, 1);
+  if (mod && def.attunement0.trim()) {
+    const p0 = parseAttunementLine(def.attunement0);
+    if (p0) {
+      const sign = /^\+/.test(def.attunement0.trim()) && mod.value >= 0 ? "+" : "";
+      const rounded = Number.isInteger(mod.value) ? String(mod.value) : mod.value.toFixed(1);
+      if (p0.key === "hits penetrate % of enemy elemental resistances") {
+        return `hits penetrate ${rounded}% of enemy elemental resistances`;
+      }
+      if (p0.key === "execute below % max life") {
+        return `enemies left below ${rounded}% of maximum life with hits are executed`;
+      }
+      return `${sign}${rounded}% ${p0.key}`;
+    }
+  }
   if (t <= 0) return def.attunement0 || "";
   if (t >= 100) return def.attunement100 || def.attunement0 || "";
   return `${def.attunement0} → ${def.attunement100} (${Math.round(t)}%)`;
