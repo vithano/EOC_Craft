@@ -776,7 +776,7 @@ export const BASE_GAME_STATS = {
   baseAps: 1.0,
   baseManaPerAttack: 3,
   baseAccuracy: 20,
-  baseCritChance: 5.1,
+  baseCritChance: 5,
   critMultiplier: 2.0,
   baseEvasion: 20,
   baseResistances: 0,

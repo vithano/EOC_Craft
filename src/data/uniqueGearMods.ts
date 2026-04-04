@@ -754,8 +754,10 @@ export function equipmentModifiersFromUniqueTexts(
       m = l.match(/([\d.]+)%\s+local\s+base\s+critical\s+hit\s+chance\b/i);
       if (m) add({ critChanceBonus: num(m)! });
 
-      m = l.match(/\+\s*([\d.]+)%\s+local\s+base\s+critical\s+hit\s+chance\b/i);
-      if (m) add({ critChanceBonus: num(m)! });
+      if(!m){
+        m = l.match(/\+\s*([\d.]+)%\s+local\s+base\s+critical\s+hit\s+chance\b/i);
+        if (m) add({ critChanceBonus: num(m)! });
+      }
     }
 
     m = l.match(/\+(\d+)%\s+chance\s+to\s+deal\s+double\s+damage\s+with\s+attacks\b/i);
@@ -791,8 +793,10 @@ export function equipmentModifiersFromUniqueTexts(
     if (ctx.isWeapon) {
       m = l.match(/\+(\d+)\s+strikes\s+per\s+attack\b/i);
       if (m) add({ flatStrikesPerAttack: num(m)! });
-      m = l.match(/\+(\d+)\s+strike\s+per\s+attack\b/i);
-      if (m) add({ flatStrikesPerAttack: num(m)! });
+      if(!m){
+        m = l.match(/\+(\d+)\s+strike\s+per\s+attack\b/i);
+        if (m) add({ flatStrikesPerAttack: num(m)! });
+      }
     }
 
     m = l.match(/([\d.]+)%\s+increased\s+strikes\s+per\s+attack\b/i);

@@ -1351,25 +1351,21 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 16. Critical hit chance
   // -------------------------------------------------------------------------
-  // Weapon base crit (or game base 5.1%) + 2% per 10 DEX (doubled for guardian) + Assassin +8% + upgrades
+  // Weapon base crit (or game base 5%) + 2% per 10 DEX (doubled for guardian) + Assassin +8% + upgrades
   const baseCritChance   = eq.weaponBaseCritChance ?? BASE_GAME_STATS.baseCritChance
-  const critFromDex      = (dex * attrCritMult * 2) / 100  // percentage points
+  const critFromDex      = (Math.floor(dex / 10) * attrCritMult * 2)
   const critFromAssassin = bonus('assassin') ? 8 : 0
   const critFromUpgrades =
     u('increasedCriticalHitChance')
     + u('increasedAttackCriticalHitChance')
     + eq.pctIncreasedCriticalHitChanceFromGear
+    + critFromDex
   // Upgrades are "increased" — multiply the base; additive flat bonuses applied separately
   let critChance = Math.min(
     95,
-    baseCritChance * (1 + critFromUpgrades / 100)
-    + critFromDex
-    + critFromAssassin
-    + eq.critChanceBonus
-    + eq.attackBaseCritChanceBonusFromGear
+    (baseCritChance + critFromAssassin +eq.attackBaseCritChanceBonusFromGear + eq.critChanceBonus)  * (1 + critFromUpgrades / 100)
   )
   let critMultiplier = BASE_GAME_STATS.critMultiplier
-
   // -------------------------------------------------------------------------
   // 17. Attacks per second
   // -------------------------------------------------------------------------

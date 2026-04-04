@@ -128,10 +128,10 @@ function SlotGlyph({ type }: { type: string }) {
           <path d="M8 18h8v2H8v-2zm-1-8l1 8H6l-2-6 3-2zm9 0l3 2-2 6h-2l1-8z" />
         </svg>
       );
-    case "legs":
+    case "belt":
       return (
         <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M9 4h6v4H9V4zm-2 6h10v10H7V10zm2 2v6h6v-6H9z" />
+          <path d="M4 10h16v4H4v-4zm2 2v1h12v-1H6zm1-4h10v2H7V8z" />
         </svg>
       );
     case "amulet":
@@ -156,12 +156,6 @@ function SlotGlyph({ type }: { type: string }) {
       return (
         <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
           <path d="M12 2l8 3v7c0 5-3.5 9-8 10-4.5-1-8-5-8-10V5l8-3zm0 2.2L6 6.3V12c0 4 2.5 7 6 8 3.5-1 6-4 6-8V6.3L12 4.2z" />
-        </svg>
-      );
-    case "belt":
-      return (
-        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M4 10h16v4H4v-4zm2 2v1h12v-1H6zm1-4h10v2H7V8z" />
         </svg>
       );
     default:
@@ -237,7 +231,6 @@ export default function EquipmentPanel({
   const leftSlots: { slot: string; glyph: string }[] = [
     { slot: "Helmet", glyph: "helmet" },
     { slot: "Chest", glyph: "chest" },
-    { slot: "Belt", glyph: "belt" },
     { slot: "Gloves", glyph: "gloves" },
     { slot: "Boots", glyph: "boots" },
   ];
@@ -263,7 +256,7 @@ export default function EquipmentPanel({
     { slot: "Amulet", glyph: "amulet" },
     { slot: "Ring 1", glyph: "ring" },
     { slot: "Ring 2", glyph: "ring" },
-    { slot: "Legs", glyph: "legs" },
+    { slot: "Belt", glyph: "belt" },
   ];
 
   const syncDetailDraftFromEntry = useCallback((entry: EquippedEntry) => {
@@ -382,6 +375,7 @@ export default function EquipmentPanel({
     // Compute effective base stats from current rolls
     const resolvedTexts = [resolved.innateText, ...resolved.lineTexts].filter((t) => t.trim());
     const patch = equipmentModifiersFromUniqueTexts(resolvedTexts, { isWeapon });
+    console.log('patch', patch)
     const baseStatRows: { label: string; value: string }[] = [];
     let weaponDamageByType: HitDamageTypeRow[] = [];
     if (isWeapon) {
