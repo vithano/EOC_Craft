@@ -44,9 +44,11 @@ export const FORMULA_DESCRIPTIONS: Record<string, string> = {
   mana: 'baseMana + (intelligence * 8) + equipmentMana',
   damage: 'baseDamage + equipmentDamage + (strength * 2) + (intelligence * 1.5) + (agility * 0.5) + critBonus',
   armour:
-    'computeBuildStats: (baseArmour + flatArmour) * (1 + armourFromUpgrades/100) * (1 + defFromDex) * defencesLessMult; armourFromUpgrades = tree + gear %',
+    'computeBuildStats: (baseArmour + flatArmour) * (1 + (armourFromUpgrades + defFromDex)/100) * defencesLessMult; defFromDex = floor(dex/10)*attrDefMult*2 (2% inc. defences per 10 DEX)',
   evasion:
-    'computeBuildStats: (baseEvasion + flatEvasion) * (1 + evasionFromUpgrades/100) * (1 + defFromDex) * evasionMoreMult * defencesLessMult',
+    'computeBuildStats: (baseEvasion + flatEvasion) * (1 + (evasionFromUpgrades + defFromDex)/100) * evasionMoreMult * defencesLessMult; same defFromDex as armour',
+  energyShield:
+    'computeBuildStats: esBase * (1 + (esFromUpgrades + defFromDex)/100) * occultistMore * esLessMult; esFromUpgrades = inc ES + inc armour&ES + inc eva&ES + gear; same defFromDex',
   critChance:
     'computeBuildStats: min(100, flat * (1 + inc%/100)); flat = weaponOrGameBase + assassin + attackCritGear + critChanceBonus (spells: spellBase + assassin + critBonus + spellCritGear); inc = increased crit upgrades + gear inc% + 2%/10 DEX (× attr mult)',
   critMultiplier:

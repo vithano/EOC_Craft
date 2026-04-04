@@ -1180,6 +1180,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const attrManaMult = guardianDoubled ? 2 : 1  // +1 mana per int → +2
   const attrDefMult  = guardianDoubled ? 2 : 1  // 2% defenses per 10 dex → 4%
   const attrCritMult = guardianDoubled ? 2 : 1  // 2% crit per 10 dex → 4%
+  // Shared by ES, armour, evasion: 2% increased defences per full 10 DEX (× guardian on attrDefMult).
+  const defFromDex = Math.floor(dex / 10) * attrDefMult * 2
 
   // -------------------------------------------------------------------------
   // 7. Maximum life
@@ -1211,19 +1213,20 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + eq.flatEnergyShieldFromGear
     + maxLife * (eq.lifeAsExtraEsPercentFromGear / 100)
     + maxMana * (eq.manaAsExtraEsPercentFromGear / 100)
-  const esIncreasedPct    = u('increasedEnergyShield') + eq.pctIncreasedEnergyShieldFromGear
+  const esFromUpgrades =
+    u('increasedEnergyShield')
+    + u('increasedArmourAndEnergyShield')
+    + u('increasedEvasionRatingAndEnergyShield')
+    + eq.pctIncreasedEnergyShieldFromGear
   // Occultist class bonus: 40% MORE energy shield (multiplicative)
   const occultistMoreES   = bonus('occultist') ? 1.40 : 1.0
   let maxEnergyShield   = Math.round(
-    esBase * (1 + esIncreasedPct / 100) * occultistMoreES * eq.energyShieldLessMultFromGear
+    esBase * (1 + (esFromUpgrades + defFromDex) / 100) * occultistMoreES * eq.energyShieldLessMultFromGear
   )
 
   // -------------------------------------------------------------------------
-  // 10–11. Armour & evasion rating (same shape as §14 accuracy: flat × (1 + inc%) × extra factors)
+  // 10–11. Armour & evasion rating (defFromDex: §6)
   // -------------------------------------------------------------------------
-  // Dex: "2% increased defences per 10 dex" → multiplier (1 + defFromDex) after tree/gear increased%.
-  const defFromDex = Math.floor(dex/10)* attrDefMult * 2
-
   const armourFromUpgrades =
     u('increasedArmour') +
     u('increasedArmourAndEvasionRating') +
@@ -1231,8 +1234,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     eq.pctIncreasedArmourFromGear
   const armourFlatBase = BASE_GAME_STATS.baseArmour + eq.flatArmour
   let armour = Math.round(
-    armourFlatBase *
-    ((1 + (armourFromUpgrades / 100 + defFromDex / 100)))
+    armourFlatBase
+    * (1 + (armourFromUpgrades + defFromDex) / 100)
     * eq.defencesLessMultFromGear
   )
 
@@ -1244,8 +1247,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const evasionFlatBase = BASE_GAME_STATS.baseEvasion + eq.flatEvasion
   let evasionRating = Math.round(
     evasionFlatBase
-    * (1 + evasionFromUpgrades / 100)
-    * (1 + defFromDex)
+    * (1 + (evasionFromUpgrades + defFromDex) / 100)
     * eq.evasionMoreMultFromGear
     * eq.defencesLessMultFromGear
   )
