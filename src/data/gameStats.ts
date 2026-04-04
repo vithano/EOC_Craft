@@ -1219,38 +1219,32 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   )
 
   // -------------------------------------------------------------------------
-  // 10. Armour
+  // 10–11. Armour & evasion rating (same shape as §14 accuracy: flat × (1 + inc%) × extra factors)
   // -------------------------------------------------------------------------
-  // "2% increased defenses per 10 dex" treated as a fraction of dex
-  const defFromDex = (dex * attrDefMult * 2) / 100  // multiplier increment (e.g. 0.06 for 30 dex)
+  // Dex: "2% increased defences per 10 dex" → multiplier (1 + defFromDex) after tree/gear increased%.
+  const defFromDex = Math.floor(dex/10)* attrDefMult * 2
 
-  const totalIncreasedArmour =
+  const armourFromUpgrades =
     u('increasedArmour') +
     u('increasedArmourAndEvasionRating') +
     u('increasedArmourAndEnergyShield') +
     eq.pctIncreasedArmourFromGear
-
-  // Flat armour rating × (1 + increased armour %) × dex defence factor × less mult (same shape as accuracy / crit).
-  const armourFlatBase = eq.flatArmour
+  const armourFlatBase = BASE_GAME_STATS.baseArmour + eq.flatArmour
   let armour = Math.round(
-    armourFlatBase
-    * (1 + totalIncreasedArmour / 100)
-    * (1 + defFromDex)
+    armourFlatBase *
+    ((1 + (armourFromUpgrades / 100 + defFromDex / 100)))
     * eq.defencesLessMultFromGear
   )
-  // -------------------------------------------------------------------------
-  // 11. Evasion rating
-  // -------------------------------------------------------------------------
-  const totalIncreasedEvasion =
+
+  const evasionFromUpgrades =
     u('increasedEvasionRating') +
     u('increasedArmourAndEvasionRating') +
     u('increasedEvasionRatingAndEnergyShield') +
     eq.pctIncreasedEvasionFromGear
-
   const evasionFlatBase = BASE_GAME_STATS.baseEvasion + eq.flatEvasion
   let evasionRating = Math.round(
     evasionFlatBase
-    * (1 + totalIncreasedEvasion / 100)
+    * (1 + evasionFromUpgrades / 100)
     * (1 + defFromDex)
     * eq.evasionMoreMultFromGear
     * eq.defencesLessMultFromGear
@@ -1274,9 +1268,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // 13. Resistances
   // -------------------------------------------------------------------------
   // Fighter class bonus: +15% to all resistances
+  const fighterBonus = (bonus('fighter') ? 15 : 0);
   const allEleBonus =
     u('increasedAllElementalResistances') +
-    (bonus('fighter') ? 15 : 0) +
+    fighterBonus +
     eq.pctToAllElementalResFromGear
   const resistAllFlat = allEleBonus + eq.pctToAllResistancesFromGear
 
@@ -1294,7 +1289,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const lightningRes = Math.min(maxLightningRes, resistAllFlat + eq.pctLightningResFromGear)
   const chaosRes = Math.min(
     maxChaosRes,
-    u('increasedChaosResistance') + eq.pctChaosResFromGear
+    u('increasedChaosResistance') + eq.pctChaosResFromGear + fighterBonus
   )
 
   // -------------------------------------------------------------------------
