@@ -5,6 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { DEMO_ENEMIES } from "../../battle/enemies";
 import { simulateEncounter } from "../../battle/engine";
 import { DEMO_BUILD_PRESETS } from "../../battle/presets";
+import {
+  HIT_DAMAGE_TYPE_COLOR_CLASS,
+  HIT_DAMAGE_TYPE_LABEL,
+} from "../../data/damageTypes";
+import { getEquippedEntry, migrateEquippedFromSave } from "../../data/equipment";
 import { computeBuildStats } from "../../data/gameStats";
 import { loadStoredPlanner, type StoredPlannerPayload } from "../../lib/eocBuildStorage";
 
@@ -50,9 +55,15 @@ export default function BattleDemoPage() {
 
   const activeConfig = useMemo(() => {
     if (buildFromPlanner && plannerSnapshot) {
+      const equippedMap = plannerSnapshot.equipped
+        ? migrateEquippedFromSave(plannerSnapshot.equipped)
+        : migrateEquippedFromSave(null);
+      const weaponItemId = getEquippedEntry(equippedMap, "Weapon").itemId;
       return {
         upgradeLevels: plannerSnapshot.upgradeLevels,
         equipmentModifiers: plannerSnapshot.equipmentModifiers,
+        equippedWeaponItemId: weaponItemId,
+        ability: plannerSnapshot.ability ?? null,
       };
     }
     const preset = DEMO_BUILD_PRESETS.find((p) => p.id === presetId) ?? DEMO_BUILD_PRESETS[0];
@@ -153,9 +164,24 @@ export default function BattleDemoPage() {
             <div>
               Life {stats.maxLife} · ES {stats.maxEnergyShield} · Mana {stats.maxMana}
             </div>
-            <div>
-              Hit {stats.hitDamageMin}–{stats.hitDamageMax} · {stats.aps.toFixed(2)} atk/s ·{" "}
-              {stats.critChance.toFixed(1)}% crit
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="text-zinc-500 shrink-0">Hit</span>
+              {stats.hitDamageByType.map((row) => (
+                <span
+                  key={row.type}
+                  className={`font-mono font-medium ${HIT_DAMAGE_TYPE_COLOR_CLASS[row.type]}`}
+                >
+                  {stats.hitDamageByType.length > 1 ? `${HIT_DAMAGE_TYPE_LABEL[row.type]} ` : ""}
+                  {row.min}–{row.max}
+                </span>
+              ))}
+              <span className="text-zinc-500">·</span>
+              <span className="text-zinc-300">
+                {stats.aps.toFixed(2)}{" "}
+                {stats.abilityContribution?.type === "Spells" ? "casts/s" : "atk/s"}
+              </span>
+              <span className="text-zinc-500">·</span>
+              <span className="text-zinc-300">{stats.critChance.toFixed(1)}% crit</span>
             </div>
             <div>
               Armor {stats.armor} · Evasion {stats.evasionRating}

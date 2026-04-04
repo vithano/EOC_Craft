@@ -92,6 +92,22 @@ export function normalizeEquippedEntry(raw: unknown): EquippedEntry {
   return { itemId: 'none' };
 }
 
+/** Restore full equipped map from localStorage (missing slots → none). */
+export function migrateEquippedFromSave(raw: unknown): Record<string, EquippedEntry> {
+  const out: Record<string, EquippedEntry> = {};
+  if (raw && typeof raw === 'object') {
+    const o = raw as Record<string, unknown>;
+    for (const slot of EQUIPMENT_SLOTS) {
+      out[slot] = normalizeEquippedEntry(o[slot]);
+    }
+    return out;
+  }
+  for (const slot of EQUIPMENT_SLOTS) {
+    out[slot] = { itemId: 'none' };
+  }
+  return out;
+}
+
 export function sameEquippedEntry(a: EquippedEntry, b: EquippedEntry): boolean {
   if (a.itemId !== b.itemId) return false;
   if (JSON.stringify(a.rolls ?? []) !== JSON.stringify(b.rolls ?? [])) return false;

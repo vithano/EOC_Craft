@@ -6,6 +6,14 @@ export interface UniqueGearStatPatch {
   flatEvasion?: number;
   flatDamageMin?: number;
   flatDamageMax?: number;
+  flatFireMin?: number;
+  flatFireMax?: number;
+  flatColdMin?: number;
+  flatColdMax?: number;
+  flatLightningMin?: number;
+  flatLightningMax?: number;
+  flatChaosMin?: number;
+  flatChaosMax?: number;
   critChanceBonus?: number;
   strBonus?: number;
   dexBonus?: number;
@@ -173,12 +181,35 @@ export function equipmentModifiersFromUniqueTexts(
     if (m) add({ pctIncreasedAttackSpeedFromGear: num(m)! });
 
     if (ctx.isWeapon) {
-      // Flat local damage adds (elemental/physical from "Adds X to Y local ..." mods)
-      m = l.match(/adds\s+([\d.]+)\s+to\s+([\d.]+)\s+local\s+/i);
-      if (m) {
-        const a = num(m, 1)!;
-        const b = num(m, 2)!;
-        add({ flatDamageMin: a * 0.5, flatDamageMax: b });
+      const pushLocalFlat = (element: string, lo: number, hi: number) => {
+        const a = Math.min(lo, hi);
+        const b = Math.max(lo, hi);
+        const minF = a * 0.5;
+        const maxF = b;
+        const el = element.toLowerCase();
+        if (el === "fire") add({ flatFireMin: minF, flatFireMax: maxF });
+        else if (el === "cold") add({ flatColdMin: minF, flatColdMax: maxF });
+        else if (el === "lightning" || el === "lighting")
+          add({ flatLightningMin: minF, flatLightningMax: maxF });
+        else if (el === "chaos") add({ flatChaosMin: minF, flatChaosMax: maxF });
+        else if (el === "physical") add({ flatDamageMin: minF, flatDamageMax: maxF });
+        else add({ flatDamageMin: minF, flatDamageMax: maxF });
+      };
+
+      // "Adds X to Y local {element} damage"
+      m = l.match(
+        /adds\s+([\d.]+)\s+to\s+([\d.]+)\s+local\s+(fire|cold|lightning|lighting|chaos|physical)\s+damage\b/i
+      );
+      if (m) pushLocalFlat(m[3]!, num(m, 1)!, num(m, 2)!);
+      else {
+        m = l.match(
+          /adds\s+([\d.]+)\s*-\s*([\d.]+)\s+local\s+(fire|cold|lightning|lighting|chaos|physical)\s+damage\b/i
+        );
+        if (m) pushLocalFlat(m[3]!, num(m, 1)!, num(m, 2)!);
+        else {
+          m = l.match(/adds\s+([\d.]+)\s+to\s+([\d.]+)\s+local\s+damage\b/i);
+          if (m) pushLocalFlat("physical", num(m, 1)!, num(m, 2)!);
+        }
       }
     }
 

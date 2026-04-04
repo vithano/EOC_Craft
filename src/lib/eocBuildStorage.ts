@@ -1,4 +1,9 @@
-import { emptyEquipmentModifiers, type BuildConfig } from "../data/gameStats";
+import {
+  emptyEquipmentModifiers,
+  normalizeAbilitySelection,
+  type AbilitySelectionState,
+  type BuildConfig,
+} from "../data/gameStats";
 import {
   EQUIPMENT_SLOTS,
   normalizeEquippedEntry,
@@ -13,6 +18,8 @@ export type StoredPlannerPayload = BuildConfig & {
   /** Legacy string values are normalized on load. */
   equipped?: Record<string, string | EquippedEntry>;
   inventory?: InventoryStack[];
+  /** @deprecated use `ability` on BuildConfig — kept for older saves */
+  abilitySelection?: AbilitySelectionState;
 };
 
 export function loadStoredPlanner(): StoredPlannerPayload | null {
@@ -31,6 +38,13 @@ export function loadStoredPlanner(): StoredPlannerPayload | null {
       : undefined;
     const hasInventoryKey = Object.prototype.hasOwnProperty.call(data, "inventory");
     const inventory = hasInventoryKey ? normalizeInventory(data.inventory) : undefined;
+    const abilityRaw =
+      data.ability ??
+      (data as { abilitySelection?: unknown }).abilitySelection ??
+      undefined;
+    const ability = normalizeAbilitySelection(abilityRaw);
+    const hasAbility =
+      ability.abilityId !== null || ability.abilityLevel > 0 || ability.attunementPct > 0;
     return {
       upgradeLevels:
         data.upgradeLevels && typeof data.upgradeLevels === "object"
@@ -39,6 +53,7 @@ export function loadStoredPlanner(): StoredPlannerPayload | null {
       equipmentModifiers: normalizeEquipment(data.equipmentModifiers),
       ...(equipped ? { equipped } : {}),
       ...(inventory !== undefined ? { inventory } : {}),
+      ...(hasAbility ? { ability } : {}),
     };
   } catch {
     return null;
@@ -115,6 +130,14 @@ function normalizeEquipment(
     flatEvasion: Number(z.flatEvasion) || 0,
     flatDamageMin: Number(z.flatDamageMin) || 0,
     flatDamageMax: Number(z.flatDamageMax) || 0,
+    flatFireMin: Number(z.flatFireMin) || 0,
+    flatFireMax: Number(z.flatFireMax) || 0,
+    flatColdMin: Number(z.flatColdMin) || 0,
+    flatColdMax: Number(z.flatColdMax) || 0,
+    flatLightningMin: Number(z.flatLightningMin) || 0,
+    flatLightningMax: Number(z.flatLightningMax) || 0,
+    flatChaosMin: Number(z.flatChaosMin) || 0,
+    flatChaosMax: Number(z.flatChaosMax) || 0,
     critChanceBonus: Number(z.critChanceBonus) || 0,
     strBonus: Number(z.strBonus) || 0,
     dexBonus: Number(z.dexBonus) || 0,

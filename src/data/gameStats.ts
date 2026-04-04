@@ -7,6 +7,21 @@ import {
   isClassBonusActive,
 } from './gameClasses'
 import { getItemDefinition, type ItemModifiers } from './equipment'
+import {
+  abilityMatchesWeapon,
+  attackDamageMultiplierAtAbilityLevel,
+  EOC_ABILITY_BY_ID,
+  scaledSpellHitForAbility,
+  weaponAbilityTagFromItemId,
+  type EocAbilityType,
+} from './eocAbilities'
+import {
+  buildHitDamageByType,
+  scaleHitDamageByType,
+  spellElementToHitDamageType,
+  sumHitDamageRange,
+  type HitDamageTypeRow,
+} from './damageTypes'
 import { EOC_UNIQUE_BY_ID, isUniqueItemId, resolveUniqueMods } from './eocUniques'
 import {
   equipmentModifiersFromUniqueTexts,
@@ -17,9 +32,53 @@ import {
 // Public types
 // ---------------------------------------------------------------------------
 
+/** Selected EOC ability for planner / combat preview (persisted with build). */
+export interface AbilitySelectionState {
+  abilityId: string | null
+  abilityLevel: number
+  attunementPct: number
+}
+
+export function normalizeAbilitySelection(raw: unknown): AbilitySelectionState {
+  if (!raw || typeof raw !== 'object') {
+    return { abilityId: null, abilityLevel: 0, attunementPct: 0 }
+  }
+  const o = raw as Record<string, unknown>
+  const idRaw = o.abilityId
+  const abilityId =
+    typeof idRaw === 'string' && idRaw.length > 0 && EOC_ABILITY_BY_ID[idRaw] ? idRaw : null
+  const abilityLevel = Math.min(20, Math.max(0, Math.floor(Number(o.abilityLevel) || 0)))
+  const attunementPct = Math.min(100, Math.max(0, Math.floor(Number(o.attunementPct) || 0)))
+  return { abilityId, abilityLevel, attunementPct }
+}
+
 export interface BuildConfig {
   upgradeLevels: Record<string, number> // "classId/upgradeId" -> 0..5
   equipmentModifiers: EquipmentModifiers
+  /** Optional weapon id for ability weapon-tag checks (e.g. equipped Weapon slot). */
+  equippedWeaponItemId?: string | null
+  ability?: AbilitySelectionState | null
+}
+
+/** Snapshot of how the selected ability changed offensive stats (for UI). */
+export interface AbilityContributionSummary {
+  id: string
+  name: string
+  type: EocAbilityType
+  abilityLevel: number
+  attunementPct: number
+  scaledDamageMultiplierPct: number | null
+  attackSpeedMultiplierPct: number | null
+  addedDamageMultiplierPct: number | null
+  spellDamageMin: number | null
+  spellDamageMax: number | null
+  spellElement: string | null
+  effectiveCastTimeSeconds: number | null
+  manaCost: number | null
+  baselineHitMin: number
+  baselineHitMax: number
+  baselineAps: number
+  baselineCritChance: number
 }
 
 export interface EquipmentModifiers {
@@ -27,8 +86,17 @@ export interface EquipmentModifiers {
   flatMana: number
   flatArmor: number
   flatEvasion: number
+  /** Physical hit contribution (base + local physical adds + generic item damage). */
   flatDamageMin: number
   flatDamageMax: number
+  flatFireMin: number
+  flatFireMax: number
+  flatColdMin: number
+  flatColdMax: number
+  flatLightningMin: number
+  flatLightningMax: number
+  flatChaosMin: number
+  flatChaosMax: number
   critChanceBonus: number // percentage points
   strBonus: number
   dexBonus: number
@@ -89,6 +157,8 @@ export interface ComputedBuildStats {
   // Offense
   hitDamageMin: number
   hitDamageMax: number
+  /** Per-damage-type weapon / spell hit range (colored in UI when multiple types). */
+  hitDamageByType: HitDamageTypeRow[]
   aps: number
   manaCostPerAttack: number
   accuracy: number
@@ -130,6 +200,9 @@ export interface ComputedBuildStats {
 
   // Classes with >0 points (for display)
   classLevelsActive: Record<string, number>
+
+  /** Non-null when a valid ability is applied to hit damage / APS / DPS / mana cost. */
+  abilityContribution: AbilityContributionSummary | null
 }
 
 // ---------------------------------------------------------------------------
@@ -144,6 +217,14 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     flatEvasion: 0,
     flatDamageMin: 0,
     flatDamageMax: 0,
+    flatFireMin: 0,
+    flatFireMax: 0,
+    flatColdMin: 0,
+    flatColdMax: 0,
+    flatLightningMin: 0,
+    flatLightningMax: 0,
+    flatChaosMin: 0,
+    flatChaosMax: 0,
     critChanceBonus: 0,
     strBonus: 0,
     dexBonus: 0,
@@ -197,6 +278,14 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.flatEvasion !== undefined) add('flatEvasion', p.flatEvasion)
   if (p.flatDamageMin !== undefined) add('flatDamageMin', p.flatDamageMin)
   if (p.flatDamageMax !== undefined) add('flatDamageMax', p.flatDamageMax)
+  if (p.flatFireMin !== undefined) add('flatFireMin', p.flatFireMin)
+  if (p.flatFireMax !== undefined) add('flatFireMax', p.flatFireMax)
+  if (p.flatColdMin !== undefined) add('flatColdMin', p.flatColdMin)
+  if (p.flatColdMax !== undefined) add('flatColdMax', p.flatColdMax)
+  if (p.flatLightningMin !== undefined) add('flatLightningMin', p.flatLightningMin)
+  if (p.flatLightningMax !== undefined) add('flatLightningMax', p.flatLightningMax)
+  if (p.flatChaosMin !== undefined) add('flatChaosMin', p.flatChaosMin)
+  if (p.flatChaosMax !== undefined) add('flatChaosMax', p.flatChaosMax)
   if (p.critChanceBonus !== undefined) add('critChanceBonus', p.critChanceBonus)
   if (p.strBonus !== undefined) add('strBonus', p.strBonus)
   if (p.dexBonus !== undefined) add('dexBonus', p.dexBonus)
@@ -514,10 +603,38 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   )
 
   // -------------------------------------------------------------------------
-  // 15. Offense — hit damage
+  // 15. Offense — hit damage (split by type for display; totals match sum of parts)
   // -------------------------------------------------------------------------
-  const hitDamageMin = Math.round(BASE_GAME_STATS.baseHitDamageMin + eq.flatDamageMin)
-  const hitDamageMax = Math.round(BASE_GAME_STATS.baseHitDamageMax + eq.flatDamageMax)
+  let hitDamageByType: HitDamageTypeRow[] = buildHitDamageByType([
+    {
+      type: 'physical',
+      min: Math.round(BASE_GAME_STATS.baseHitDamageMin + eq.flatDamageMin),
+      max: Math.round(BASE_GAME_STATS.baseHitDamageMax + eq.flatDamageMax),
+    },
+    {
+      type: 'fire',
+      min: Math.round(eq.flatFireMin),
+      max: Math.round(eq.flatFireMax),
+    },
+    {
+      type: 'cold',
+      min: Math.round(eq.flatColdMin),
+      max: Math.round(eq.flatColdMax),
+    },
+    {
+      type: 'lightning',
+      min: Math.round(eq.flatLightningMin),
+      max: Math.round(eq.flatLightningMax),
+    },
+    {
+      type: 'chaos',
+      min: Math.round(eq.flatChaosMin),
+      max: Math.round(eq.flatChaosMax),
+    },
+  ])
+  let hitSum = sumHitDamageRange(hitDamageByType)
+  let hitDamageMin = hitSum.min
+  let hitDamageMax = hitSum.max
 
   // -------------------------------------------------------------------------
   // 16. Critical hit chance
@@ -528,7 +645,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const critFromAssassin = bonus('assassin') ? 8 : 0
   const critFromUpgrades = u('increasedCriticalHitChance') + u('increasedAttackCriticalHitChance')
   // Upgrades are "increased" — multiply the base; additive flat bonuses applied separately
-  const critChance = Math.min(
+  let critChance = Math.min(
     95,
     baseCritChance * (1 + critFromUpgrades / 100)
     + critFromDex
@@ -551,13 +668,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // Rogue class bonus: 10% more APS (multiplicative)
   // Use weapon effective APS (base * local mods) when a weapon is equipped; fall back to game base 1.0
   const rogueMult = bonus('rogue') ? 1.10 : 1.0
-  const aps = (eq.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps) * (1 + totalIncreasedAtk / 100) * rogueMult
+  let aps = (eq.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps) * (1 + totalIncreasedAtk / 100) * rogueMult
 
   // -------------------------------------------------------------------------
   // 18. Mana cost per attack
   // -------------------------------------------------------------------------
   // Sorcerer class bonus: 10% reduced mana cost of abilities
-  const manaCostPerAttack =
+  let manaCostPerAttack =
     BASE_GAME_STATS.baseManaPerAttack *
     (bonus('sorcerer') ? 0.90 : 1.0) *
     Math.max(0.2, 1 - eq.manaCostReductionFromGear / 100)
@@ -589,9 +706,117 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 21. Average hit and DPS
   // -------------------------------------------------------------------------
-  const avgHit               = (hitDamageMin + hitDamageMax) / 2
-  const avgEffectiveDamage   = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
-  const dps                  = avgEffectiveDamage * aps
+  let avgHit               = (hitDamageMin + hitDamageMax) / 2
+  let avgEffectiveDamage   = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
+  let dps                  = avgEffectiveDamage * aps
+
+  // -------------------------------------------------------------------------
+  // 21b. Selected ability (EOC 1.3.2 sheet): scales attack multipliers or spell base damage
+  // -------------------------------------------------------------------------
+  const baselineHitMin = hitDamageMin
+  const baselineHitMax = hitDamageMax
+  const baselineAps = aps
+  const baselineCritChance = critChance
+  let abilityContribution: AbilityContributionSummary | null = null
+
+  const sel = config.ability
+  const weaponItemId = config.equippedWeaponItemId ?? 'none'
+  const weaponTag = weaponAbilityTagFromItemId(weaponItemId)
+
+  if (sel?.abilityId) {
+    const def = EOC_ABILITY_BY_ID[sel.abilityId]
+    const level = Math.min(20, Math.max(0, Math.floor(sel.abilityLevel)))
+    const attPct = Math.min(100, Math.max(0, Math.floor(sel.attunementPct)))
+    if (def && abilityMatchesWeapon(def, weaponTag)) {
+      const manaFromAbility = def.manaCost != null ? def.manaCost : manaCostPerAttack
+
+      if (def.type === 'Melee' || def.type === 'Ranged') {
+        const baseDm = def.damageMultiplierPct ?? 100
+        const scaledDm = attackDamageMultiplierAtAbilityLevel(baseDm, level)
+        const aspFactor = (def.attackSpeedMultiplierPct ?? 100) / 100
+        hitDamageByType = scaleHitDamageByType(hitDamageByType, scaledDm / 100)
+        hitSum = sumHitDamageRange(hitDamageByType)
+        hitDamageMin = hitSum.min
+        hitDamageMax = hitSum.max
+        aps = aps * aspFactor
+        manaCostPerAttack = manaFromAbility
+        avgHit = (hitDamageMin + hitDamageMax) / 2
+        avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
+        dps = avgEffectiveDamage * aps
+        abilityContribution = {
+          id: def.id,
+          name: def.name,
+          type: def.type,
+          abilityLevel: level,
+          attunementPct: attPct,
+          scaledDamageMultiplierPct: scaledDm,
+          attackSpeedMultiplierPct: def.attackSpeedMultiplierPct,
+          addedDamageMultiplierPct: null,
+          spellDamageMin: null,
+          spellDamageMax: null,
+          spellElement: null,
+          effectiveCastTimeSeconds: null,
+          manaCost: def.manaCost,
+          baselineHitMin,
+          baselineHitMax,
+          baselineAps,
+          baselineCritChance,
+        }
+      } else if (def.type === 'Spells') {
+        const scaledHit = scaledSpellHitForAbility(def, level)
+        if (scaledHit) {
+          const added = (def.addedDamageMultiplierPct ?? 100) / 100
+          const isEle = ['fire', 'cold', 'lightning'].includes(scaledHit.element)
+          const incFrac =
+            (increasedSpellDamage + increasedDamage + (isEle ? increasedElementalDamage : 0)) / 100
+          const castBase = def.castTimeSeconds != null && def.castTimeSeconds > 0 ? def.castTimeSeconds : 0.5
+          const castSpeedInc = u('increasedCastSpeed') + u('increasedAttackSpeedAndCastSpeed')
+          const effectiveCastTime = castBase / (1 + castSpeedInc / 100)
+          const castsPerSec = 1 / effectiveCastTime
+          const spellBaseCrit = def.baseCritChancePct ?? BASE_GAME_STATS.baseCritChance
+          critChance = Math.min(
+            95,
+            spellBaseCrit * (1 + critFromUpgrades / 100)
+            + critFromDex
+            + critFromAssassin
+            + eq.critChanceBonus
+          )
+          const smin = Math.round(scaledHit.min * added * (1 + incFrac))
+          const smax = Math.round(scaledHit.max * added * (1 + incFrac))
+          hitDamageByType = buildHitDamageByType([
+            { type: spellElementToHitDamageType(scaledHit.element), min: smin, max: smax },
+          ])
+          hitSum = sumHitDamageRange(hitDamageByType)
+          hitDamageMin = hitSum.min
+          hitDamageMax = hitSum.max
+          aps = castsPerSec
+          manaCostPerAttack = manaFromAbility
+          avgHit = (hitDamageMin + hitDamageMax) / 2
+          avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
+          dps = avgEffectiveDamage * aps
+          abilityContribution = {
+            id: def.id,
+            name: def.name,
+            type: def.type,
+            abilityLevel: level,
+            attunementPct: attPct,
+            scaledDamageMultiplierPct: null,
+            attackSpeedMultiplierPct: null,
+            addedDamageMultiplierPct: def.addedDamageMultiplierPct,
+            spellDamageMin: hitDamageMin,
+            spellDamageMax: hitDamageMax,
+            spellElement: scaledHit.element,
+            effectiveCastTimeSeconds: effectiveCastTime,
+            manaCost: def.manaCost,
+            baselineHitMin,
+            baselineHitMax,
+            baselineAps,
+            baselineCritChance,
+          }
+        }
+      }
+    }
+  }
 
   // -------------------------------------------------------------------------
   // 22. Post-encounter recovery
@@ -696,6 +921,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     // Offense
     hitDamageMin,
     hitDamageMax,
+    hitDamageByType,
     aps,
     manaCostPerAttack,
     accuracy,
@@ -735,5 +961,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     // Meta
     classBonusesActive,
     classLevelsActive,
+
+    abilityContribution,
   }
 }

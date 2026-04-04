@@ -10,6 +10,10 @@ import {
 } from "../data/eocFormulas";
 import { computeDamageReductionPercentFromArmour } from "../data/formulas";
 import { getNexusTierRow } from "../data/nexusEnemyScaling";
+import {
+  HIT_DAMAGE_TYPE_COLOR_CLASS,
+  HIT_DAMAGE_TYPE_LABEL,
+} from "../data/damageTypes";
 
 export interface EocStatsPanelProps {
   stats: ComputedBuildStats;
@@ -55,10 +59,21 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
     0.7
   );
 
+  const ac = stats.abilityContribution;
+  const hitLabel = ac ? (ac.type === "Spells" ? "Spell hit" : "Ability hit") : "Hit damage";
+  const hitSub = ac
+    ? `${ac.name} · was ${ac.baselineHitMin}–${ac.baselineHitMax}`
+    : "weapon";
+  const apsSub = ac
+    ? `${stats.aps.toFixed(2)}${ac.type === "Spells" ? " casts/s" : " atk/s"} · was ${ac.baselineAps.toFixed(2)}`
+    : `${stats.aps.toFixed(2)} atk/s`;
+
+  const byType = stats.hitDamageByType;
+  const multiDamageTypes = byType.length > 1;
+
   const statBlocks = [
-    { label: "Hit damage", value: `${stats.hitDamageMin}–${stats.hitDamageMax}`, sub: "weapon", color: "text-orange-400", highlight: true },
     { label: "Avg + crit", value: stats.avgEffectiveDamage.toFixed(1), sub: "per hit", color: "text-red-400", highlight: true },
-    { label: "DPS", value: stats.dps.toFixed(1), sub: `${stats.aps.toFixed(2)} atk/s`, color: "text-orange-300", highlight: true },
+    { label: "DPS", value: stats.dps.toFixed(1), sub: apsSub, color: "text-orange-300", highlight: true },
     { label: "Armor", value: stats.armor, sub: `${damageReduction.toFixed(1)}% vs slider`, color: "text-blue-400", highlight: false },
     { label: "Evasion", value: stats.evasionRating, sub: "rating", color: "text-purple-400", highlight: false },
     { label: "Life / ES", value: `${stats.maxLife}`, sub: `ES ${stats.maxEnergyShield}`, color: "text-emerald-400", highlight: false },
@@ -76,6 +91,35 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
         <span>📊</span> EOC build stats
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        <div
+          className={`flex flex-col items-center p-2 rounded-lg border text-center border-zinc-700 bg-zinc-800/50 min-w-0`}
+        >
+          <span className="text-zinc-500 text-xs mb-1">{hitLabel}</span>
+          {multiDamageTypes ? (
+            <div className="w-full min-w-0 flex flex-col gap-1 items-stretch">
+              {byType.map((row) => (
+                <div
+                  key={row.type}
+                  className={`text-sm font-bold font-mono leading-tight ${HIT_DAMAGE_TYPE_COLOR_CLASS[row.type]}`}
+                >
+                  {HIT_DAMAGE_TYPE_LABEL[row.type]} {row.min}–{row.max}
+                </div>
+              ))}
+              <div className="text-zinc-500 text-[10px] font-mono pt-0.5 border-t border-zinc-700/80">
+                Σ {stats.hitDamageMin}–{stats.hitDamageMax}
+              </div>
+            </div>
+          ) : (
+            <span
+              className={`text-base font-bold font-mono ${
+                HIT_DAMAGE_TYPE_COLOR_CLASS[byType[0]?.type ?? "physical"]
+              }`}
+            >
+              {byType[0] ? `${byType[0].min}–${byType[0].max}` : `${stats.hitDamageMin}–${stats.hitDamageMax}`}
+            </span>
+          )}
+          <span className="text-zinc-600 text-xs mt-1">{hitSub}</span>
+        </div>
         {statBlocks.map(({ label, value, sub, color, highlight }) => (
           <div
             key={label}

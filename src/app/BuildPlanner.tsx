@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import AbilitiesPanel from "../components/AbilitiesPanel";
 import BuildSummary from "../components/BuildSummary";
 import EocClassesPanel from "../components/EocClassesPanel";
 import EocStatsPanel from "../components/EocStatsPanel";
@@ -12,12 +13,18 @@ import {
   EQUIPMENT_SLOTS,
   INVENTORY_MAX_SLOTS,
   getEquippedEntry,
-  normalizeEquippedEntry,
+  migrateEquippedFromSave,
   weaponUsesBothHands,
   type EquippedEntry,
   type InventoryStack,
 } from "../data/equipment";
-import { aggregateEquippedToEquipmentModifiers, computeBuildStats } from "../data/gameStats";
+import {
+  aggregateEquippedToEquipmentModifiers,
+  computeBuildStats,
+  normalizeAbilitySelection,
+  type AbilitySelectionState,
+} from "../data/gameStats";
+import { abilityMatchesWeapon, EOC_ABILITY_BY_ID, weaponAbilityTagFromItemId } from "../data/eocAbilities";
 import { loadStoredPlanner, saveStoredPlanner } from "../lib/eocBuildStorage";
 import { NEXUS_TIER_ROWS } from "../data/nexusEnemyScaling";
 
@@ -57,25 +64,15 @@ function addOrMergeStack(
   return [...inv, row];
 }
 
-function migrateEquippedFromSave(raw: unknown): Record<string, EquippedEntry> {
-  const out: Record<string, EquippedEntry> = {};
-  if (raw && typeof raw === "object") {
-    const o = raw as Record<string, unknown>;
-    for (const slot of EQUIPMENT_SLOTS) {
-      out[slot] = normalizeEquippedEntry(o[slot]);
-    }
-    return out;
-  }
-  for (const slot of EQUIPMENT_SLOTS) {
-    out[slot] = { itemId: "none" };
-  }
-  return out;
-}
-
 export default function BuildPlanner() {
   const [upgradeLevels, setUpgradeLevels] = useState<Record<string, number>>({});
   const [equipped, setEquipped] = useState<Record<string, EquippedEntry>>({});
   const [inventory, setInventory] = useState<InventoryStack[]>([]);
+  const [ability, setAbility] = useState<AbilitySelectionState>({
+    abilityId: null,
+    abilityLevel: 0,
+    attunementPct: 0,
+  });
   const [hydrated, setHydrated] = useState(false);
   const equipStateRef = useRef({ equipped, inventory });
   useLayoutEffect(() => {
@@ -95,6 +92,9 @@ export default function BuildPlanner() {
         } else {
           setInventory(DEFAULT_INVENTORY.map((s) => ({ ...s })));
         }
+        if (saved.ability) {
+          setAbility(normalizeAbilitySelection(saved.ability));
+        }
       } else {
         setInventory(DEFAULT_INVENTORY.map((s) => ({ ...s })));
       }
@@ -104,17 +104,39 @@ export default function BuildPlanner() {
 
   const equipmentModifiers = useMemo(() => equipmentModifiersFromEquippedMap(equipped), [equipped]);
 
+  const weaponItemId = getEquippedEntry(equipped, "Weapon").itemId;
+
+  /** Drop ability id when it does not match the current weapon; keep level / attunement. */
+  const abilityForStats = useMemo((): AbilitySelectionState => {
+    const tag = weaponAbilityTagFromItemId(weaponItemId);
+    if (!ability.abilityId) return ability;
+    const d = EOC_ABILITY_BY_ID[ability.abilityId];
+    if (!d || !abilityMatchesWeapon(d, tag)) return { ...ability, abilityId: null };
+    return ability;
+  }, [weaponItemId, ability]);
+
   const buildConfig = useMemo(
-    () => ({ upgradeLevels, equipmentModifiers }),
-    [upgradeLevels, equipmentModifiers]
+    () => ({
+      upgradeLevels,
+      equipmentModifiers,
+      equippedWeaponItemId: weaponItemId,
+      ability: abilityForStats,
+    }),
+    [upgradeLevels, equipmentModifiers, weaponItemId, abilityForStats]
   );
 
   const stats = useMemo(() => computeBuildStats(buildConfig), [buildConfig]);
 
   useEffect(() => {
     if (!hydrated) return;
-    saveStoredPlanner({ ...buildConfig, equipped, inventory });
-  }, [buildConfig, equipped, inventory, hydrated]);
+    saveStoredPlanner({
+      upgradeLevels,
+      equipmentModifiers,
+      ability,
+      equipped,
+      inventory,
+    });
+  }, [upgradeLevels, equipmentModifiers, ability, equipped, inventory, hydrated]);
 
   const updateInventoryStack = useCallback((stackId: string, rolls: number[], enhancement: number) => {
     setInventory((inv) =>
@@ -343,6 +365,9 @@ export default function BuildPlanner() {
           )}
         </div>
         <div className="max-w-7xl mx-auto px-4 flex flex-col gap-4">
+          <div className="min-w-0 w-full">
+            <AbilitiesPanel weaponItemId={weaponItemId} ability={abilityForStats} onChangeAbility={setAbility} />
+          </div>
           <div className="min-w-0 w-full">
             <EquipmentPanel
               equipped={equipped}
