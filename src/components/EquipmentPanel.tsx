@@ -2,8 +2,26 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { ComputedBuildStats } from "../data/gameStats";
-import type { EquipmentFilter, InventoryStack, Rarity } from "../data/equipment";
-import { getItemDefinition, INVENTORY_MAX_SLOTS, slotCategory } from "../data/equipment";
+import type { EquippedEntry, EquipmentFilter, InventoryStack, Rarity } from "../data/equipment";
+import {
+  EQUIPMENT_SLOTS,
+  getEquippedEntry,
+  getItemDefinition,
+  INVENTORY_MAX_SLOTS,
+  slotCategory,
+  weaponUsesBothHands,
+} from "../data/equipment";
+import {
+  EOC_UNIQUE_DEFINITIONS,
+  EOC_UNIQUE_BY_ID,
+  defaultRollsForUnique,
+  isUniqueItemId,
+  maxEnhancementForUnique,
+  resolveUniqueMods,
+  rollBoundsForUnique,
+  rollLabelForIndex,
+  type EocUniqueDefinition,
+} from "../data/eocUniques";
 import EocStatsPanel from "./EocStatsPanel";
 
 const rarityTone: Record<Rarity, string> = {
@@ -11,6 +29,7 @@ const rarityTone: Record<Rarity, string> = {
   uncommon: "text-[#6ee7b7]",
   rare: "text-[#7dd3fc]",
   epic: "text-[#d8b4fe]",
+  unique: "text-[#d4af37]",
 };
 
 const panelFrame =
@@ -26,21 +45,53 @@ const filterBtnOn = "border-[#c9a227] bg-[#3d3428] text-[#f5e6c8]";
 const filterBtnOff = "border-[#4a3f32] bg-[#1c1814] text-[#8a7d6b] hover:border-[#6b5c4a]";
 
 interface EquipmentPanelProps {
-  equipped: Record<string, string>;
+  equipped: Record<string, EquippedEntry>;
   inventory: InventoryStack[];
-  onEquipStack: (stackId: string) => void;
+  onEquipStack: (stackId: string, overrides?: { rolls?: number[]; enhancement?: number }) => void;
+  onUpdateInventoryStack: (stackId: string, rolls: number[], enhancement: number) => void;
+  onUpdateEquippedSlot: (slot: string, rolls: number[], enhancement: number) => void;
   onUnequipSlot: (slot: string) => void;
   onExtractStack: (stackId: string) => void;
   onExtractAll: () => void;
+  onAddUniqueToBag: (slot: string, itemId: string, rolls: number[], enhancement: number) => void;
   stats: ComputedBuildStats;
   incomingDamage: number;
   nexusTier: number;
 }
 
 type Detail =
-  | { kind: "equipped"; slot: string; itemId: string }
+  | { kind: "equipped"; slot: string; entry: EquippedEntry }
   | { kind: "inventory"; stack: InventoryStack }
   | null;
+
+function clampRollAtDef(def: EocUniqueDefinition | undefined, index: number, v: number): number {
+  if (!def) return v;
+  const b = rollBoundsForUnique(def)[index];
+  if (!b) return v;
+  const lo = Math.min(b.min, b.max);
+  const hi = Math.max(b.min, b.max);
+  return Math.min(hi, Math.max(lo, v));
+}
+
+function parseRollTextsToValues(def: EocUniqueDefinition, texts: string[]): number[] {
+  const bounds = rollBoundsForUnique(def);
+  return bounds.map((b, i) => {
+    const lo = Math.min(b.min, b.max);
+    const hi = Math.max(b.min, b.max);
+    const fallback = (lo + hi) / 2;
+    const t = (texts[i] ?? "").trim();
+    const parsed = t === "" || t === "-" || t === "." || t === "-." ? NaN : Number(t);
+    const v = Number.isFinite(parsed) ? parsed : fallback;
+    return clampRollAtDef(def, i, v);
+  });
+}
+
+function uniquesForPlannerSlot(plannerSlot: string) {
+  if (plannerSlot === "Ring 1" || plannerSlot === "Ring 2") {
+    return EOC_UNIQUE_DEFINITIONS.filter((u) => u.slot === "Ring");
+  }
+  return EOC_UNIQUE_DEFINITIONS.filter((u) => u.slot === plannerSlot);
+}
 
 function SlotGlyph({ type }: { type: string }) {
   const common = "h-6 w-6 opacity-[0.22] text-[#c4b5a0]";
@@ -99,6 +150,12 @@ function SlotGlyph({ type }: { type: string }) {
           <path d="M12 2l8 3v7c0 5-3.5 9-8 10-4.5-1-8-5-8-10V5l8-3zm0 2.2L6 6.3V12c0 4 2.5 7 6 8 3.5-1 6-4 6-8V6.3L12 4.2z" />
         </svg>
       );
+    case "belt":
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <path d="M4 10h16v4H4v-4zm2 2v1h12v-1H6zm1-4h10v2H7V8z" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -106,8 +163,9 @@ function SlotGlyph({ type }: { type: string }) {
 
 function ItemGlyph({ slot, itemId }: { slot: string; itemId: string }) {
   if (itemId === "none") return null;
-  const hue =
-    slot === "Weapon"
+  const hue = isUniqueItemId(itemId)
+    ? "text-[#d4af37]"
+    : slot === "Weapon"
       ? "text-[#c0c0d8]"
       : slot === "Off-hand"
         ? "text-[#a89070]"
@@ -136,9 +194,12 @@ export default function EquipmentPanel({
   equipped,
   inventory,
   onEquipStack,
+  onUpdateInventoryStack,
+  onUpdateEquippedSlot,
   onUnequipSlot,
   onExtractStack,
   onExtractAll,
+  onAddUniqueToBag,
   stats,
   incomingDamage,
   nexusTier,
@@ -148,6 +209,15 @@ export default function EquipmentPanel({
   const [showStats, setShowStats] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [detail, setDetail] = useState<Detail>(null);
+  const [craftSlot, setCraftSlot] = useState<string>(EQUIPMENT_SLOTS[0] ?? "Helmet");
+  const [craftSearch, setCraftSearch] = useState("");
+  const [craftUniqueId, setCraftUniqueId] = useState<string>("");
+  /** Raw text per roll so “-” / partial decimals are editable before blur. */
+  const [craftRollTexts, setCraftRollTexts] = useState<string[]>([]);
+  const [craftEnhancement, setCraftEnhancement] = useState(0);
+  /** Draft rolls / enhancement in the center detail panel for the selected bag or worn unique. */
+  const [detailRollTexts, setDetailRollTexts] = useState<string[]>([]);
+  const [detailEnhancement, setDetailEnhancement] = useState(0);
 
   const filteredInventory = useMemo(() => {
     if (filter === "all") return inventory;
@@ -159,9 +229,28 @@ export default function EquipmentPanel({
   const leftSlots: { slot: string; glyph: string }[] = [
     { slot: "Helmet", glyph: "helmet" },
     { slot: "Chest", glyph: "chest" },
+    { slot: "Belt", glyph: "belt" },
     { slot: "Gloves", glyph: "gloves" },
     { slot: "Boots", glyph: "boots" },
   ];
+
+  const craftableUniques = useMemo(() => {
+    const q = craftSearch.trim().toLowerCase();
+    const list = uniquesForPlannerSlot(craftSlot);
+    if (!q) return list;
+    return list.filter((u) => u.name.toLowerCase().includes(q));
+  }, [craftSlot, craftSearch]);
+
+  const craftDef = craftUniqueId ? EOC_UNIQUE_BY_ID[craftUniqueId] : undefined;
+
+  const clampRollAt = useCallback((index: number, v: number) => {
+    if (!craftDef) return v;
+    const b = rollBoundsForUnique(craftDef)[index];
+    if (!b) return v;
+    const lo = Math.min(b.min, b.max);
+    const hi = Math.max(b.min, b.max);
+    return Math.min(hi, Math.max(lo, v));
+  }, [craftDef]);
   const rightSlots: { slot: string; glyph: string }[] = [
     { slot: "Amulet", glyph: "amulet" },
     { slot: "Ring 1", glyph: "ring" },
@@ -169,22 +258,55 @@ export default function EquipmentPanel({
     { slot: "Legs", glyph: "legs" },
   ];
 
-  const openEquippedDetail = useCallback((slot: string) => {
-    const itemId = equipped[slot] ?? "none";
-    setDetail(itemId === "none" ? null : { kind: "equipped", slot, itemId });
-  }, [equipped]);
+  const syncDetailDraftFromEntry = useCallback((entry: EquippedEntry) => {
+    const udef = isUniqueItemId(entry.itemId) ? EOC_UNIQUE_BY_ID[entry.itemId] : undefined;
+    if (!udef) {
+      setDetailRollTexts([]);
+      setDetailEnhancement(0);
+      return;
+    }
+    const bounds = rollBoundsForUnique(udef);
+    const defaults = defaultRollsForUnique(udef);
+    setDetailRollTexts(
+      bounds.map((b, i) =>
+        String(entry.rolls?.[i] ?? defaults[i] ?? (Math.min(b.min, b.max) + Math.max(b.min, b.max)) / 2)
+      )
+    );
+    setDetailEnhancement(entry.enhancement ?? 0);
+  }, []);
+
+  const openEquippedDetail = useCallback(
+    (slot: string) => {
+      const entry = getEquippedEntry(equipped, slot);
+      if (entry.itemId === "none") {
+        setDetail(null);
+        setDetailRollTexts([]);
+        setDetailEnhancement(0);
+        return;
+      }
+      setDetail({ kind: "equipped", slot, entry });
+      syncDetailDraftFromEntry(entry);
+    },
+    [equipped, syncDetailDraftFromEntry]
+  );
 
   const effectiveDetail = useMemo((): Detail => {
     if (!detail) return null;
     if (detail.kind === "equipped") {
-      const cur = equipped[detail.slot] ?? "none";
-      if (cur === "none" || cur !== detail.itemId) return null;
-      return detail;
+      const cur = getEquippedEntry(equipped, detail.slot);
+      if (cur.itemId === "none") return null;
+      if (cur.itemId !== detail.entry.itemId) return null;
+      return { kind: "equipped", slot: detail.slot, entry: cur };
     }
     const stack = inventory.find((s) => s.id === detail.stack.id);
     if (!stack) return null;
     return { kind: "inventory", stack };
   }, [detail, equipped, inventory]);
+
+  const validSelectedInvId = useMemo(() => {
+    if (!selectedInvId) return null;
+    return inventory.some((s) => s.id === selectedInvId) ? selectedInvId : null;
+  }, [selectedInvId, inventory]);
 
   const renderDetail = () => {
     if (!effectiveDetail) {
@@ -201,26 +323,159 @@ export default function EquipmentPanel({
       );
     }
     const slot = effectiveDetail.kind === "equipped" ? effectiveDetail.slot : effectiveDetail.stack.slot;
-    const itemId = effectiveDetail.kind === "equipped" ? effectiveDetail.itemId : effectiveDetail.stack.itemId;
+    const entry: EquippedEntry =
+      effectiveDetail.kind === "equipped"
+        ? effectiveDetail.entry
+        : {
+            itemId: effectiveDetail.stack.itemId,
+            rolls: effectiveDetail.stack.rolls,
+            enhancement: effectiveDetail.stack.enhancement,
+          };
+    const itemId = entry.itemId;
     const item = getItemDefinition(slot, itemId);
     if (!item) {
       return (
         <p className="p-6 text-center font-serif text-sm text-[#8a7d6b]">Unknown item</p>
       );
     }
+    const udef = isUniqueItemId(itemId) ? EOC_UNIQUE_BY_ID[itemId] : undefined;
+    const parsedRolls = udef ? parseRollTextsToValues(udef, detailRollTexts) : [];
+    const resolved = udef
+      ? resolveUniqueMods(udef, parsedRolls, detailEnhancement)
+      : null;
     const mods = item.modifiers ?? {};
+    const detailMutedBtn =
+      "rounded-sm border border-[#5c4d3d] bg-[#1c1814] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#c9baa8] hover:border-[#8b7355] hover:text-[#e8dcc8]";
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 px-4 py-6 text-center">
-        <div className="flex h-24 w-24 items-center justify-center rounded-sm border border-[#5c4d3d] bg-[#0d0a08]">
-          <ItemGlyph slot={slot} itemId={itemId} />
+      <div className="flex h-full max-h-[min(70vh,520px)] flex-col items-stretch gap-3 overflow-y-auto px-3 py-4 text-center sm:px-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-sm border border-[#5c4d3d] bg-[#0d0a08]">
+            <ItemGlyph slot={slot} itemId={itemId} />
+          </div>
+          <div>
+            <h3
+              className={`font-serif text-lg tracking-wide ${item.rarity ? rarityTone[item.rarity] : "text-[#e8dcc8]"}`}
+            >
+              {item.name}
+            </h3>
+            <p className="mt-1 text-xs uppercase tracking-widest text-[#7a6b5a]">{slot}</p>
+            {udef && (
+              <p className="mt-2 text-left text-[11px] leading-snug text-[#8a7d6b]">
+                Lv {udef.reqLevel}
+                {udef.reqStr != null ? ` · Str ${udef.reqStr}` : ""}
+                {udef.reqDex != null ? ` · Dex ${udef.reqDex}` : ""}
+                {udef.reqInt != null ? ` · Int ${udef.reqInt}` : ""}
+                {udef.enhancementBonus ? ` · +Enh ${udef.enhancementBonus}/lvl innate` : ""}
+              </p>
+            )}
+            {udef && detailEnhancement > 0 && (
+              <p className="mt-1 text-left text-[11px] text-[#c9a227]">
+                Enhancement +{detailEnhancement} (max {maxEnhancementForUnique(udef)})
+              </p>
+            )}
+            {!udef && (entry.enhancement ?? 0) > 0 && (
+              <p className="mt-1 text-left text-[11px] text-[#c9a227]">
+                Enhancement +{entry.enhancement}
+              </p>
+            )}
+            {slot === "Weapon" && weaponUsesBothHands(itemId) && (
+              <p className="mt-1 text-left text-[10px] uppercase tracking-wide text-[#b45309]">
+                Two-handed — blocks off-hand
+              </p>
+            )}
+          </div>
         </div>
-        <div>
-          <h3 className={`font-serif text-lg tracking-wide ${item.rarity ? rarityTone[item.rarity] : "text-[#e8dcc8]"}`}>
-            {item.name}
-          </h3>
-          <p className="mt-1 text-xs uppercase tracking-widest text-[#7a6b5a]">{slot}</p>
-        </div>
-        {Object.keys(mods).length > 0 && (
+        {udef && rollBoundsForUnique(udef).length > 0 && (
+          <div className="mx-auto w-full max-w-md space-y-2 border-b border-[#2a2318] pb-3 text-left">
+            <p className="text-[10px] uppercase tracking-wider text-[#8a7d6b]">Variable rolls</p>
+            {rollBoundsForUnique(udef).map((b, i) => {
+              const lo = Math.min(b.min, b.max);
+              const hi = Math.max(b.min, b.max);
+              const fallback = (lo + hi) / 2;
+              const label = rollLabelForIndex(udef, i);
+              const ph = `${lo} – ${hi}`;
+              const commitRollText = (raw: string) => {
+                const t = raw.trim();
+                const parsed = t === "" || t === "-" || t === "." || t === "-." ? NaN : Number(t);
+                const v = Number.isFinite(parsed) ? parsed : fallback;
+                const c = clampRollAtDef(udef, i, v);
+                setDetailRollTexts((prev) => {
+                  const next = [...prev];
+                  while (next.length <= i) next.push(String(fallback));
+                  next[i] = String(c);
+                  return next;
+                });
+              };
+              return (
+                <div key={i}>
+                  <label className="mb-0.5 block text-[10px] leading-snug text-[#a89070]">{label}</label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
+                    placeholder={ph}
+                    value={detailRollTexts[i] ?? ""}
+                    onChange={(e) => {
+                      const t = e.target.value;
+                      setDetailRollTexts((prev) => {
+                        const next = [...prev];
+                        while (next.length <= i) next.push(String(fallback));
+                        next[i] = t;
+                        return next;
+                      });
+                    }}
+                    onBlur={(e) => commitRollText(e.target.value)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {udef && (
+          <div className="mx-auto w-full max-w-md text-left">
+            <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">
+              Enhancement (0–{maxEnhancementForUnique(udef)} · +{udef.enhancementBonusPerLevel}% /lvl to first % in
+              innate)
+            </label>
+            <input
+              type="number"
+              className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8]"
+              placeholder={`0 – ${maxEnhancementForUnique(udef)}`}
+              min={0}
+              max={maxEnhancementForUnique(udef)}
+              step={1}
+              value={detailEnhancement}
+              onChange={(e) => {
+                const n = Math.floor(Number(e.target.value));
+                const mx = maxEnhancementForUnique(udef);
+                if (Number.isNaN(n)) {
+                  setDetailEnhancement(0);
+                  return;
+                }
+                setDetailEnhancement(Math.min(mx, Math.max(0, n)));
+              }}
+            />
+          </div>
+        )}
+        {resolved && (
+          <ul className="w-full max-w-md space-y-1.5 text-left text-xs leading-snug text-[#c9baa8]">
+            {resolved.innateText.trim() && (
+              <li className="border-b border-[#2a2318] pb-1.5">
+                <span className="text-[#a89070]">Innate: </span>
+                {resolved.innateText}
+              </li>
+            )}
+            {resolved.lineTexts.map((t, i) =>
+              t.trim() ? (
+                <li key={i} className="border-b border-[#2a2318]/80 py-1">
+                  {t}
+                </li>
+              ) : null
+            )}
+          </ul>
+        )}
+        {!resolved && Object.keys(mods).length > 0 && (
           <ul className="w-full max-w-xs space-y-1 text-left text-sm text-[#c4b5a0]">
             {Object.entries(mods).map(([k, v]) => (
               <li key={k} className="flex justify-between border-b border-[#2a2318] py-1">
@@ -230,15 +485,53 @@ export default function EquipmentPanel({
             ))}
           </ul>
         )}
-        {effectiveDetail.kind === "equipped" && (
-          <button
-            type="button"
-            className={`${brassBtn} mt-2`}
-            onClick={() => onUnequipSlot(effectiveDetail.slot)}
-          >
-            Unequip
-          </button>
-        )}
+        <div className="mx-auto mt-1 flex w-full max-w-xs flex-col gap-2">
+          {effectiveDetail.kind === "inventory" && (
+            <button
+              type="button"
+              className={brassBtn}
+              onClick={() => {
+                if (udef) {
+                  const rolls = parseRollTextsToValues(udef, detailRollTexts);
+                  onEquipStack(effectiveDetail.stack.id, { rolls, enhancement: detailEnhancement });
+                } else {
+                  onEquipStack(effectiveDetail.stack.id);
+                }
+              }}
+            >
+              Equip
+            </button>
+          )}
+          {effectiveDetail.kind === "inventory" && udef && (
+            <button
+              type="button"
+              className={detailMutedBtn}
+              onClick={() => {
+                const rolls = parseRollTextsToValues(udef, detailRollTexts);
+                onUpdateInventoryStack(effectiveDetail.stack.id, rolls, detailEnhancement);
+              }}
+            >
+              Update bag
+            </button>
+          )}
+          {effectiveDetail.kind === "equipped" && udef && (
+            <button
+              type="button"
+              className={detailMutedBtn}
+              onClick={() => {
+                const rolls = parseRollTextsToValues(udef, detailRollTexts);
+                onUpdateEquippedSlot(effectiveDetail.slot, rolls, detailEnhancement);
+              }}
+            >
+              Apply worn
+            </button>
+          )}
+          {effectiveDetail.kind === "equipped" && (
+            <button type="button" className={brassBtn} onClick={() => onUnequipSlot(effectiveDetail.slot)}>
+              Unequip
+            </button>
+          )}
+        </div>
       </div>
     );
   };
@@ -252,7 +545,7 @@ export default function EquipmentPanel({
             <div className="relative mx-auto flex max-w-[220px] justify-center gap-2 overflow-hidden">
               <div className="flex flex-col gap-2 pt-1">
                 {leftSlots.map(({ slot, glyph }) => {
-                  const id = equipped[slot] ?? "none";
+                  const id = getEquippedEntry(equipped, slot).itemId;
                   return (
                     <button
                       key={slot}
@@ -282,7 +575,7 @@ export default function EquipmentPanel({
               </div>
               <div className="flex flex-col gap-2 pt-1">
                 {rightSlots.map(({ slot, glyph }) => {
-                  const id = equipped[slot] ?? "none";
+                  const id = getEquippedEntry(equipped, slot).itemId;
                   return (
                     <button
                       key={slot}
@@ -304,7 +597,7 @@ export default function EquipmentPanel({
             </div>
             <div className="mx-auto mt-3 flex max-w-[200px] justify-center gap-3">
               {(["Weapon", "Off-hand"] as const).map((slot) => {
-                const id = equipped[slot] ?? "none";
+                const id = getEquippedEntry(equipped, slot).itemId;
                 const glyph = slot === "Weapon" ? "weapon" : "shield";
                 return (
                   <button
@@ -352,21 +645,11 @@ export default function EquipmentPanel({
               <h2 className="pointer-events-none px-10 text-center font-serif text-base tracking-[0.15em] text-[#e8dcc8]">
                 Inventory
               </h2>
-              <button
-                type="button"
-                title="Crafting (coming soon)"
-                className="absolute right-0 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-sm border border-[#5c4d3d] bg-[#1c1814] text-[#a89070] hover:border-[#8b7355]"
-                aria-label="Crafting"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M4 19h16v2H4v-2zm2-4h12l2 4H4l2-4zm2-8h8l2 4H6l2-4zm4-5l2 2h6v2H8V2l4 2z" />
-                </svg>
-              </button>
             </div>
             <div className="grid max-h-[min(40vh,220px)] grid-cols-5 gap-1.5 overflow-y-auto overscroll-contain sm:gap-2">
               {filteredInventory.map((stack) => {
                 const item = getItemDefinition(stack.slot, stack.itemId);
-                const sel = selectedInvId === stack.id;
+                const sel = validSelectedInvId === stack.id;
                 return (
                   <button
                     key={stack.id}
@@ -378,7 +661,11 @@ export default function EquipmentPanel({
                     onClick={() => {
                       setSelectedInvId(stack.id);
                       setDetail({ kind: "inventory", stack });
-                      onEquipStack(stack.id);
+                      syncDetailDraftFromEntry({
+                        itemId: stack.itemId,
+                        rolls: stack.rolls,
+                        enhancement: stack.enhancement,
+                      });
                     }}
                   >
                     <ItemGlyph slot={stack.slot} itemId={stack.itemId} />
@@ -434,13 +721,161 @@ export default function EquipmentPanel({
                   </button>
                 ))}
               </div>
+              <div className="rounded-sm border border-[#4a3f32] bg-[#14100c] p-2 text-left">
+                <div className="mb-2 font-serif text-[11px] uppercase tracking-wider text-[#c9a227]">
+                  Add unique (1.1.0 list)
+                </div>
+                <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Slot</label>
+                <select
+                  className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8]"
+                  value={craftSlot}
+                  onChange={(e) => {
+                    setCraftSlot(e.target.value);
+                    setCraftUniqueId("");
+                    setCraftRollTexts([]);
+                    setCraftEnhancement(0);
+                  }}
+                >
+                  {EQUIPMENT_SLOTS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Search</label>
+                <input
+                  className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
+                  placeholder="Filter by name…"
+                  value={craftSearch}
+                  onChange={(e) => setCraftSearch(e.target.value)}
+                />
+                <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Unique</label>
+                <select
+                  className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8]"
+                  value={craftUniqueId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setCraftUniqueId(id);
+                    const def = id ? EOC_UNIQUE_BY_ID[id] : undefined;
+                    setCraftRollTexts(def ? defaultRollsForUnique(def).map(String) : []);
+                    setCraftEnhancement(0);
+                  }}
+                >
+                  <option value="">— Choose —</option>
+                  {craftableUniques.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+                {craftDef && rollBoundsForUnique(craftDef).length > 0 && (
+                  <div className="mb-2 max-h-48 space-y-2 overflow-y-auto pr-0.5">
+                    {rollBoundsForUnique(craftDef).map((b, i) => {
+                      const lo = Math.min(b.min, b.max);
+                      const hi = Math.max(b.min, b.max);
+                      const fallback = (lo + hi) / 2;
+                      const label = rollLabelForIndex(craftDef, i);
+                      const ph = `${lo} – ${hi}`;
+                      const commitRollText = (raw: string) => {
+                        const t = raw.trim();
+                        const parsed = t === "" || t === "-" || t === "." || t === "-." ? NaN : Number(t);
+                        const v = Number.isFinite(parsed) ? parsed : fallback;
+                        const c = clampRollAt(i, v);
+                        setCraftRollTexts((prev) => {
+                          const next = [...prev];
+                          while (next.length <= i) next.push(String(fallback));
+                          next[i] = String(c);
+                          return next;
+                        });
+                      };
+                      return (
+                        <div key={i}>
+                          <label className="mb-0.5 block text-[10px] leading-snug text-[#a89070]">
+                            {label}
+                          </label>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            autoComplete="off"
+                            className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
+                            placeholder={ph}
+                            value={craftRollTexts[i] ?? ""}
+                            onChange={(e) => {
+                              const t = e.target.value;
+                              setCraftRollTexts((prev) => {
+                                const next = [...prev];
+                                while (next.length <= i) next.push(String(fallback));
+                                next[i] = t;
+                                return next;
+                              });
+                            }}
+                            onBlur={(e) => {
+                              commitRollText(e.target.value);
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {craftDef && (
+                  <div className="mb-2">
+                    <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">
+                      Enhancement (0–{maxEnhancementForUnique(craftDef)} · +{craftDef.enhancementBonusPerLevel}%
+                      /lvl to first % in innate)
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
+                      placeholder={`0 – ${maxEnhancementForUnique(craftDef)}`}
+                      min={0}
+                      max={maxEnhancementForUnique(craftDef)}
+                      step={1}
+                      value={craftEnhancement}
+                      onChange={(e) => {
+                        const n = Math.floor(Number(e.target.value));
+                        const mx = maxEnhancementForUnique(craftDef);
+                        if (Number.isNaN(n)) {
+                          setCraftEnhancement(0);
+                          return;
+                        }
+                        setCraftEnhancement(Math.min(mx, Math.max(0, n)));
+                      }}
+                    />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={`${brassBtn} w-full py-2 text-[11px]`}
+                  disabled={!craftUniqueId || invStacks >= INVENTORY_MAX_SLOTS}
+                  onClick={() => {
+                    if (!craftUniqueId) return;
+                    const def = EOC_UNIQUE_BY_ID[craftUniqueId];
+                    if (!def) return;
+                    const bounds = rollBoundsForUnique(def);
+                    const rolls = bounds.map((b, i) => {
+                      const lo = Math.min(b.min, b.max);
+                      const hi = Math.max(b.min, b.max);
+                      const fallback = (lo + hi) / 2;
+                      const t = (craftRollTexts[i] ?? "").trim();
+                      const parsed =
+                        t === "" || t === "-" || t === "." || t === "-." ? NaN : Number(t);
+                      const v = Number.isFinite(parsed) ? parsed : fallback;
+                      return clampRollAt(i, v);
+                    });
+                    onAddUniqueToBag(craftSlot, craftUniqueId, rolls, craftEnhancement);
+                  }}
+                >
+                  {invStacks >= INVENTORY_MAX_SLOTS ? "Bag full" : "Add to bag"}
+                </button>
+              </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     className={`${brassBtn} disabled:opacity-40`}
-                    disabled={!selectedInvId}
-                    onClick={() => selectedInvId && onExtractStack(selectedInvId)}
+                    disabled={!validSelectedInvId}
+                    onClick={() => validSelectedInvId && onExtractStack(validSelectedInvId)}
                   >
                     Extract
                   </button>
@@ -455,7 +890,8 @@ export default function EquipmentPanel({
                 </div>
               </div>
               <p className="text-center text-[10px] leading-relaxed text-[#7a6b5a]">
-                Click a bag item to equip. Click worn gear to inspect, then Unequip.
+                Click a bag item to preview it in the center panel, adjust rolls or enhancement, then Equip or Update
+                bag. Two-handed weapons clear off-hand when equipped.
               </p>
             </div>
           </div>
@@ -494,9 +930,22 @@ export default function EquipmentPanel({
           <div className={`w-full max-w-md ${panelFrame} p-5 font-serif text-[#c4b5a0]`}>
             <h2 className="mb-3 text-lg text-[#e8dcc8]">Equipment</h2>
             <ul className="list-disc space-y-2 pl-5 text-sm">
-              <li>Click an inventory item to equip it to its slot (swaps with what you had worn).</li>
-              <li>Click a worn piece to inspect it, then use Unequip to return it to your bag.</li>
+              <li>
+                Click a bag item to open it in the center panel; use Equip to wear it (swaps with that slot). Use
+                Update bag to save roll or enhancement edits without equipping.
+              </li>
+              <li>
+                Click worn gear to inspect or edit uniques (Apply worn), then Unequip to return it to your bag.
+              </li>
               <li>Use filters to narrow the grid. Extract removes the selected stack; Extract all clears the bag.</li>
+              <li>
+                Two-handed weapons cannot share a row with off-hand; equipping one sends the other piece back to
+                your bag.
+              </li>
+              <li>
+                Unique enhancement (+10 max unless data says otherwise) adds the item&apos;s Enhancement Bonus
+                to the first percentage in its innate line each level.
+              </li>
             </ul>
             <button type="button" className={`${brassBtn} mt-4 w-full`} onClick={() => setShowHelp(false)}>
               OK

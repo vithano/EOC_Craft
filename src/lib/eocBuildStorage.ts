@@ -1,11 +1,17 @@
-import type { BuildConfig } from "../data/gameStats";
-import type { InventoryStack } from "../data/equipment";
+import { emptyEquipmentModifiers, type BuildConfig } from "../data/gameStats";
+import {
+  EQUIPMENT_SLOTS,
+  normalizeEquippedEntry,
+  type EquippedEntry,
+  type InventoryStack,
+} from "../data/equipment";
 
 export const EOC_BUILD_STORAGE_KEY = "eocCraftBuild";
 
 /** Persisted payload: build math + equipment slot ids for the planner UI. */
 export type StoredPlannerPayload = BuildConfig & {
-  equipped?: Record<string, string>;
+  /** Legacy string values are normalized on load. */
+  equipped?: Record<string, string | EquippedEntry>;
   inventory?: InventoryStack[];
 };
 
@@ -16,10 +22,13 @@ export function loadStoredPlanner(): StoredPlannerPayload | null {
     if (!raw) return null;
     const data = JSON.parse(raw) as Partial<StoredPlannerPayload>;
     if (!data || typeof data !== "object") return null;
-    const equipped =
+    const equippedRaw =
       data.equipped && typeof data.equipped === "object"
         ? data.equipped
         : undefined;
+    const equipped = equippedRaw
+      ? normalizeEquippedMap(equippedRaw as Record<string, unknown>)
+      : undefined;
     const hasInventoryKey = Object.prototype.hasOwnProperty.call(data, "inventory");
     const inventory = hasInventoryKey ? normalizeInventory(data.inventory) : undefined;
     return {
@@ -66,7 +75,29 @@ function normalizeInventory(raw: unknown): InventoryStack[] {
     const itemId = typeof o.itemId === "string" ? o.itemId : "";
     const qty = Math.max(0, Math.floor(Number(o.qty)));
     if (!id || !slot || !itemId || qty < 1) continue;
-    out.push({ id, slot, itemId, qty });
+    let rolls: number[] | undefined;
+    if (Array.isArray(o.rolls) && o.rolls.length > 0) {
+      rolls = o.rolls.map((x) => Number(x)).filter((n) => !Number.isNaN(n));
+    }
+    const enhRaw = Math.floor(Number(o.enhancement));
+    const enhancement =
+      !Number.isNaN(enhRaw) && enhRaw > 0 ? Math.min(20, enhRaw) : undefined;
+    out.push({
+      id,
+      slot,
+      itemId,
+      qty,
+      rolls: rolls?.length ? rolls : undefined,
+      enhancement,
+    });
+  }
+  return out;
+}
+
+function normalizeEquippedMap(raw: Record<string, unknown>): Record<string, EquippedEntry> {
+  const out: Record<string, EquippedEntry> = {};
+  for (const slot of EQUIPMENT_SLOTS) {
+    out[slot] = normalizeEquippedEntry(raw[slot]);
   }
   return out;
 }
@@ -74,8 +105,10 @@ function normalizeInventory(raw: unknown): InventoryStack[] {
 function normalizeEquipment(
   m: Partial<BuildConfig["equipmentModifiers"]> | undefined
 ): BuildConfig["equipmentModifiers"] {
+  const d = emptyEquipmentModifiers();
   const z = m ?? {};
   return {
+    ...d,
     flatLife: Number(z.flatLife) || 0,
     flatMana: Number(z.flatMana) || 0,
     flatArmor: Number(z.flatArmor) || 0,
@@ -86,5 +119,25 @@ function normalizeEquipment(
     strBonus: Number(z.strBonus) || 0,
     dexBonus: Number(z.dexBonus) || 0,
     intBonus: Number(z.intBonus) || 0,
+    flatAccuracy: Number(z.flatAccuracy) || 0,
+    pctIncreasedLifeFromGear: Number(z.pctIncreasedLifeFromGear) || 0,
+    pctIncreasedManaFromGear: Number(z.pctIncreasedManaFromGear) || 0,
+    pctIncreasedArmorFromGear: Number(z.pctIncreasedArmorFromGear) || 0,
+    pctIncreasedEvasionFromGear: Number(z.pctIncreasedEvasionFromGear) || 0,
+    pctIncreasedEnergyShieldFromGear: Number(z.pctIncreasedEnergyShieldFromGear) || 0,
+    increasedMeleeDamageFromGear: Number(z.increasedMeleeDamageFromGear) || 0,
+    increasedAttackDamageFromGear: Number(z.increasedAttackDamageFromGear) || 0,
+    increasedDamageFromGear: Number(z.increasedDamageFromGear) || 0,
+    increasedSpellDamageFromGear: Number(z.increasedSpellDamageFromGear) || 0,
+    pctIncreasedAccuracyFromGear: Number(z.pctIncreasedAccuracyFromGear) || 0,
+    pctIncreasedAttackSpeedFromGear: Number(z.pctIncreasedAttackSpeedFromGear) || 0,
+    doubleDamageChanceFromGear: Number(z.doubleDamageChanceFromGear) || 0,
+    armorIgnoreFromGear: Number(z.armorIgnoreFromGear) || 0,
+    pctToAllElementalResFromGear: Number(z.pctToAllElementalResFromGear) || 0,
+    pctChaosResFromGear: Number(z.pctChaosResFromGear) || 0,
+    manaCostReductionFromGear: Number(z.manaCostReductionFromGear) || 0,
+    energyShieldLessMultFromGear:
+      Number(z.energyShieldLessMultFromGear) > 0 ? Number(z.energyShieldLessMultFromGear) : d.energyShieldLessMultFromGear,
+    flatEnergyShieldFromGear: Number(z.flatEnergyShieldFromGear) || 0,
   };
 }

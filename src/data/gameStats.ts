@@ -6,6 +6,12 @@ import {
   getClassLevel,
   isClassBonusActive,
 } from './gameClasses'
+import { getItemDefinition, type ItemModifiers } from './equipment'
+import { EOC_UNIQUE_BY_ID, isUniqueItemId, resolveUniqueMods } from './eocUniques'
+import {
+  equipmentModifiersFromUniqueTexts,
+  type UniqueGearStatPatch,
+} from './uniqueGearMods'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -27,6 +33,27 @@ export interface EquipmentModifiers {
   strBonus: number
   dexBonus: number
   intBonus: number
+  /** Flat accuracy from gear (before % increased accuracy). */
+  flatAccuracy: number
+  pctIncreasedLifeFromGear: number
+  pctIncreasedManaFromGear: number
+  pctIncreasedArmorFromGear: number
+  pctIncreasedEvasionFromGear: number
+  pctIncreasedEnergyShieldFromGear: number
+  increasedMeleeDamageFromGear: number
+  increasedAttackDamageFromGear: number
+  increasedDamageFromGear: number
+  increasedSpellDamageFromGear: number
+  pctIncreasedAccuracyFromGear: number
+  pctIncreasedAttackSpeedFromGear: number
+  doubleDamageChanceFromGear: number
+  armorIgnoreFromGear: number
+  pctToAllElementalResFromGear: number
+  pctChaosResFromGear: number
+  manaCostReductionFromGear: number
+  /** Multiplies final ES (1 = no change). Each “% less energy shield” stacks multiplicatively. */
+  energyShieldLessMultFromGear: number
+  flatEnergyShieldFromGear: number
 }
 
 export interface ComputedBuildStats {
@@ -103,34 +130,151 @@ export interface ComputedBuildStats {
 // Equipment aggregation helper
 // ---------------------------------------------------------------------------
 
-export function aggregateItemModifiers(
-  equippedItems: { modifiers: import('./equipment').ItemModifiers }[]
-): EquipmentModifiers {
-  let flatLife = 0, flatMana = 0, flatArmor = 0, flatEvasion = 0
-  let flatDamageMin = 0, flatDamageMax = 0, critChanceBonus = 0
-  let strBonus = 0, dexBonus = 0, intBonus = 0
-
-  for (const item of equippedItems) {
-    const m = item.modifiers
-    flatLife       += (m.health       ?? 0)
-    flatMana       += (m.mana         ?? 0)
-    flatArmor      += (m.armor        ?? 0)
-    flatEvasion    += (m.evasion      ?? 0)
-    // damage modifier: split into min (50%) and max (100%)
-    flatDamageMin  += (m.damage       ?? 0) * 0.5
-    flatDamageMax  += (m.damage       ?? 0)
-    critChanceBonus+= (m.critChance   ?? 0)
-    strBonus       += (m.strength     ?? 0)
-    dexBonus       += (m.dexterity    ?? 0) + (m.agility ?? 0) // agility maps to dex
-    intBonus       += (m.intelligence ?? 0)
-    flatLife       += (m.vitality     ?? 0) * 5 // vitality -> flat life
-  }
-
+export function emptyEquipmentModifiers(): EquipmentModifiers {
   return {
-    flatLife, flatMana, flatArmor, flatEvasion,
-    flatDamageMin, flatDamageMax, critChanceBonus,
-    strBonus, dexBonus, intBonus,
+    flatLife: 0,
+    flatMana: 0,
+    flatArmor: 0,
+    flatEvasion: 0,
+    flatDamageMin: 0,
+    flatDamageMax: 0,
+    critChanceBonus: 0,
+    strBonus: 0,
+    dexBonus: 0,
+    intBonus: 0,
+    flatAccuracy: 0,
+    pctIncreasedLifeFromGear: 0,
+    pctIncreasedManaFromGear: 0,
+    pctIncreasedArmorFromGear: 0,
+    pctIncreasedEvasionFromGear: 0,
+    pctIncreasedEnergyShieldFromGear: 0,
+    increasedMeleeDamageFromGear: 0,
+    increasedAttackDamageFromGear: 0,
+    increasedDamageFromGear: 0,
+    increasedSpellDamageFromGear: 0,
+    pctIncreasedAccuracyFromGear: 0,
+    pctIncreasedAttackSpeedFromGear: 0,
+    doubleDamageChanceFromGear: 0,
+    armorIgnoreFromGear: 0,
+    pctToAllElementalResFromGear: 0,
+    pctChaosResFromGear: 0,
+    manaCostReductionFromGear: 0,
+    energyShieldLessMultFromGear: 1,
+    flatEnergyShieldFromGear: 0,
   }
+}
+
+function addItemModifiersToEquipment(eq: EquipmentModifiers, m: ItemModifiers) {
+  eq.flatLife += m.health ?? 0
+  eq.flatMana += m.mana ?? 0
+  eq.flatArmor += m.armor ?? 0
+  eq.flatEvasion += m.evasion ?? 0
+  eq.flatDamageMin += (m.damage ?? 0) * 0.5
+  eq.flatDamageMax += m.damage ?? 0
+  eq.critChanceBonus += m.critChance ?? 0
+  eq.strBonus += m.strength ?? 0
+  eq.dexBonus += (m.dexterity ?? 0) + (m.agility ?? 0)
+  eq.intBonus += m.intelligence ?? 0
+  eq.flatLife += (m.vitality ?? 0) * 5
+}
+
+function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
+  const add = (k: keyof EquipmentModifiers, v: number) => {
+    eq[k] = (eq[k] as number) + v
+  }
+  if (p.flatLife !== undefined) add('flatLife', p.flatLife)
+  if (p.flatMana !== undefined) add('flatMana', p.flatMana)
+  if (p.flatArmor !== undefined) add('flatArmor', p.flatArmor)
+  if (p.flatEvasion !== undefined) add('flatEvasion', p.flatEvasion)
+  if (p.flatDamageMin !== undefined) add('flatDamageMin', p.flatDamageMin)
+  if (p.flatDamageMax !== undefined) add('flatDamageMax', p.flatDamageMax)
+  if (p.critChanceBonus !== undefined) add('critChanceBonus', p.critChanceBonus)
+  if (p.strBonus !== undefined) add('strBonus', p.strBonus)
+  if (p.dexBonus !== undefined) add('dexBonus', p.dexBonus)
+  if (p.intBonus !== undefined) add('intBonus', p.intBonus)
+  if (p.flatAccuracy !== undefined) add('flatAccuracy', p.flatAccuracy)
+  if (p.pctIncreasedLifeFromGear !== undefined) add('pctIncreasedLifeFromGear', p.pctIncreasedLifeFromGear)
+  if (p.pctIncreasedManaFromGear !== undefined) add('pctIncreasedManaFromGear', p.pctIncreasedManaFromGear)
+  if (p.pctIncreasedArmorFromGear !== undefined) add('pctIncreasedArmorFromGear', p.pctIncreasedArmorFromGear)
+  if (p.pctIncreasedEvasionFromGear !== undefined) add('pctIncreasedEvasionFromGear', p.pctIncreasedEvasionFromGear)
+  if (p.pctIncreasedEnergyShieldFromGear !== undefined) {
+    add('pctIncreasedEnergyShieldFromGear', p.pctIncreasedEnergyShieldFromGear)
+  }
+  if (p.increasedMeleeDamageFromGear !== undefined) {
+    add('increasedMeleeDamageFromGear', p.increasedMeleeDamageFromGear)
+  }
+  if (p.increasedAttackDamageFromGear !== undefined) {
+    add('increasedAttackDamageFromGear', p.increasedAttackDamageFromGear)
+  }
+  if (p.increasedDamageFromGear !== undefined) add('increasedDamageFromGear', p.increasedDamageFromGear)
+  if (p.increasedSpellDamageFromGear !== undefined) {
+    add('increasedSpellDamageFromGear', p.increasedSpellDamageFromGear)
+  }
+  if (p.pctIncreasedAccuracyFromGear !== undefined) {
+    add('pctIncreasedAccuracyFromGear', p.pctIncreasedAccuracyFromGear)
+  }
+  if (p.pctIncreasedAttackSpeedFromGear !== undefined) {
+    add('pctIncreasedAttackSpeedFromGear', p.pctIncreasedAttackSpeedFromGear)
+  }
+  if (p.doubleDamageChanceFromGear !== undefined) {
+    add('doubleDamageChanceFromGear', p.doubleDamageChanceFromGear)
+  }
+  if (p.armorIgnoreFromGear !== undefined) add('armorIgnoreFromGear', p.armorIgnoreFromGear)
+  if (p.pctToAllElementalResFromGear !== undefined) {
+    add('pctToAllElementalResFromGear', p.pctToAllElementalResFromGear)
+  }
+  if (p.pctChaosResFromGear !== undefined) add('pctChaosResFromGear', p.pctChaosResFromGear)
+  if (p.manaCostReductionFromGear !== undefined) {
+    add('manaCostReductionFromGear', p.manaCostReductionFromGear)
+  }
+  if (p.flatEnergyShieldFromGear !== undefined) {
+    add('flatEnergyShieldFromGear', p.flatEnergyShieldFromGear)
+  }
+  if (p.energyShieldLessMultFromGear !== undefined) {
+    eq.energyShieldLessMultFromGear *= p.energyShieldLessMultFromGear
+  }
+}
+
+/** Sum static items and rolled uniques for all worn slots. */
+export function aggregateEquippedToEquipmentModifiers(
+  slots: string[],
+  getEquipped: (slot: string) => { itemId: string; rolls?: number[]; enhancement?: number } | null | undefined
+): EquipmentModifiers {
+  const eq = emptyEquipmentModifiers()
+  for (const slot of slots) {
+    const entry = getEquipped(slot)
+    const itemId = entry?.itemId ?? 'none'
+    if (itemId === 'none') continue
+
+    if (isUniqueItemId(itemId)) {
+      const def = EOC_UNIQUE_BY_ID[itemId]
+      if (!def) continue
+      const { innateText, lineTexts } = resolveUniqueMods(
+        def,
+        entry?.rolls,
+        entry?.enhancement ?? 0
+      )
+      const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
+      const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon: slot === 'Weapon' })
+      mergeUniqueGearPatch(eq, patch)
+      continue
+    }
+
+    const item = getItemDefinition(slot, itemId)
+    if (!item) continue
+    addItemModifiersToEquipment(eq, item.modifiers)
+  }
+  return eq
+}
+
+export function aggregateItemModifiers(
+  equippedItems: { modifiers: ItemModifiers }[]
+): EquipmentModifiers {
+  const eq = emptyEquipmentModifiers()
+  for (const item of equippedItems) {
+    addItemModifiersToEquipment(eq, item.modifiers)
+  }
+  return eq
 }
 
 // ---------------------------------------------------------------------------
@@ -227,7 +371,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const baseLife         = BASE_GAME_STATS.baseLife + lifeFromStr
   // Warrior class bonus: +100 flat life added before % multiplier
   const lifeBeforeMultiplier = baseLife + (bonus('warrior') ? 100 : 0) + eq.flatLife
-  const totalIncreasedLife   = u('increasedLife')
+  const totalIncreasedLife   = u('increasedLife') + eq.pctIncreasedLifeFromGear
   let maxLife = Math.round(lifeBeforeMultiplier * (1 + totalIncreasedLife / 100))
 
   // Occultist class bonus: maximum life = 1
@@ -238,17 +382,19 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   const manaFromInt = int_ * attrManaMult  // +1 mana per int (doubled for guardian)
   const baseMana    = BASE_GAME_STATS.baseMana + manaFromInt + eq.flatMana
-  const maxMana     = Math.round(baseMana * (1 + u('increasedMana') / 100))
+  const maxMana     = Math.round(baseMana * (1 + (u('increasedMana') + eq.pctIncreasedManaFromGear) / 100))
 
   // -------------------------------------------------------------------------
   // 9. Energy shield
   // -------------------------------------------------------------------------
   // Sorcerer class bonus: 10% of max mana as extra base ES
-  const esBase            = bonus('sorcerer') ? maxMana * 0.10 : 0
-  const esIncreasedPct    = u('increasedEnergyShield')
+  const esBase            = (bonus('sorcerer') ? maxMana * 0.10 : 0) + eq.flatEnergyShieldFromGear
+  const esIncreasedPct    = u('increasedEnergyShield') + eq.pctIncreasedEnergyShieldFromGear
   // Occultist class bonus: 40% MORE energy shield (multiplicative)
   const occultistMoreES   = bonus('occultist') ? 1.40 : 1.0
-  const maxEnergyShield   = Math.round(esBase * (1 + esIncreasedPct / 100) * occultistMoreES)
+  const maxEnergyShield   = Math.round(
+    esBase * (1 + esIncreasedPct / 100) * occultistMoreES * eq.energyShieldLessMultFromGear
+  )
 
   // -------------------------------------------------------------------------
   // 10. Armor
@@ -259,7 +405,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const totalIncreasedArmor =
     u('increasedArmor') +
     u('increasedArmorAndEvasionRating') +
-    u('increasedArmorAndEnergyShield')
+    u('increasedArmorAndEnergyShield') +
+    eq.pctIncreasedArmorFromGear
 
   const armor = Math.round(
     eq.flatArmor
@@ -273,7 +420,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const totalIncreasedEvasion =
     u('increasedEvasionRating') +
     u('increasedArmorAndEvasionRating') +
-    u('increasedEvasionRatingAndEnergyShield')
+    u('increasedEvasionRatingAndEnergyShield') +
+    eq.pctIncreasedEvasionFromGear
 
   const evasionRating = Math.round(
     (BASE_GAME_STATS.baseEvasion + eq.flatEvasion)
@@ -293,22 +441,25 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // 13. Resistances
   // -------------------------------------------------------------------------
   // Fighter class bonus: +15% to all resistances
-  const allEleBonus = u('increasedAllElementalResistances') + (bonus('fighter') ? 15 : 0)
+  const allEleBonus =
+    u('increasedAllElementalResistances') +
+    (bonus('fighter') ? 15 : 0) +
+    eq.pctToAllElementalResFromGear
 
   // Chieftain class bonus: +5% to maximum fire resistance
   const maxFireRes    = bonus('chieftain') ? 80 : 75
   const fireRes       = Math.min(maxFireRes, allEleBonus)
   const coldRes       = Math.min(75, allEleBonus)
   const lightningRes  = Math.min(75, allEleBonus)
-  const chaosRes      = Math.min(75, u('increasedChaosResistance') + allEleBonus)
+  const chaosRes      = Math.min(75, u('increasedChaosResistance') + allEleBonus + eq.pctChaosResFromGear)
 
   // -------------------------------------------------------------------------
   // 14. Offense — accuracy
   // -------------------------------------------------------------------------
   // Rogue class bonus: +150 to accuracy rating
   const accuracy = Math.round(
-    (BASE_GAME_STATS.baseAccuracy + (bonus('rogue') ? 150 : 0))
-    * (1 + u('increasedAccuracyRating') / 100)
+    (BASE_GAME_STATS.baseAccuracy + (bonus('rogue') ? 150 : 0) + eq.flatAccuracy)
+    * (1 + (u('increasedAccuracyRating') + eq.pctIncreasedAccuracyFromGear) / 100)
   )
 
   // -------------------------------------------------------------------------
@@ -344,6 +495,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     u('increasedAttackSpeed')
     + u('increasedAttackSpeedAndCastSpeed')
     + mercenaryAspIncPct
+    + eq.pctIncreasedAttackSpeedFromGear
   // Rogue class bonus: 10% more APS (multiplicative)
   const rogueMult = bonus('rogue') ? 1.10 : 1.0
   const aps = BASE_GAME_STATS.baseAps * (1 + totalIncreasedAtk / 100) * rogueMult
@@ -352,7 +504,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // 18. Mana cost per attack
   // -------------------------------------------------------------------------
   // Sorcerer class bonus: 10% reduced mana cost of abilities
-  const manaCostPerAttack = BASE_GAME_STATS.baseManaPerAttack * (bonus('sorcerer') ? 0.90 : 1.0)
+  const manaCostPerAttack =
+    BASE_GAME_STATS.baseManaPerAttack *
+    (bonus('sorcerer') ? 0.90 : 1.0) *
+    Math.max(0.2, 1 - eq.manaCostReductionFromGear / 100)
 
   // -------------------------------------------------------------------------
   // 19. Mana regeneration
@@ -369,13 +524,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const meleeDmgFromStr    = str / 10                        // 1% increased melee damage per 10 str
   const spellDmgFromInt    = int_ / 10                       // 1% increased spell damage per 10 int
 
-  const increasedMeleeDamage    = u('increasedMeleeDamage')    + meleeDmgFromStr
-  const increasedAttackDamage   = u('increasedAttackDamage')
-  const increasedSpellDamage    = u('increasedSpellDamage')    + spellDmgFromInt
+  const increasedMeleeDamage    = u('increasedMeleeDamage')    + meleeDmgFromStr + eq.increasedMeleeDamageFromGear
+  const increasedAttackDamage   = u('increasedAttackDamage') + eq.increasedAttackDamageFromGear
+  const increasedSpellDamage    = u('increasedSpellDamage')    + spellDmgFromInt + eq.increasedSpellDamageFromGear
   const increasedElementalDamage= u('increasedElementalDamage') + u('increasedElementalDamageWithAttacks')
   // Occultist class bonus: 1% increased damage per 100 maximum energy shield
   const occultistDmgFromEsPct   = bonus('occultist') ? maxEnergyShield / 100 : 0
-  const increasedDamage         = u('increasedDamage') + occultistDmgFromEsPct
+  const increasedDamage         = u('increasedDamage') + occultistDmgFromEsPct + eq.increasedDamageFromGear
   const damageOverTimeMultiplier= u('increasedDamageOverTimeMultiplier')
 
   // -------------------------------------------------------------------------
@@ -414,10 +569,18 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // Barbarian class bonus: +10% chance to deal double damage with attacks
   // Destroyer class bonus: +25% chance to deal double damage with attacks
-  const doubleDamageChance = (bonus('barbarian') ? 10 : 0) + (bonus('destroyer') ? 25 : 0)
+  const doubleDamageChance = Math.min(
+    100,
+    (bonus('barbarian') ? 10 : 0) +
+      (bonus('destroyer') ? 25 : 0) +
+      eq.doubleDamageChanceFromGear
+  )
 
   // Barbarian class bonus: hits ignore 50% of enemy armor
-  const armorIgnorePercent = bonus('barbarian') ? 50 : 0
+  const armorIgnorePercent = Math.min(
+    100,
+    (bonus('barbarian') ? 50 : 0) + eq.armorIgnoreFromGear
+  )
 
   // Druid class bonus: 25% of damage taken applied to mana first (while above 50% mana)
   const manaShieldActive = bonus('druid')

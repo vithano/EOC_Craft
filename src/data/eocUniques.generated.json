@@ -1,0 +1,6584 @@
+[
+  {
+    "id": "unique_steelfeather",
+    "name": "Steelfeather",
+    "slot": "Weapon",
+    "itemType": "Mace",
+    "reqLevel": 25,
+    "reqStr": 39,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "3%",
+    "enhancementBonusPerLevel": 3.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Increased Local Attack Speed",
+      "To Accuracy Rating",
+      "Value% Local Base Critical Hit Chance",
+      "Value% reduced mana cost of abilities"
+    ],
+    "innate": [
+      "Hits Ignore 30% of Enemy Armor"
+    ],
+    "lines": [
+      [
+        "Increased Local Attack Speed ",
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 140.0
+        }
+      ],
+      [
+        {
+          "type": "range",
+          "min": 400.0,
+          "max": 700.0
+        },
+        " To Accuracy Rating"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 7.0
+        },
+        "% Local Base Critical Hit Chance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": -40.0,
+          "max": -20.0
+        },
+        "% reduced mana cost of abilities"
+      ]
+    ]
+  },
+  {
+    "id": "unique_skysplitter",
+    "name": "Skysplitter",
+    "slot": "Weapon",
+    "itemType": "Mace",
+    "reqLevel": 49,
+    "reqStr": 117,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.80%",
+    "enhancementBonusPerLevel": 0.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% less energy shield"
+    ],
+    "innate": [
+      "+8% chance to deal double damage with attacks"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": -60.0,
+          "max": -40.0
+        },
+        "% less energy shield"
+      ],
+      [
+        "Hits penetrate 10% of lighting resistance"
+      ],
+      [
+        "Abilities gain additional base mana cost equal to 4% of maximum energy"
+      ],
+      [
+        "Adds 1-5 local lightning damage per 10 maximum energy shield"
+      ]
+    ]
+  },
+  {
+    "id": "unique_rimefrost",
+    "name": "Rimefrost",
+    "slot": "Weapon",
+    "itemType": "Mace",
+    "reqLevel": 49,
+    "reqStr": 117,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.80%",
+    "enhancementBonusPerLevel": 0.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Adds to",
+      "to local cold damage",
+      "+ % local base critical hit chance"
+    ],
+    "innate": [
+      "+8% chance to deal double damage with attacks"
+    ],
+    "lines": [
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 120.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 160.0,
+          "max": 240.0
+        },
+        " local cold damage"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 14.0
+        },
+        "% local base critical hit chance"
+      ],
+      [
+        "+50% chance to inflict chill"
+      ],
+      [
+        "+2% chance to deal double damage with attacks per 1% effect of chill applied to enemies"
+      ],
+      [
+        "Enemies are unaffected by chill"
+      ]
+    ]
+  },
+  {
+    "id": "unique_tested_faith",
+    "name": "Tested Faith",
+    "slot": "Weapon",
+    "itemType": "Warhammer",
+    "reqLevel": 28,
+    "reqStr": 44,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.30%",
+    "enhancementBonusPerLevel": 1.3,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [],
+    "innate": [
+      "+12% chance to deal double damage with attacks"
+    ],
+    "lines": [
+      [
+        "+50% chance to deal double damage with attacks"
+      ],
+      [
+        "When you would deal double damage, 50% chance to deal triple damage instead"
+      ],
+      [
+        "When you would deal triple damage, 50% chance to deal quadruple damage instead"
+      ],
+      [
+        "Adds 4 to 6 local fire damage per 10 strength"
+      ]
+    ]
+  },
+  {
+    "id": "unique_hemophage",
+    "name": "Hemophage",
+    "slot": "Weapon",
+    "itemType": "Warhammer",
+    "reqLevel": 46,
+    "reqStr": 102,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "3.20%",
+    "enhancementBonusPerLevel": 3.2,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Value% increased life"
+    ],
+    "innate": [
+      "32% increased melee physical damage"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 50.0
+        },
+        "% increased life"
+      ],
+      [
+        "50% of your dexterity and intelligence is converted to strength"
+      ],
+      [
+        "Take physical damage equal to 20% of your maximum life when you attack"
+      ],
+      [
+        "Adds 4 to 6 local physical damage per 40 maximum life"
+      ]
+    ]
+  },
+  {
+    "id": "unique_shimori_ori",
+    "name": "Shimori Ori",
+    "slot": "Weapon",
+    "itemType": "Warhammer",
+    "reqLevel": 56,
+    "reqStr": 450,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "3.20%",
+    "enhancementBonusPerLevel": 3.2,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "increased local physical damage",
+      "Value% reduced local attack speed"
+    ],
+    "innate": [
+      "32% Increased Melee Physical Damage"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 500.0,
+          "max": 800.0
+        },
+        " increased local physical damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": -60.0,
+          "max": -40.0
+        },
+        "% reduced local attack speed"
+      ],
+      [
+        "200% increased attribute requirements"
+      ],
+      [
+        "+1% chance to deal double damage with attacks per 10 strength"
+      ]
+    ]
+  },
+  {
+    "id": "unique_the_redblade",
+    "name": "The Redblade",
+    "slot": "Weapon",
+    "itemType": "Sword",
+    "reqLevel": 21,
+    "reqStr": 20,
+    "reqDex": 20,
+    "reqInt": null,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% more bleed damage",
+      "Value% increased local attack speed"
+    ],
+    "innate": [
+      "6% increased attack speed"
+    ],
+    "lines": [
+      [
+        "Gain 8 life on hit"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 120.0
+        },
+        "% more bleed damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased local attack speed"
+      ],
+      [
+        "+50% chance to inflict bleeding with attacks"
+      ]
+    ]
+  },
+  {
+    "id": "unique_honored_vow",
+    "name": "Honored Vow",
+    "slot": "Weapon",
+    "itemType": "Sword",
+    "reqLevel": 39,
+    "reqStr": 45,
+    "reqDex": 45,
+    "reqInt": null,
+    "enhancementBonus": "1.80%",
+    "enhancementBonusPerLevel": 1.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased defences",
+      "+ % to chaos resistance",
+      "Adds to",
+      "to local lightning damage",
+      "+ % chance to block"
+    ],
+    "innate": [
+      "18% increased accuracy rating"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 24.0,
+          "max": 32.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 120.0
+        },
+        " local lightning damage"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% chance to block"
+      ]
+    ]
+  },
+  {
+    "id": "unique_shard_of_entropy",
+    "name": "Shard of Entropy",
+    "slot": "Weapon",
+    "itemType": "Sword",
+    "reqLevel": 56,
+    "reqStr": 90,
+    "reqDex": 90,
+    "reqInt": null,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local physical damage",
+      "Value% increased local attack speed"
+    ],
+    "innate": [
+      "12% increased attack speed"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 120.0,
+          "max": 240.0
+        },
+        "% increased local physical damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 60.0
+        },
+        "% increased local attack speed"
+      ],
+      [
+        "Convert 100% of your physical damage to a random damage type on hit"
+      ],
+      [
+        "Attacks have a 100% chance to inflict ailments"
+      ]
+    ]
+  },
+  {
+    "id": "unique_seversting",
+    "name": "Seversting",
+    "slot": "Weapon",
+    "itemType": "Greatsword",
+    "reqLevel": 46,
+    "reqStr": 61,
+    "reqDex": 61,
+    "reqInt": null,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Value% increased local physical damage",
+      "Value% increased local attack speed",
+      "to accuracy rating"
+    ],
+    "innate": [
+      "24% increased attack speed"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 140.0
+        },
+        "% increased local physical damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased local attack speed"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 600.0,
+          "max": 1200.0
+        },
+        " to accuracy rating"
+      ],
+      [
+        "Hits ignore 50% of enemy armor"
+      ]
+    ]
+  },
+  {
+    "id": "unique_gorefeast",
+    "name": "Gorefeast",
+    "slot": "Weapon",
+    "itemType": "Greatsword",
+    "reqLevel": 46,
+    "reqStr": 61,
+    "reqDex": 61,
+    "reqInt": null,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Leech % of physical hit damage from attacks as life",
+      "Value% increased local attack speed",
+      "Enemies left below % of max life with hits are executed"
+    ],
+    "innate": [
+      "24% increased attack speed"
+    ],
+    "lines": [
+      [
+        "Lose 20 life on hit"
+      ],
+      [
+        "Leech ",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 6.0
+        },
+        "% of physical hit damage from attacks as life"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased local attack speed"
+      ],
+      [
+        "Enemies left below ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% of max life with hits are executed"
+      ],
+      [
+        "Adds 4 to 6 physical damage to attacks per 40 missing life"
+      ]
+    ]
+  },
+  {
+    "id": "unique_galesong",
+    "name": "Galesong",
+    "slot": "Weapon",
+    "itemType": "Greatsword",
+    "reqLevel": 56,
+    "reqStr": 90,
+    "reqDex": 90,
+    "reqInt": null,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "+ to dexterity",
+      "Adds to",
+      "to local lightning damage",
+      "Adds to",
+      "to local cold damage"
+    ],
+    "innate": [
+      "24% increased attack speed"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 80.0
+        },
+        " to dexterity"
+      ],
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 60.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 240.0,
+          "max": 360.0
+        },
+        " local lightning damage"
+      ],
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 150.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 200.0,
+          "max": 300.0
+        },
+        " local cold damage"
+      ],
+      [
+        "4% increased strikes per attack with strike abilities per 10 dexterity"
+      ]
+    ]
+  },
+  {
+    "id": "unique_siegebreaker",
+    "name": "Siegebreaker",
+    "slot": "Weapon",
+    "itemType": "Hand Crossbow",
+    "reqLevel": 31,
+    "reqStr": null,
+    "reqDex": 53,
+    "reqInt": null,
+    "enhancementBonus": "1.80%",
+    "enhancementBonusPerLevel": 1.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Hits penetrate % of enemy fire resistance",
+      "+ % chance to block"
+    ],
+    "innate": [
+      "18% increased attack rating"
+    ],
+    "lines": [
+      [
+        "100% less attack speed"
+      ],
+      [
+        "Hits penetrate ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of enemy fire resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% chance to block"
+      ],
+      [
+        "When you block a hit, gain local fire damage qual to 50% of total prevented damage, then perform a counter attack"
+      ]
+    ]
+  },
+  {
+    "id": "unique_lornfell",
+    "name": "Lornfell",
+    "slot": "Weapon",
+    "itemType": "Hand Crossbow",
+    "reqLevel": 46,
+    "reqStr": null,
+    "reqDex": 102,
+    "reqInt": null,
+    "enhancementBonus": "3.20%",
+    "enhancementBonusPerLevel": 3.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Adds to",
+      "to local lightning damage",
+      "Adds to",
+      "to local cold damage",
+      "Adds to",
+      "to local fire damage",
+      "Value% increased local attack speed"
+    ],
+    "innate": [
+      "32% increased attack critical hit chance"
+    ],
+    "lines": [
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 70.0,
+          "max": 140.0
+        },
+        " local lightning damage"
+      ],
+      [
+        "Adds",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 60.0,
+          "max": 120.0
+        },
+        " local cold damage"
+      ],
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 60.0,
+          "max": 120.0
+        },
+        " local fire damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased local attack speed"
+      ]
+    ]
+  },
+  {
+    "id": "unique_against_the_darkness",
+    "name": "Against the Darkness",
+    "slot": "Weapon",
+    "itemType": "Hand Crossbow",
+    "reqLevel": 56,
+    "reqStr": null,
+    "reqDex": 150,
+    "reqInt": null,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local physical damage",
+      "Value% increased local attack speed",
+      "Hits ignore % of enemy armour"
+    ],
+    "innate": [
+      "12% increased attack speed"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 140.0,
+          "max": 220.0
+        },
+        "% increased local physical damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased local attack speed"
+      ],
+      [
+        "Hits ignore ",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 80.0
+        },
+        "% of enemy armour"
+      ],
+      [
+        "Your hits cannot be evaded"
+      ]
+    ]
+  },
+  {
+    "id": "unique_splinterrain",
+    "name": "Splinterrain",
+    "slot": "Weapon",
+    "itemType": "Bow",
+    "reqLevel": 21,
+    "reqStr": null,
+    "reqDex": 35,
+    "reqInt": null,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Adds to",
+      "to local physical damage",
+      "Value% increased local attack speed",
+      "Gain % of physical damage as extra lightning damage"
+    ],
+    "innate": [
+      "12% increased attack speed"
+    ],
+    "lines": [
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 30.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 60.0
+        },
+        " local physical damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 200.0
+        },
+        "% increased local attack speed"
+      ],
+      [
+        "75% less accuracy rating"
+      ],
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of physical damage as extra lightning damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_fated_winds",
+    "name": "Fated Winds",
+    "slot": "Weapon",
+    "itemType": "Bow",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": 117,
+    "reqInt": null,
+    "enhancementBonus": "6.40%",
+    "enhancementBonusPerLevel": 6.4,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Value% increased local physical damage",
+      "+ to accuracy rating",
+      "+ % local base critical hit chance"
+    ],
+    "innate": [
+      "64% increased attack critical hit chance"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 140.0,
+          "max": 220.0
+        },
+        "% increased local physical damage"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 600.0,
+          "max": 900.0
+        },
+        " to accuracy rating"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% local base critical hit chance"
+      ],
+      [
+        "Convert 50% of your physical damage to cold damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_blackflame",
+    "name": "Blackflame",
+    "slot": "Weapon",
+    "itemType": "Bow",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": 117,
+    "reqInt": null,
+    "enhancementBonus": "4.80%",
+    "enhancementBonusPerLevel": 4.8,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Adds to",
+      "to local chaos damage"
+    ],
+    "innate": [
+      "48% increased accuracy rating"
+    ],
+    "lines": [
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 120.0,
+          "max": 180.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 360.0,
+          "max": 540.0
+        },
+        " local chaos damage"
+      ],
+      [
+        "(10-30)% increased local attack speed"
+      ],
+      [
+        "+50% chance to inflict ignite"
+      ],
+      [
+        "Ignite effects that you inflict randomly gain between 50% less and 100% more duration"
+      ],
+      [
+        "Your chaos damage can ignite"
+      ]
+    ]
+  },
+  {
+    "id": "unique_titansbane",
+    "name": "Titansbane",
+    "slot": "Weapon",
+    "itemType": "Bow",
+    "reqLevel": 56,
+    "reqStr": 200,
+    "reqDex": 150,
+    "reqInt": null,
+    "enhancementBonus": "4.80%",
+    "enhancementBonusPerLevel": 4.8,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Value% increased local physical damage",
+      "+ % chance to deal double damage with attacks"
+    ],
+    "innate": [
+      "48% increased accuracy rating"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 200.0,
+          "max": 300.0
+        },
+        "% increased local physical damage"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% chance to deal double damage with attacks"
+      ],
+      [
+        "+200 to strength requirement"
+      ],
+      [
+        "2% increased range attack damage per 10 strength"
+      ]
+    ]
+  },
+  {
+    "id": "unique_heavensreach",
+    "name": "Heavensreach",
+    "slot": "Weapon",
+    "itemType": "Bow",
+    "reqLevel": 56,
+    "reqStr": null,
+    "reqDex": 150,
+    "reqInt": null,
+    "enhancementBonus": "6.40%",
+    "enhancementBonusPerLevel": 6.4,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Adds to",
+      "to local lightning damage",
+      "+ local base critical hit chance"
+    ],
+    "innate": [
+      "64% increased attack critical hit chance"
+    ],
+    "lines": [
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 150.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 1000.0,
+          "max": 1500.0
+        },
+        " local lightning damage"
+      ],
+      [
+        "25% reduced local attack speed"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 6.0,
+          "max": 12.0
+        },
+        " local base critical hit chance"
+      ],
+      [
+        "Your hits cannot be evaded"
+      ]
+    ]
+  },
+  {
+    "id": "unique_basilisk_fang",
+    "name": "Basilisk Fang",
+    "slot": "Weapon",
+    "itemType": "Dagger",
+    "reqLevel": 11,
+    "reqStr": null,
+    "reqDex": 12,
+    "reqInt": 12,
+    "enhancementBonus": "+0.6",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local attack speed"
+    ],
+    "innate": [
+      "Gain 6 life on hit"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased local attack speed"
+      ],
+      [
+        "+((2-5)% local base critical hit chance"
+      ],
+      [
+        "50% chance to inflict poison with attacks"
+      ],
+      [
+        "Adds 8-12 local chaos damage per poison applied to enemies"
+      ]
+    ]
+  },
+  {
+    "id": "unique_devouring_blade",
+    "name": "Devouring Blade",
+    "slot": "Weapon",
+    "itemType": "Dagger",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": 45,
+    "reqInt": 45,
+    "enhancementBonus": "0.9",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Leech % of hit damage from attacks as life",
+      "Value% increased local physical damage",
+      "Value% increased local attack speed"
+    ],
+    "innate": [
+      "Gain 9 life on hit"
+    ],
+    "lines": [
+      [
+        "Leech ",
+        {
+          "type": "range",
+          "min": 6.0,
+          "max": 12.0
+        },
+        "% of hit damage from attacks as life"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 120.0,
+          "max": 180.0
+        },
+        "% increased local physical damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased local attack speed"
+      ],
+      [
+        "Excess recovery from life leech is applied to your energy shield instead"
+      ]
+    ]
+  },
+  {
+    "id": "unique_darkloom",
+    "name": "Darkloom",
+    "slot": "Weapon",
+    "itemType": "Dagger",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": 70,
+    "reqInt": 70,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Adds to",
+      "to local chaos damage",
+      "+ to critical damage multiplier"
+    ],
+    "innate": [
+      "+24% to critical damage multiplier"
+    ],
+    "lines": [
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 120.0,
+          "max": 180.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 240.0,
+          "max": 320.0
+        },
+        " local chaos damage"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 60.0,
+          "max": 120.0
+        },
+        " to critical damage multiplier"
+      ],
+      [
+        "While your off-hand is empty, your first attack during an encounter is always a critical hit"
+      ],
+      [
+        "While your off-hand is empty, your action bar is set to 100% at the begninning of an encounter"
+      ]
+    ]
+  },
+  {
+    "id": "unique_ancestral_echo",
+    "name": "Ancestral Echo",
+    "slot": "Weapon",
+    "itemType": "Wand",
+    "reqLevel": 28,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 44,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to chaos resistance",
+      "Value% less cast speed",
+      "+ to the level of all abilities"
+    ],
+    "innate": [
+      "12% increased spell damage"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": -50.0,
+          "max": -30.0
+        },
+        "% less cast speed"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 2.0
+        },
+        " to the level of all abilities"
+      ],
+      [
+        "When you cast a spell, it is repeated once without cost"
+      ]
+    ]
+  },
+  {
+    "id": "unique_lumaris",
+    "name": "Lumaris",
+    "slot": "Weapon",
+    "itemType": "Wand",
+    "reqLevel": 28,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 44,
+    "enhancementBonus": "1.30%",
+    "enhancementBonusPerLevel": 1.3,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "Regenerate % of life per second",
+      "Hits penetrate % of enemy elemental resistances",
+      "Gain % of life as extra base energy shield"
+    ],
+    "innate": [
+      "12% increased spell damage"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        " to maximum life"
+      ],
+      [
+        "Regenerate ",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 3.0
+        },
+        "% of life per second"
+      ],
+      [
+        "Hits penetrate ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of enemy elemental resistances"
+      ],
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 6.0,
+          "max": 12.0
+        },
+        "% of life as extra base energy shield"
+      ]
+    ]
+  },
+  {
+    "id": "unique_sealing_pact",
+    "name": "Sealing Pact",
+    "slot": "Weapon",
+    "itemType": "Wand",
+    "reqLevel": 35,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 63,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to the level of all abilities"
+    ],
+    "innate": [
+      "12% increased spell damage"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 3.0
+        },
+        " to the level of all abilities"
+      ],
+      [
+        "You cannot deal critical hits"
+      ],
+      [
+        "Your hits cannot inflict elemental ailments"
+      ],
+      [
+        "Abilities have no cost"
+      ]
+    ]
+  },
+  {
+    "id": "unique_soulpierce",
+    "name": "Soulpierce",
+    "slot": "Weapon",
+    "itemType": "Wand",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 75,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased spell damage",
+      "Value% increased spell critical hit chance"
+    ],
+    "innate": [
+      "12% increased spell damage"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 60.0
+        },
+        "% increased spell damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 160.0,
+          "max": 240.0
+        },
+        "% increased spell critical hit chance"
+      ],
+      [
+        "Enemies left below (20-30)% of maximum life with hits are executed"
+      ],
+      [
+        "Your hits cannot be evaded"
+      ]
+    ]
+  },
+  {
+    "id": "unique_riftshaper",
+    "name": "Riftshaper",
+    "slot": "Weapon",
+    "itemType": "Wand",
+    "reqLevel": 42,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 88,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased cast speed",
+      "reduced mana cost of abilities"
+    ],
+    "innate": [
+      "12% increased cast speed"
+    ],
+    "lines": [
+      [
+        "25% less damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 50.0
+        },
+        "% increased cast speed"
+      ],
+      [
+        {
+          "type": "range",
+          "min": -30.0,
+          "max": -10.0
+        },
+        " reduced mana cost of abilities"
+      ],
+      [
+        "After you cast a spell, your action bar is set to 50%"
+      ]
+    ]
+  },
+  {
+    "id": "unique_salvation",
+    "name": "Salvation",
+    "slot": "Weapon",
+    "itemType": "Magestave",
+    "reqLevel": 21,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 35,
+    "enhancementBonus": "1.60%",
+    "enhancementBonusPerLevel": 1.6,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Value% increased mana",
+      "Value% increased cast speed",
+      "Value% increased mana cost of abilities"
+    ],
+    "innate": [
+      "16 increased mana"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased mana"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 50.0
+        },
+        "% increased cast speed"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 50.0
+        },
+        "% increased mana cost of abilities"
+      ],
+      [
+        "When you cast a spell, recover life equal to its cost"
+      ]
+    ]
+  },
+  {
+    "id": "unique_frostspire",
+    "name": "Frostspire",
+    "slot": "Weapon",
+    "itemType": "Magestave",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 75,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Value% less chill effect"
+    ],
+    "innate": [
+      "24% increased spell damage"
+    ],
+    "lines": [
+      [
+        "+(2-4) to the level of cold abilities"
+      ],
+      [
+        {
+          "type": "range",
+          "min": -60.0,
+          "max": -40.0
+        },
+        "% less chill effect"
+      ],
+      [
+        "Enemies left below a percentage of maximum life with hits equal to the effect of chill inflicted are executed"
+      ],
+      [
+        "Chill effects you inflict have infinite duration"
+      ]
+    ]
+  },
+  {
+    "id": "unique_ashen_fate",
+    "name": "Ashen Fate",
+    "slot": "Weapon",
+    "itemType": "Magestave",
+    "reqLevel": 42,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 88,
+    "enhancementBonus": "3.20%",
+    "enhancementBonusPerLevel": 3.2,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Value% more ignite damage",
+      "+ % chance to deal double damage with attacks",
+      "Value% increase ailment duration"
+    ],
+    "innate": [
+      "32% increased spell damage"
+    ],
+    "lines": [
+      [
+        "75% less damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 800.0,
+          "max": 1400.0
+        },
+        "% more ignite damage"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% chance to deal double damage with attacks"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increase ailment duration"
+      ]
+    ]
+  },
+  {
+    "id": "unique_leyweve",
+    "name": "Leyweve",
+    "slot": "Weapon",
+    "itemType": "Magestave",
+    "reqLevel": 46,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 102,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "+ to dexterity",
+      "+ to accuracy rating",
+      "Value% increased spell critical hit chance"
+    ],
+    "innate": [
+      "24% increased cast speed"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 80.0
+        },
+        " to dexterity"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 400.0,
+          "max": 800.0
+        },
+        " to accuracy rating"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 160.0,
+          "max": 240.0
+        },
+        "% increased spell critical hit chance"
+      ],
+      [
+        "+1% to critical damage multiplier per 20 accuracy rating"
+      ]
+    ]
+  },
+  {
+    "id": "unique_tide_of_corruption",
+    "name": "Tide of Corruption",
+    "slot": "Weapon",
+    "itemType": "Magestave",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 117,
+    "enhancementBonus": "",
+    "enhancementBonusPerLevel": 0.0,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Leech % of hit damage from spells as energy shield",
+      "Value% increased cast speed",
+      "Value% increased spell critical hit chance",
+      "Hits penetrate % of enemy chaos resistance"
+    ],
+    "innate": [
+      "% increased cast speed"
+    ],
+    "lines": [
+      [
+        "Leech ",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 8.0
+        },
+        "% of hit damage from spells as energy shield"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 60.0,
+          "max": 120.0
+        },
+        "% increased cast speed"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 60.0,
+          "max": 120.0
+        },
+        "% increased spell critical hit chance"
+      ],
+      [
+        "Hits penetrate ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of enemy chaos resistance"
+      ]
+    ]
+  },
+  {
+    "id": "unique_annihilation",
+    "name": "Annihilation",
+    "slot": "Weapon",
+    "itemType": "Magestave",
+    "reqLevel": 56,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 450,
+    "enhancementBonus": "3.20%",
+    "enhancementBonusPerLevel": 3.2,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "+ % chance to deal double damage with spells",
+      "+ to the level of all abilities"
+    ],
+    "innate": [
+      "32% increased spell damage"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 60.0
+        },
+        "% chance to deal double damage with spells"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 8.0
+        },
+        " to the level of all abilities"
+      ],
+      [
+        "200% increased attribute requirements"
+      ],
+      [
+        "Take chaos damage equal to 400% of ability cost when you cast a spell"
+      ]
+    ]
+  },
+  {
+    "id": "unique_skyward",
+    "name": "Skyward",
+    "slot": "Weapon",
+    "itemType": "Battlestave",
+    "reqLevel": 21,
+    "reqStr": 20,
+    "reqDex": null,
+    "reqInt": 20,
+    "enhancementBonus": "3.20%",
+    "enhancementBonusPerLevel": 3.2,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "+ % local base critical hit chance",
+      "Hits penetrate % of lightning resistance",
+      "Value% increased experience gain"
+    ],
+    "innate": [
+      "32% increased attack critical hit chance"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 2.0,
+          "max": 5.0
+        },
+        "% local base critical hit chance"
+      ],
+      [
+        "Hits penetrate ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% of lightning resistance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased experience gain"
+      ],
+      [
+        "Adds 1 to 4 local lightning damage per character level"
+      ]
+    ]
+  },
+  {
+    "id": "unique_apotheosis",
+    "name": "Apotheosis",
+    "slot": "Weapon",
+    "itemType": "Battlestave",
+    "reqLevel": 25,
+    "reqStr": 23,
+    "reqDex": null,
+    "reqInt": 23,
+    "enhancementBonus": "1.80%",
+    "enhancementBonusPerLevel": 1.8,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Value% increased attributes"
+    ],
+    "innate": [
+      "+18% chance to block"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased attributes"
+      ],
+      [
+        "6% increased attack damage per 10 strength"
+      ],
+      [
+        "4% increased attack speed per 10 dexterity"
+      ],
+      [
+        "12% increased melee critical hit chance per 10 intelligence"
+      ]
+    ]
+  },
+  {
+    "id": "unique_enigmatic_rod",
+    "name": "Enigmatic Rod",
+    "slot": "Weapon",
+    "itemType": "Battlestave",
+    "reqLevel": 46,
+    "reqStr": 61,
+    "reqDex": null,
+    "reqInt": 61,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "+ % to all elemental resistances",
+      "Value% increased local physical damage",
+      "Convert % of your physical damage to lightning damage",
+      "Convert % of your physical damage to cold damage",
+      "Convert % of your physical damage to fire damage"
+    ],
+    "innate": [
+      "24% chance to block"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -30.0,
+          "max": 30.0
+        },
+        "% to all elemental resistances"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 180.0,
+          "max": 240.0
+        },
+        "% increased local physical damage"
+      ],
+      [
+        "Convert ",
+        {
+          "type": "range",
+          "min": 0.0,
+          "max": 100.0
+        },
+        "% of your physical damage to lightning damage"
+      ],
+      [
+        "Convert ",
+        {
+          "type": "range",
+          "min": 0.0,
+          "max": 100.0
+        },
+        "% of your physical damage to cold damage"
+      ],
+      [
+        "Convert ",
+        {
+          "type": "range",
+          "min": 0.0,
+          "max": 100.0
+        },
+        "% of your physical damage to fire damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_echoing_conviction",
+    "name": "Echoing Conviction",
+    "slot": "Weapon",
+    "itemType": "Battlestave",
+    "reqLevel": 49,
+    "reqStr": 70,
+    "reqDex": null,
+    "reqInt": 70,
+    "enhancementBonus": "6.40%",
+    "enhancementBonusPerLevel": 6.4,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "Adds to",
+      "to local lightning damage",
+      "+ % local base critical hit chance",
+      "Hits penetrate % of enemy elemental resistances"
+    ],
+    "innate": [
+      "64% increased attack critical hit chance"
+    ],
+    "lines": [
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 120.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 300.0,
+          "max": 500.0
+        },
+        " local lightning damage"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 8.0
+        },
+        "% local base critical hit chance"
+      ],
+      [
+        "Hits penetrate ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of enemy elemental resistances"
+      ],
+      [
+        "When you deal a critical hit, perform an additional hit with a 50% chance"
+      ]
+    ]
+  },
+  {
+    "id": "unique_solspire",
+    "name": "Solspire",
+    "slot": "Weapon",
+    "itemType": "Battlestave",
+    "reqLevel": 49,
+    "reqStr": 70,
+    "reqDex": null,
+    "reqInt": 70,
+    "enhancementBonus": "3.20%",
+    "enhancementBonusPerLevel": 3.2,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "+ to maximum mana",
+      "recover % of mana on block"
+    ],
+    "innate": [
+      "32% increased mana"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 200.0
+        },
+        " to maximum mana"
+      ],
+      [
+        "recover ",
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 10.0
+        },
+        "% of mana on block"
+      ],
+      [
+        "1% chance to block per 100 maximum mana"
+      ],
+      [
+        "When you attack while your mana is above 50% of maximum mana, sacrifice all mana to deal 6 to 9 additional fire damage per 10 mana sacrificed this way"
+      ]
+    ]
+  },
+  {
+    "id": "unique_divinarius",
+    "name": "Divinarius",
+    "slot": "Weapon",
+    "itemType": "Battlestave",
+    "reqLevel": 56,
+    "reqStr": 90,
+    "reqDex": null,
+    "reqInt": 90,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": true,
+    "rollLabels": [
+      "+ to all attributes",
+      "Value% increased recovery from all sources",
+      "Adds to",
+      "to local fire damage",
+      "+ % chance to block"
+    ],
+    "innate": [
+      "24% chance to block"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        " to all attributes"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased recovery from all sources"
+      ],
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 160.0,
+          "max": 240.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 320.0,
+          "max": 480.0
+        },
+        " local fire damage"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% chance to block"
+      ]
+    ]
+  },
+  {
+    "id": "unique_traitors_garb",
+    "name": "Traitor's Garb",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 21,
+    "reqStr": null,
+    "reqDex": 35,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defences",
+      "Recover % of life on kill",
+      "Enemies take % increased damage"
+    ],
+    "innate": [
+      "9% increased evasion rating"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "Recover ",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 8.0
+        },
+        "% of life on kill"
+      ],
+      [
+        "Enemies take ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased damage"
+      ],
+      [
+        "Take 100% increased damage while you are below 50% of maximum life"
+      ]
+    ]
+  },
+  {
+    "id": "unique_mind_bulwark",
+    "name": "Mind Bulwark",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 21,
+    "reqStr": 20,
+    "reqDex": null,
+    "reqInt": 20,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased mana",
+      "Value% increased intelligence",
+      "+ % to armour effectiveness against chaos damage"
+    ],
+    "innate": [
+      "+6% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased mana"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased intelligence"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% to armour effectiveness against chaos damage"
+      ],
+      [
+        "Gain armor equal to 40% of maximum mana"
+      ]
+    ]
+  },
+  {
+    "id": "unique_eternal_penance",
+    "name": "Eternal Penance",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 25,
+    "reqStr": 23,
+    "reqDex": null,
+    "reqInt": 23,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Regenerate % of life per second",
+      "Take % increased damage",
+      "Take % of physical damage as chaos damage",
+      "Take % of elemental damage as chaos damage"
+    ],
+    "innate": [
+      "+6% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "Regenerate ",
+        {
+          "type": "range",
+          "min": 16.0,
+          "max": 24.0
+        },
+        "% of life per second"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 120.0
+        },
+        "% increased damage"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% of physical damage as chaos damage"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% of elemental damage as chaos damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_solemn_oath",
+    "name": "Solemn Oath",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 39,
+    "reqStr": 45,
+    "reqDex": null,
+    "reqInt": 45,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to all attributes",
+      "+ % to chaos resistance"
+    ],
+    "innate": [
+      "+6% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 50.0
+        },
+        "% to all attributes"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "+8 to energy shield per 10 strength"
+      ],
+      [
+        "+16 armour per 10 intelligence"
+      ]
+    ]
+  },
+  {
+    "id": "unique_forgeheart",
+    "name": "Forgeheart",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 42,
+    "reqStr": 88,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "+ % to fire resistance",
+      "Value% increased life recovery",
+      "Take % of physical damage as fire damage"
+    ],
+    "innate": [
+      "12% increased armour"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 140.0
+        },
+        " to maximum life"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% to fire resistance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased life recovery"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% of physical damage as fire damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_adaptive_mail",
+    "name": "Adaptive Mail",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 49,
+    "reqStr": 70,
+    "reqDex": 70,
+    "reqInt": null,
+    "enhancementBonus": "+4",
+    "enhancementBonusPerLevel": 4.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defences",
+      "+ % to all elemental resistances"
+    ],
+    "innate": [
+      "+40 to maximum life"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 400.0,
+          "max": 700.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to all elemental resistances"
+      ],
+      [
+        "Cannot evade while you are above 50% of maximum life"
+      ],
+      [
+        "Your armor has no effect while you are below 50% of maximum life"
+      ]
+    ]
+  },
+  {
+    "id": "unique_the_carapace",
+    "name": "The Carapace",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 56,
+    "reqStr": 450,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "increased local defences",
+      "+ % to all elemental resistances"
+    ],
+    "innate": [
+      "12% increased amour"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 240.0,
+          "max": 360.0
+        },
+        " increased local defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 24.0
+        },
+        "% to all elemental resistances"
+      ],
+      [
+        "200% increased attribute requirements"
+      ],
+      [
+        "Take no extra damage from critical hits"
+      ]
+    ]
+  },
+  {
+    "id": "unique_tempests_embrace",
+    "name": "Tempest's Embrace",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 56,
+    "reqStr": null,
+    "reqDex": 150,
+    "reqInt": null,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to dexterity",
+      "Value% increased local defences",
+      "Take % of physical damage as lightning damage"
+    ],
+    "innate": [
+      "12% increased evasion rating"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 60.0
+        },
+        " to dexterity"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 180.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% of physical damage as lightning damage"
+      ],
+      [
+        "Once per stage, if you would die, recover 25% of maximum life and permanently inflict 50% shock on yourself"
+      ]
+    ]
+  },
+  {
+    "id": "unique_lightshroud",
+    "name": "Lightshroud",
+    "slot": "Chest",
+    "itemType": "Body",
+    "reqLevel": 56,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 150,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% less energy shield",
+      "+ % to chaos resistance",
+      "Take % of physical damage as chaos damage"
+    ],
+    "innate": [
+      "12% increased energy shield"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": -95.0,
+          "max": -90.0
+        },
+        "% less energy shield"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% of physical damage as chaos damage"
+      ],
+      [
+        "Your energy shield cannot be reduced below its maximum by damage taken"
+      ]
+    ]
+  },
+  {
+    "id": "unique_mask_of_the_broken",
+    "name": "Mask of the Broken",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 1,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 9,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "+ to maximum mana",
+      "+ to all attributes",
+      "Value% increased defences",
+      "Value% to all elemental resistances",
+      "Value% increased damage"
+    ],
+    "innate": [
+      "6% increased energy shield"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -200.0,
+          "max": 200.0
+        },
+        " to maximum life"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -200.0,
+          "max": 200.0
+        },
+        " to maximum mana"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -40.0,
+          "max": 40.0
+        },
+        " to all attributes"
+      ],
+      [
+        {
+          "type": "range",
+          "min": -40.0,
+          "max": 40.0
+        },
+        "% increased defences"
+      ],
+      [
+        {
+          "type": "range",
+          "min": -20.0,
+          "max": 20.0
+        },
+        "% to all elemental resistances"
+      ],
+      [
+        {
+          "type": "range",
+          "min": -40.0,
+          "max": 40.0
+        },
+        "% increased damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_shroud_of_avarice",
+    "name": "Shroud of Avarice",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 4,
+    "reqStr": null,
+    "reqDex": 7,
+    "reqInt": 7,
+    "enhancementBonus": "0.20%",
+    "enhancementBonusPerLevel": 0.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % chance to dodge",
+      "Value% increased item rarity",
+      "Value% increased item quantity"
+    ],
+    "innate": [
+      "+2% chance to dodge"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 12.0
+        },
+        "% chance to dodge"
+      ],
+      [
+        "Take 10% increased damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased item rarity"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased item quantity"
+      ]
+    ]
+  },
+  {
+    "id": "unique_crest_of_ascension",
+    "name": "Crest of Ascension",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 28,
+    "reqStr": 26,
+    "reqDex": null,
+    "reqInt": 26,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased life",
+      "Value% increased local defences",
+      "Value% to chaos resistance",
+      "Gain % of life as extra base energy shield"
+    ],
+    "innate": [
+      "+6% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased life"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        "% increased local defences"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 14.0
+        },
+        "% of life as extra base energy shield"
+      ]
+    ]
+  },
+  {
+    "id": "unique_crown_of_scorn",
+    "name": "Crown of Scorn",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 31,
+    "reqStr": 53,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defences"
+    ],
+    "innate": [
+      "9% increased armour"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 200.0,
+          "max": 400.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "You cannot evade or dodge"
+      ],
+      [
+        "Enemies have 100% more speed"
+      ],
+      [
+        "Enemies deal 25% less damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_crimson_visage",
+    "name": "Crimson Visage",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 35,
+    "reqStr": 63,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased life",
+      "Regenerate % of life per second",
+      "Value% increased critical hit chance"
+    ],
+    "innate": [
+      "9% increased armour"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased life"
+      ],
+      [
+        "Regenerate ",
+        {
+          "type": "range",
+          "min": 2.0,
+          "max": 4.0
+        },
+        "% of life per second"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased critical hit chance"
+      ],
+      [
+        "Cannot recover life while above 50% of maximum life"
+      ]
+    ]
+  },
+  {
+    "id": "unique_dreadveil",
+    "name": "Dreadveil",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 35,
+    "reqStr": null,
+    "reqDex": 38,
+    "reqInt": 38,
+    "enhancementBonus": "0.30%",
+    "enhancementBonusPerLevel": 0.3,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defences",
+      "+ % to chaos resistance",
+      "+ % chance to dodge"
+    ],
+    "innate": [
+      "+3% chance to dodge"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 60.0,
+          "max": 90.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 6.0,
+          "max": 12.0
+        },
+        "% chance to dodge"
+      ],
+      [
+        "Enemies lose 25% of maximum life at the beginning of combat"
+      ]
+    ]
+  },
+  {
+    "id": "unique_prowlsight",
+    "name": "Prowlsight",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": 75,
+    "reqInt": null,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Gain life on kill",
+      "Value% increased critical hit chance",
+      "+ % chance to dodge"
+    ],
+    "innate": [
+      "12% increased evasion rating"
+    ],
+    "lines": [
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 200.0
+        },
+        " life on kill"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased critical hit chance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 8.0
+        },
+        "% chance to dodge"
+      ],
+      [
+        "10% more accuracy rating per 0.1 seconds of attack time"
+      ]
+    ]
+  },
+  {
+    "id": "unique_gimpse_of_serenity",
+    "name": "Gimpse of Serenity",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 75,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defence",
+      "+ % to chaos resistance",
+      "Value% increased mana regeneration"
+    ],
+    "innate": [
+      "12% increased energy shield"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        "% increased local defence"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        "% increased mana regeneration"
+      ],
+      [
+        "50% of mana regeneration per second applies to your energy shield instead"
+      ]
+    ]
+  },
+  {
+    "id": "unique_flowing_crown",
+    "name": "Flowing Crown",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 42,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 88,
+    "enhancementBonus": "",
+    "enhancementBonusPerLevel": 0.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defences",
+      "Regenerate % of energy shield per second"
+    ],
+    "innate": [
+      "% increased energy shield"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 120.0,
+          "max": 240.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "Regenerate ",
+        {
+          "type": "range",
+          "min": 2.0,
+          "max": 4.0
+        },
+        "% of energy shield per second"
+      ],
+      [
+        "Mana cost of abilities is paid with energy shield instead"
+      ],
+      [
+        "You have no mana"
+      ]
+    ]
+  },
+  {
+    "id": "unique_the_hollow_revenant",
+    "name": "The Hollow Revenant",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 46,
+    "reqStr": 61,
+    "reqDex": null,
+    "reqInt": 61,
+    "enhancementBonus": "0.80%",
+    "enhancementBonusPerLevel": 0.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased life",
+      "Take % of physical damage as chaos damage"
+    ],
+    "innate": [
+      "+8% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased life"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of physical damage as chaos damage"
+      ],
+      [
+        "Once per stage, if you would die, your maximum life is halved, then recover all life"
+      ],
+      [
+        "If your death was prevented during the current stage, gain 40% more speed and take 1.000 chaos damage per second"
+      ]
+    ]
+  },
+  {
+    "id": "unique_cowl_of_the_kinjal",
+    "name": "Cowl of the Kin'Jal",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": 70,
+    "reqInt": 70,
+    "enhancementBonus": "0.40%",
+    "enhancementBonusPerLevel": 0.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased attack and cast speed"
+    ],
+    "innate": [
+      "+4% chance to dodge"
+    ],
+    "lines": [
+      [
+        "(120-180)% increased local defences"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased attack and cast speed"
+      ],
+      [
+        "You cannot evade while you have energy shield"
+      ],
+      [
+        "Take 1% reduced damage per 200 evasion rating while you have energy shield, up to 50%"
+      ]
+    ]
+  },
+  {
+    "id": "unique_verdant_soul",
+    "name": "Verdant Soul",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 7,
+    "reqStr": 9,
+    "reqDex": null,
+    "reqInt": 9,
+    "enhancementBonus": "0.40%",
+    "enhancementBonusPerLevel": 0.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to lightning resistance",
+      "+ % to cold resistance",
+      "+ % to fire resistance"
+    ],
+    "innate": [
+      "+4% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to lightning resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to cold resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to fire resistance"
+      ],
+      [
+        "2% increased energy shield per 1% lightning resistance above your maximum lightning resistance"
+      ],
+      [
+        "2% increased evasion rating per 1% cold resistance above your maximum cold resistance"
+      ],
+      [
+        "2% increased armor per 1% fire resistance above your maximum fire resistance"
+      ]
+    ]
+  },
+  {
+    "id": "unique_thiefs_grip",
+    "name": "Thief's Grip",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 18,
+    "reqStr": null,
+    "reqDex": 17,
+    "reqInt": 17,
+    "enhancementBonus": "0.30%",
+    "enhancementBonusPerLevel": 0.3,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % chance to dodge",
+      "Value% increased item rarity"
+    ],
+    "innate": [
+      "3% chance to dodge"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 8.0
+        },
+        "% chance to dodge"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased item rarity"
+      ],
+      [
+        "2% increased critical hit chance per 1% increased item rarity"
+      ],
+      [
+        "+2% to critical damage multiplier per 1% increased item quantity"
+      ]
+    ]
+  },
+  {
+    "id": "unique_frostbound",
+    "name": "Frostbound",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 18,
+    "reqStr": 17,
+    "reqDex": null,
+    "reqInt": 17,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "+ % to cold resistance",
+      "+ % to maximum chill effect"
+    ],
+    "innate": [
+      "+6% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 60.0
+        },
+        " to maximum life"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to cold resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 3.0,
+          "max": 5.0
+        },
+        "% to maximum chill effect"
+      ],
+      [
+        "Your hits inflict chill as though dealing 100% more damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_oscilliarm",
+    "name": "Oscilliarm",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 31,
+    "reqStr": 53,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased strength",
+      "+ % chance to deal double damage with attacks",
+      "+ % chance to deal triple damage with attacks"
+    ],
+    "innate": [
+      "9% increased armour"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased strength"
+      ],
+      [
+        "15% less attack speed"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 16.0,
+          "max": 24.0
+        },
+        "% chance to deal double damage with attacks"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 12.0
+        },
+        "% chance to deal triple damage with attacks"
+      ]
+    ]
+  },
+  {
+    "id": "unique_truestrike",
+    "name": "Truestrike",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 31,
+    "reqStr": null,
+    "reqDex": 53,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to dexterity",
+      "+ to accuracy rating",
+      "+ % to attack base critical hit chance"
+    ],
+    "innate": [
+      "9% increased evasion rating"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        " to dexterity"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 200.0,
+          "max": 600.0
+        },
+        " to accuracy rating"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 2.0,
+          "max": 6.0
+        },
+        "% to attack base critical hit chance"
+      ],
+      [
+        "Adds 2-3 physical damage to attacks per 50 accuracy rating"
+      ]
+    ]
+  },
+  {
+    "id": "unique_soul_rippers",
+    "name": "Soul Rippers",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 31,
+    "reqStr": null,
+    "reqDex": 31,
+    "reqInt": 31,
+    "enhancementBonus": "0.30%",
+    "enhancementBonusPerLevel": 0.3,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Recover % of mana on kill",
+      "Gain energy shield on hit",
+      "Value% increased attack and cast speed",
+      "Value% increased cricital hit chance"
+    ],
+    "innate": [
+      "+3% chance to dodge"
+    ],
+    "lines": [
+      [
+        "Recover ",
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 8.0
+        },
+        "% of mana on kill"
+      ],
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 6.0,
+          "max": 12.0
+        },
+        " energy shield on hit"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 12.0,
+          "max": 18.0
+        },
+        "% increased attack and cast speed"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased cricital hit chance"
+      ]
+    ]
+  },
+  {
+    "id": "unique_woe_touch",
+    "name": "Woe Touch",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": 45,
+    "reqInt": 45,
+    "enhancementBonus": "0.40%",
+    "enhancementBonusPerLevel": 0.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to base ciritcal chance hit chance",
+      "+ % to critical damage multiplier"
+    ],
+    "innate": [
+      "+4% chance to dodge"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 3.0,
+          "max": 5.0
+        },
+        "% to base ciritcal chance hit chance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% to critical damage multiplier"
+      ],
+      [
+        "40% less ailment duration"
+      ],
+      [
+        "Ailments  inflicted with critical hits gain 1% more duration per 1% critical damage multiplier"
+      ]
+    ]
+  },
+  {
+    "id": "unique_arcanima",
+    "name": "Arcanima",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 39,
+    "reqStr": 45,
+    "reqDex": null,
+    "reqInt": 45,
+    "enhancementBonus": "0.80%",
+    "enhancementBonusPerLevel": 0.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "Value% increased local defences",
+      "Value% increased spell damage"
+    ],
+    "innate": [
+      "+8% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 80.0
+        },
+        " to maximum life"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 60.0,
+          "max": 90.0
+        },
+        "% increased local defences"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased spell damage"
+      ],
+      [
+        "The local damage of your weapons applies to spells as well"
+      ]
+    ]
+  },
+  {
+    "id": "unique_surgewrath",
+    "name": "Surgewrath",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 39,
+    "reqStr": 45,
+    "reqDex": 45,
+    "reqInt": null,
+    "enhancementBonus": "0.80%",
+    "enhancementBonusPerLevel": 0.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to lightning resistance",
+      "Value% increased attack and cast speed",
+      "Value% increased shock effect",
+      "+ % to maximum shock effect"
+    ],
+    "innate": [
+      "+8% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to lightning resistance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 12.0,
+          "max": 18.0
+        },
+        "% increased attack and cast speed"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased shock effect"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% to maximum shock effect"
+      ]
+    ]
+  },
+  {
+    "id": "unique_carnage_pact",
+    "name": "Carnage Pact",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 42,
+    "reqStr": 88,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Leech % of physical hit damage from attacks as life",
+      "Adds to",
+      "to physical damage to attacks",
+      "Value% increased attack speed"
+    ],
+    "innate": [
+      "12% increased armour"
+    ],
+    "lines": [
+      [
+        "lose 200 life per second"
+      ],
+      [
+        "Leech ",
+        {
+          "type": "range",
+          "min": 6.0,
+          "max": 9.0
+        },
+        "% of physical hit damage from attacks as life"
+      ],
+      [
+        "Adds ",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 40.0
+        },
+        " to ",
+        {
+          "type": "range",
+          "min": 60.0,
+          "max": 90.0
+        },
+        " physical damage to attacks"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased attack speed"
+      ]
+    ]
+  },
+  {
+    "id": "unique_entropic_grasp",
+    "name": "Entropic Grasp",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 46,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 102,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % chance to deal double damage",
+      "Value% increase ailment duration"
+    ],
+    "innate": [
+      "12% increase energy shield"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 12.0
+        },
+        "% chance to deal double damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increase ailment duration"
+      ],
+      [
+        "Chaos damage can inflict all elemental ailments"
+      ],
+      [
+        "Your chance to inflict elemental ailments is 50%"
+      ]
+    ]
+  },
+  {
+    "id": "unique_hands_of_the_fateweaver",
+    "name": "Hands of the Fateweaver",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": 70,
+    "reqInt": 70,
+    "enhancementBonus": "0.40%",
+    "enhancementBonusPerLevel": 0.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to dexterity",
+      "Value% increased local defences",
+      "+ % to spell base critical hit chance"
+    ],
+    "innate": [
+      "+4% chance to dodge"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 60.0
+        },
+        " to dexterity"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 3.0,
+          "max": 5.0
+        },
+        "% to spell base critical hit chance"
+      ],
+      [
+        "2% increased cast speed per 10 dexterity"
+      ]
+    ]
+  },
+  {
+    "id": "unique_inner_tranquility",
+    "name": "Inner Tranquility",
+    "slot": "Gloves",
+    "itemType": "Gloves",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 117,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "+ to maximum mana",
+      "Value% increased local defences"
+    ],
+    "innate": [
+      "12% increased energy shield"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 140.0
+        },
+        " to maximum life"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 140.0
+        },
+        " to maximum mana"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 140.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "While your energy shield is below its maximum, scarifice 10% of your maximum life per secon to recover that much energy shield"
+      ]
+    ]
+  },
+  {
+    "id": "unique_ironstance",
+    "name": "Ironstance",
+    "slot": "Boots",
+    "itemType": "Boots",
+    "reqLevel": 21,
+    "reqStr": 20,
+    "reqDex": 20,
+    "reqInt": null,
+    "enhancementBonus": "+3",
+    "enhancementBonusPerLevel": 3.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to strength",
+      "Value% increased local defences",
+      "+ % to all elemental resistances"
+    ],
+    "innate": [
+      "+30 to maximum life"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 30.0
+        },
+        " to strength"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 300.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 12.0
+        },
+        "% to all elemental resistances"
+      ],
+      [
+        "Your total evasion rating is converted into armour"
+      ]
+    ]
+  },
+  {
+    "id": "unique_wintermarch",
+    "name": "Wintermarch",
+    "slot": "Boots",
+    "itemType": "Boots",
+    "reqLevel": 21,
+    "reqStr": 20,
+    "reqDex": null,
+    "reqInt": 20,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "+ % to cold resistance",
+      "Take % of physical damage as cold damage"
+    ],
+    "innate": [
+      "+6% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        " to maximum life"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to cold resistance"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of physical damage as cold damage"
+      ],
+      [
+        "You are unaffected by chill"
+      ]
+    ]
+  },
+  {
+    "id": "unique_preystride",
+    "name": "Preystride",
+    "slot": "Boots",
+    "itemType": "Boots",
+    "reqLevel": 25,
+    "reqStr": null,
+    "reqDex": 39,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to dexterity",
+      "Value% increased local defences",
+      "Take % increased damage"
+    ],
+    "innate": [
+      "9% increased evasion rating"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " to dexterity"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 140.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased damage"
+      ],
+      [
+        "1% more evasion rating per 1% missing life"
+      ]
+    ]
+  },
+  {
+    "id": "unique_stormchasers",
+    "name": "Stormchasers",
+    "slot": "Boots",
+    "itemType": "Boots",
+    "reqLevel": 31,
+    "reqStr": 53,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to lightning resistance",
+      "Value% increased attack and cast speed",
+      "Take % of physical damage as lightning damage"
+    ],
+    "innate": [
+      "9% increased amour"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to lightning resistance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased attack and cast speed"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% of physical damage as lightning damage"
+      ],
+      [
+        "Every 1 second, inflict 10% shock on yourself and enemies"
+      ]
+    ]
+  },
+  {
+    "id": "unique_phantomstep",
+    "name": "Phantomstep",
+    "slot": "Boots",
+    "itemType": "Boots",
+    "reqLevel": 42,
+    "reqStr": null,
+    "reqDex": 52,
+    "reqInt": 52,
+    "enhancementBonus": "0.40%",
+    "enhancementBonusPerLevel": 0.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased dexterity",
+      "+ % to maximum chance to dodge"
+    ],
+    "innate": [
+      "+4% chance to dodge"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased dexterity"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 15.0
+        },
+        "% to maximum chance to dodge"
+      ],
+      [
+        "+1% chance to dodge per 10 dexterity"
+      ],
+      [
+        "You cannot evade"
+      ]
+    ]
+  },
+  {
+    "id": "unique_brittleguard",
+    "name": "Brittleguard",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 11,
+    "reqStr": 12,
+    "reqDex": 12,
+    "reqInt": null,
+    "enhancementBonus": "+2",
+    "enhancementBonusPerLevel": 2.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to all elemental resistances",
+      "Value% increased local block chance"
+    ],
+    "innate": [
+      "+20 to maximum life"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 12.0
+        },
+        "% to all elemental resistances"
+      ],
+      [
+        "+25% to maximum chance to block"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 200.0,
+          "max": 300.0
+        },
+        "% increased local block chance"
+      ],
+      [
+        "50% chance to reduce no damage on block"
+      ]
+    ]
+  },
+  {
+    "id": "unique_remnant_of_the_ages",
+    "name": "Remnant of the Ages",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 21,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 35,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum mana",
+      "+ to intelligence",
+      "Value% increased local defences",
+      "Gain % of mana as extra base energy shield"
+    ],
+    "innate": [
+      "9% increased energy shield"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        " to maximum mana"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        " to intelligence"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% of mana as extra base energy shield"
+      ]
+    ]
+  },
+  {
+    "id": "unique_gift_to_the_stalwart",
+    "name": "Gift to the Stalwart",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 1,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "",
+    "enhancementBonusPerLevel": 0.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [],
+    "innate": [],
+    "lines": []
+  },
+  {
+    "id": "unique_mirror_of_deceit",
+    "name": "Mirror of Deceit",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 31,
+    "reqStr": null,
+    "reqDex": 31,
+    "reqInt": 31,
+    "enhancementBonus": "0.30%",
+    "enhancementBonusPerLevel": 0.3,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local block chance"
+    ],
+    "innate": [
+      "+3% chance to dodge"
+    ],
+    "lines": [
+      [
+        "-25% to maximum chance to block"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 160.0
+        },
+        "% increased local block chance"
+      ],
+      [
+        "When you would block, dodge instead"
+      ],
+      [
+        "Your chance to block is halved"
+      ]
+    ]
+  },
+  {
+    "id": "unique_volturnus",
+    "name": "Volturnus",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 31,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 53,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defences",
+      "Take % of physical damage as lightning damage",
+      "Take % of physical damage as cold damage",
+      "Take % of physical damage as fire damage"
+    ],
+    "innate": [
+      "9% increased energy shield"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of physical damage as lightning damage"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of physical damage as cold damage"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of physical damage as fire damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_eluvenar",
+    "name": "Eluvenar",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": 75,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to dexterity",
+      "Value% increased local defense",
+      "Value% increase attack and cast speed"
+    ],
+    "innate": [
+      "9% increased evasion rating"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 60.0
+        },
+        " to dexterity"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        "% increased local defense"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increase attack and cast speed"
+      ],
+      [
+        "2% increased evasion rating per 10 dexterity"
+      ]
+    ]
+  },
+  {
+    "id": "unique_force_prism",
+    "name": "Force Prism",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 39,
+    "reqStr": 45,
+    "reqDex": null,
+    "reqInt": 45,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Gain mana on block",
+      "Gain energy shield on block",
+      "Value% increased local block chance"
+    ],
+    "innate": [
+      "+6% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " mana on block"
+      ],
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 60.0
+        },
+        " energy shield on block"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 60.0
+        },
+        "% increased local block chance"
+      ],
+      [
+        "Your action bar is filled by 40% when you block"
+      ]
+    ]
+  },
+  {
+    "id": "unique_supreme_bulwark",
+    "name": "Supreme Bulwark",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 1,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "",
+    "enhancementBonusPerLevel": 0.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [],
+    "innate": [],
+    "lines": []
+  },
+  {
+    "id": "unique_primordial_aegis",
+    "name": "Primordial Aegis",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": 117,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defences",
+      "+ % to all elemental resistances",
+      "+ % to all maximum elemental resistances"
+    ],
+    "innate": [
+      "12% increased energy shield"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 60.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 2.0
+        },
+        "% to all elemental resistances"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 10.0
+        },
+        "% to all maximum elemental resistances"
+      ],
+      [
+        "+100% chance to avoid elemental ailments"
+      ]
+    ]
+  },
+  {
+    "id": "unique_dawnbreak",
+    "name": "Dawnbreak",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 49,
+    "reqStr": 70,
+    "reqDex": null,
+    "reqInt": 70,
+    "enhancementBonus": "0.80%",
+    "enhancementBonusPerLevel": 0.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defences",
+      "+ % to chaos resistance",
+      "+ % to maximum chaos resistance"
+    ],
+    "innate": [
+      "8% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 100.0,
+          "max": 200.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 9.0
+        },
+        "% to maximum chaos resistance"
+      ],
+      [
+        "Every 5 seconds, regenerate 25% of maximum life over 1 second"
+      ]
+    ]
+  },
+  {
+    "id": "unique_the_fortress",
+    "name": "The Fortress",
+    "slot": "Off-hand",
+    "itemType": "Shield",
+    "reqLevel": 56,
+    "reqStr": 150,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased local defences",
+      "Value% increased local block chance"
+    ],
+    "innate": [
+      "12% increased armour"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 120.0,
+          "max": 180.0
+        },
+        "% increased local defences"
+      ],
+      [
+        "-25% to maximum chance to block"
+      ],
+      [
+        "+50% to block power"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased local block chance"
+      ]
+    ]
+  },
+  {
+    "id": "unique_aspirants_legacy",
+    "name": "Aspirant's Legacy",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 1,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+1",
+    "enhancementBonusPerLevel": 1.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to all attributes",
+      "Value% increased defences",
+      "+ % to all elemental resistances",
+      "Value% increased experience gain"
+    ],
+    "innate": [
+      "+10 to all attributes"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 24.0
+        },
+        " to all attributes"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 24.0
+        },
+        "% increased defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 12.0
+        },
+        "% to all elemental resistances"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 30.0
+        },
+        "% increased experience gain"
+      ]
+    ]
+  },
+  {
+    "id": "unique_heart_of_the_protector",
+    "name": "Heart of the Protector",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 21,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+2",
+    "enhancementBonusPerLevel": 2.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased defences",
+      "Gain life on block"
+    ],
+    "innate": [
+      "+20 to strength"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased defences"
+      ],
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " life on block"
+      ],
+      [
+        "-25% to block power"
+      ],
+      [
+        "Your chance to block is doubled"
+      ]
+    ]
+  },
+  {
+    "id": "unique_soulstone_talisman",
+    "name": "Soulstone Talisman",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 25,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+2",
+    "enhancementBonusPerLevel": 2.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased mana",
+      "+ to intelligence",
+      "+ % to chaos resistance",
+      "Regenerate % of mana per second"
+    ],
+    "innate": [
+      "+20 to intelligence"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased mana"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        " to intelligence"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "Regenerate ",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 3.0
+        },
+        "% of mana per second"
+      ]
+    ]
+  },
+  {
+    "id": "unique_the_undying_flame",
+    "name": "The Undying Flame",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 28,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+2",
+    "enhancementBonusPerLevel": 2.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "Value% increased life recovery",
+      "Value% increased ignite duration"
+    ],
+    "innate": [
+      "+20 to strength"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 80.0
+        },
+        " to maximum life"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased life recovery"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 60.0
+        },
+        "% increased ignite duration"
+      ],
+      [
+        "Ignite effects carry on to subsequent enemies"
+      ]
+    ]
+  },
+  {
+    "id": "unique_flashfire",
+    "name": "Flashfire",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 31,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+3",
+    "enhancementBonusPerLevel": 3.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% more ignite damage",
+      "Value% increased attack and cast speed"
+    ],
+    "innate": [
+      "+30 to dexterity"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 200.0,
+          "max": 300.0
+        },
+        "% more ignite damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased attack and cast speed"
+      ],
+      [
+        "+50% chance to inflict ignite"
+      ],
+      [
+        "75% less ignite duration"
+      ]
+    ]
+  },
+  {
+    "id": "unique_eternal_gaze",
+    "name": "Eternal Gaze",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 31,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+3",
+    "enhancementBonusPerLevel": 3.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased defences",
+      "Value% increased chill duration",
+      "+ % to maximum chill effect"
+    ],
+    "innate": [
+      "+30 to intelligence"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased defences"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased chill duration"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 10.0
+        },
+        "% to maximum chill effect"
+      ],
+      [
+        "Chill effects carry on to subsequent enemies"
+      ]
+    ]
+  },
+  {
+    "id": "unique_inward_focus",
+    "name": "Inward Focus",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+3",
+    "enhancementBonusPerLevel": 3.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased defences",
+      "+ % to chaos resistance"
+    ],
+    "innate": [
+      "+30 to strength"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 60.0
+        },
+        "% increased defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "+100% to armor effectiveness against chaos damage"
+      ],
+      [
+        "Your armor has no effect against physical damage taken"
+      ]
+    ]
+  },
+  {
+    "id": "unique_venofrenzy",
+    "name": "Venofrenzy",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+3",
+    "enhancementBonusPerLevel": 3.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased poison duration"
+    ],
+    "innate": [
+      "+30 to dexterity"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased poison duration"
+      ],
+      [
+        "Poison you inflict is reflected to you"
+      ],
+      [
+        "1% more speed per poison on you"
+      ],
+      [
+        "Take 90% less poison damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_the_melding",
+    "name": "The Melding",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 42,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+2",
+    "enhancementBonusPerLevel": 2.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "increased ailment duration"
+    ],
+    "innate": [
+      "+20 to all attributes"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        " increased ailment duration"
+      ],
+      [
+        "Elemental Ailments you inflict are reflected to you"
+      ],
+      [
+        "1% more speed per 1% effect of shock applied to you"
+      ],
+      [
+        "3% increased defences per 1% effect of chill applied to you"
+      ],
+      [
+        "Regenerate 5% of maximum life per second while you are ignited"
+      ]
+    ]
+  },
+  {
+    "id": "unique_eye_of_the_storm",
+    "name": "Eye of the Storm",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 46,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+4",
+    "enhancementBonusPerLevel": 4.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased attack and cast speed",
+      "Value% more shock duration"
+    ],
+    "innate": [
+      "+40 to intelligence"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased attack and cast speed"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 60.0
+        },
+        "% more shock duration"
+      ],
+      [
+        "The effect of shock you inflict is always 2%"
+      ],
+      [
+        "The aggregated effect of shock you inflict is not limited by your maximum shock effect"
+      ]
+    ]
+  },
+  {
+    "id": "unique_adorned_lineage",
+    "name": "Adorned Lineage",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+2",
+    "enhancementBonusPerLevel": 2.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "increased defences",
+      "+ to chaos resistance",
+      "Value% increased item rarity"
+    ],
+    "innate": [
+      "+20 to all attributes"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 60.0
+        },
+        " increased defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        " to chaos resistance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased item rarity"
+      ],
+      [
+        "+60 to energy shield per equipped unique item"
+      ]
+    ]
+  },
+  {
+    "id": "unique_shard_of_creation",
+    "name": "Shard of Creation",
+    "slot": "Amulet",
+    "itemType": "Amulet",
+    "reqLevel": 56,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+2",
+    "enhancementBonusPerLevel": 2.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to strength",
+      "+ to dexterity",
+      "+ to intelligence"
+    ],
+    "innate": [
+      "+20 to all attributes"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 60.0
+        },
+        " to strength"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 60.0
+        },
+        " to dexterity"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 60.0
+        },
+        " to intelligence"
+      ],
+      [
+        "1% increased damage per 10 combined strength, dexterity, and intelligence"
+      ]
+    ]
+  },
+  {
+    "id": "unique_praxis",
+    "name": "Praxis",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 7,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.60%",
+    "enhancementBonusPerLevel": 1.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to all attributes",
+      "Value% increased attack and cast speed",
+      "Value% reduced mana cost of abilities",
+      "Value% increased experience gain"
+    ],
+    "innate": [
+      "16% increased mana regeneration"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 12.0
+        },
+        " to all attributes"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 8.0
+        },
+        "% increased attack and cast speed"
+      ],
+      [
+        {
+          "type": "range",
+          "min": -30.0,
+          "max": -50.0
+        },
+        "% reduced mana cost of abilities"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 8.0
+        },
+        "% increased experience gain"
+      ]
+    ]
+  },
+  {
+    "id": "unique_broken_legacy",
+    "name": "Broken Legacy",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 18,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.60%",
+    "enhancementBonusPerLevel": 1.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to all attributes"
+    ],
+    "innate": [
+      "16% increased mana regen"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        " to all attributes"
+      ],
+      [
+        "Your critical hit chance is 50%"
+      ],
+      [
+        "Your critical damage multiplier is +100%"
+      ],
+      [
+        "Deal no damage with non-critical hits"
+      ],
+      [
+        "Your hits cannot be evaded"
+      ]
+    ]
+  },
+  {
+    "id": "unique_winterstorm",
+    "name": "Winterstorm",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 18,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.60%",
+    "enhancementBonusPerLevel": 1.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased critical hit chance"
+    ],
+    "innate": [
+      "16% increased critical hit chance"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased critical hit chance"
+      ],
+      [
+        "Convert 50% of your physical damage into lightning damage"
+      ],
+      [
+        "Convert 50% of your lightning damage into cold damage"
+      ],
+      [
+        "30% increased effect of non-damaging ailments"
+      ]
+    ]
+  },
+  {
+    "id": "unique_timeclasp",
+    "name": "Timeclasp",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 18,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+16",
+    "enhancementBonusPerLevel": 16.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased defences",
+      "Value% increased ailment duration"
+    ],
+    "innate": [
+      "+160 to accuracy rating"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased defences"
+      ],
+      [
+        "20% less attack and cast speed"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased ailment duration"
+      ],
+      [
+        "Hits you take cannot be critical"
+      ]
+    ]
+  },
+  {
+    "id": "unique_blood_price",
+    "name": "Blood Price",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 21,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "Recover % of life on kill",
+      "Value% increased damage"
+    ],
+    "innate": [
+      "6% increased life recovery"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 60.0
+        },
+        " to maximum life"
+      ],
+      [
+        "Recover ",
+        {
+          "type": "range",
+          "min": 3.0,
+          "max": 5.0
+        },
+        "% of life on kill"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased damage"
+      ],
+      [
+        "Mana cost of abilities is paid with life instead"
+      ]
+    ]
+  },
+  {
+    "id": "unique_constancy",
+    "name": "Constancy",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 1,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "",
+    "enhancementBonusPerLevel": 0.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [],
+    "innate": [],
+    "lines": []
+  },
+  {
+    "id": "unique_conflux_of_thunder",
+    "name": "Conflux of Thunder",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 21,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.60%",
+    "enhancementBonusPerLevel": 1.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to intelligence",
+      "+ % to lightning resistance"
+    ],
+    "innate": [
+      "16% increased mana regeneration"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " to intelligence"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% to lightning resistance"
+      ],
+      [
+        "+50% chance to inflict shock"
+      ],
+      [
+        "All elemental damage types can shock"
+      ]
+    ]
+  },
+  {
+    "id": "unique_conflux_of_frost",
+    "name": "Conflux of Frost",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 21,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.60%",
+    "enhancementBonusPerLevel": 1.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to dexterity",
+      "+ % to cold resistance"
+    ],
+    "innate": [
+      "16% increased critical hit chance"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " to dexterity"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% to cold resistance"
+      ],
+      [
+        "+50% chance to inflict chill"
+      ],
+      [
+        "All elemental damage types can chill"
+      ]
+    ]
+  },
+  {
+    "id": "unique_conflux_of_flame",
+    "name": "Conflux of Flame",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 21,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to strength",
+      "+ to fire resistance"
+    ],
+    "innate": [
+      "6% increased life recovery"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " to strength"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        " to fire resistance"
+      ],
+      [
+        "+50% chance to inflict ignite"
+      ],
+      [
+        "All elemental damage types can ignite"
+      ]
+    ]
+  },
+  {
+    "id": "unique_savage_legacy",
+    "name": "Savage Legacy",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 25,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.60%",
+    "enhancementBonusPerLevel": 1.6,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Recover % life on kill",
+      "Value% increased attack critical hit chance",
+      "+ % chance to deal double damage with attacks"
+    ],
+    "innate": [
+      "16% increased critical hit chance"
+    ],
+    "lines": [
+      [
+        "Recover ",
+        {
+          "type": "range",
+          "min": 3.0,
+          "max": 5.0
+        },
+        "% life on kill"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased attack critical hit chance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 6.0,
+          "max": 12.0
+        },
+        "% chance to deal double damage with attacks"
+      ],
+      [
+        "Take 10% increased damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_lionheart_signet",
+    "name": "Lionheart Signet",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 28,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum life",
+      "Value% increased defences",
+      "+ % to chaos resistance",
+      "+ % chance to block"
+    ],
+    "innate": [
+      "9% increased life recovery"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        " to maximum life"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 16.0,
+          "max": 24.0
+        },
+        "% increased defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 12.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 8.0
+        },
+        "% chance to block"
+      ]
+    ]
+  },
+  {
+    "id": "unique_sanguine_eye",
+    "name": "Sanguine Eye",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 31,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Leech % of physical hit damage from attacks as life",
+      "Gain mana on kill",
+      "Value% increased bleed damage"
+    ],
+    "innate": [
+      "9% increased life recovery"
+    ],
+    "lines": [
+      [
+        "Leech ",
+        {
+          "type": "range",
+          "min": 2.0,
+          "max": 4.0
+        },
+        "% of physical hit damage from attacks as life"
+      ],
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 50.0,
+          "max": 100.0
+        },
+        " mana on kill"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased bleed damage"
+      ],
+      [
+        "Your leech effects also apply to damage over time inflicted through bleeding"
+      ]
+    ]
+  },
+  {
+    "id": "unique_the_confluence",
+    "name": "The Confluence",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 31,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "increased elemental damage"
+    ],
+    "innate": [
+      "24% increased critical hit chance"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 50.0
+        },
+        " increased elemental damage"
+      ],
+      [
+        "Convert 33% of your physical damage to lightning damage"
+      ],
+      [
+        "Convert 33% of your physical damage to cold damage"
+      ],
+      [
+        "Convert 33% of your physical damage to fire damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_glitterbind",
+    "name": "Glitterbind",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 31,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+24",
+    "enhancementBonusPerLevel": 24.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to chaos resistance",
+      "Gain mana on kill",
+      "Value% increased attack and cast speed",
+      "Value% increased item rarity"
+    ],
+    "innate": [
+      "+240 to accuracy rating"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -30.0,
+          "max": -10.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "Gain ",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 80.0
+        },
+        " mana on kill"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased attack and cast speed"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased item rarity"
+      ]
+    ]
+  },
+  {
+    "id": "unique_primordial_resonance",
+    "name": "Primordial Resonance",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 35,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to energy shield",
+      "+ % to all elemental resistances",
+      "Value% increased critical hit chance"
+    ],
+    "innate": [
+      "24% increased critical hit chance"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 30.0
+        },
+        " to energy shield"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 8.0,
+          "max": 12.0
+        },
+        "% to all elemental resistances"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased critical hit chance"
+      ],
+      [
+        "Critital hits have a 100% chance to inflict elemental ailments"
+      ]
+    ]
+  },
+  {
+    "id": "unique_soulthirst",
+    "name": "Soulthirst",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+24",
+    "enhancementBonusPerLevel": 24.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to energy shield",
+      "Leech % of physical hit damage from attacks as life",
+      "Value% increased attack speed"
+    ],
+    "innate": [
+      "240 to accuracy rating"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        " to energy shield"
+      ],
+      [
+        "Leech ",
+        {
+          "type": "range",
+          "min": 2.0,
+          "max": 4.0
+        },
+        "% of physical hit damage from attacks as life"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased attack speed"
+      ],
+      [
+        "Life leech effects apply to your energy shield instead"
+      ]
+    ]
+  },
+  {
+    "id": "unique_disintegration_catalyst",
+    "name": "Disintegration Catalyst",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased lightning damage",
+      "Value% increased critical hit chance"
+    ],
+    "innate": [
+      "24% increased critical hit chance"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased lightning damage"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% increased critical hit chance"
+      ],
+      [
+        "your lightning damage can inflict poison"
+      ],
+      [
+        "Critical hits have a 100% chance to inflict poison"
+      ]
+    ]
+  },
+  {
+    "id": "unique_tanglecoil",
+    "name": "Tanglecoil",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "2.40%",
+    "enhancementBonusPerLevel": 2.4,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to lightning resistance",
+      "+ % to cold resistance",
+      "+ % to fire resistance"
+    ],
+    "innate": [
+      "24% increased mana regeneration"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -40.0,
+          "max": 40.0
+        },
+        "% to lightning resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -40.0,
+          "max": 40.0
+        },
+        "% to cold resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -40.0,
+          "max": 40.0
+        },
+        "% to fire resistance"
+      ],
+      [
+        "Elemental resistances of enemies are equal to yours"
+      ]
+    ]
+  },
+  {
+    "id": "unique_singularity",
+    "name": "Singularity",
+    "slot": "Ring",
+    "itemType": "Ring",
+    "reqLevel": 56,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "3.20%",
+    "enhancementBonusPerLevel": 3.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to all attributes",
+      "Value% to chaos resistance",
+      "Value% increased critical hit chance"
+    ],
+    "innate": [
+      "32% increased critical hit chance"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        " to all attributes"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% increased critical hit chance"
+      ],
+      [
+        "Convert 100% of your elemental damage to chaos damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_aspirants_will",
+    "name": "Aspirant's Will",
+    "slot": "Belt",
+    "itemType": "Belt",
+    "reqLevel": 7,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+2",
+    "enhancementBonusPerLevel": 2.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased life",
+      "Value% increased mana",
+      "Value% to chaos resistance"
+    ],
+    "innate": [
+      "+20 to maximum life"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 12.0
+        },
+        "% increased life"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 12.0
+        },
+        "% increased mana"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 12.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "regenerate 1 life per second per character level"
+      ]
+    ]
+  },
+  {
+    "id": "unique_mothers_embrace",
+    "name": "Mother's Embrace",
+    "slot": "Belt",
+    "itemType": "Belt",
+    "reqLevel": 14,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.90%",
+    "enhancementBonusPerLevel": 0.9,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased defences",
+      "+ % to all elemental resistances"
+    ],
+    "innate": [
+      "9% increased defences"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased defences"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 12.0
+        },
+        "% to all elemental resistances"
+      ],
+      [
+        "+50% chance to avoid ailments"
+      ],
+      [
+        "Take no extra damage from critical hits"
+      ]
+    ]
+  },
+  {
+    "id": "unique_surge_strap",
+    "name": "Surge Strap",
+    "slot": "Belt",
+    "itemType": "Belt",
+    "reqLevel": 39,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+4",
+    "enhancementBonusPerLevel": 4.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased life",
+      "Value% increased mana",
+      "Value% increased defences",
+      "Value% increased damage"
+    ],
+    "innate": [
+      "+40 to maximum life"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased life"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased mana"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased defences"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased damage"
+      ]
+    ]
+  },
+  {
+    "id": "unique_flow_tether",
+    "name": "Flow Tether",
+    "slot": "Belt",
+    "itemType": "Belt",
+    "reqLevel": 42,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.80%",
+    "enhancementBonusPerLevel": 0.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to maximum mana",
+      "+ to energy shield",
+      "+ % to chaos resistance",
+      "Value% of damage taken is applied to your mana first"
+    ],
+    "innate": [
+      "+8% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 80.0,
+          "max": 140.0
+        },
+        " to maximum mana"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 40.0,
+          "max": 80.0
+        },
+        " to energy shield"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% of damage taken is applied to your mana first"
+      ]
+    ]
+  },
+  {
+    "id": "unique_fleshbind",
+    "name": "Fleshbind",
+    "slot": "Belt",
+    "itemType": "Belt",
+    "reqLevel": 42,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+4",
+    "enhancementBonusPerLevel": 4.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% more life",
+      "Value% to chaos resistance",
+      "Regenerate % of life per second"
+    ],
+    "innate": [
+      "+40 to maximum life"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 40.0
+        },
+        "% more life"
+      ],
+      [
+        "50% less defences"
+      ],
+      [
+        {
+          "type": "range",
+          "min": -30.0,
+          "max": -10.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "Regenerate ",
+        {
+          "type": "range",
+          "min": 3.0,
+          "max": 5.0
+        },
+        "% of life per second"
+      ]
+    ]
+  },
+  {
+    "id": "unique_fundamentality",
+    "name": "Fundamentality",
+    "slot": "Belt",
+    "itemType": "Belt",
+    "reqLevel": 42,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "+4",
+    "enhancementBonusPerLevel": 4.0,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to all resistances"
+    ],
+    "innate": [
+      "+40 to maximum life"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 4.0,
+          "max": 20.0
+        },
+        "% to all resistances"
+      ],
+      [
+        "50% increased damage per uncommon item equipped"
+      ],
+      [
+        "+150 life per magic item equipped"
+      ],
+      [
+        "+30 to all attributes per rare item equipped"
+      ]
+    ]
+  },
+  {
+    "id": "unique_shattered_divinity",
+    "name": "Shattered Divinity",
+    "slot": "Belt",
+    "itemType": "Belt",
+    "reqLevel": 42,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.80%",
+    "enhancementBonusPerLevel": 0.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to maximum lightning resistance",
+      "+ % to maximum cold resistance",
+      "+ % to maximum fire resistance",
+      "+ % to all elemental resistances"
+    ],
+    "innate": [
+      "+8% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -7.0,
+          "max": 7.0
+        },
+        "% to maximum lightning resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -7.0,
+          "max": 7.0
+        },
+        "% to maximum cold resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": -7.0,
+          "max": 7.0
+        },
+        "% to maximum fire resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 20.0,
+          "max": 50.0
+        },
+        "% to all elemental resistances"
+      ]
+    ]
+  },
+  {
+    "id": "unique_titansblood",
+    "name": "Titansblood",
+    "slot": "Belt",
+    "itemType": "Belt",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "0.80%",
+    "enhancementBonusPerLevel": 0.8,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased attributes"
+    ],
+    "innate": [
+      "+8% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% increased attributes"
+      ],
+      [
+        "While you have at least 400 strength, gain +20% chance to deal double damage"
+      ],
+      [
+        "While you have at least 400 dexterity, gain 30% increased speed"
+      ],
+      [
+        "While you have at least 400 intelligence gain +60% to critical damage multiplier"
+      ]
+    ]
+  },
+  {
+    "id": "unique_circling_thoughts",
+    "name": "Circling Thoughts",
+    "slot": "Belt",
+    "itemType": "Belt",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.30%",
+    "enhancementBonusPerLevel": 1.3,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "Value% increased intelligence",
+      "+ to energy shield"
+    ],
+    "innate": [
+      "12% increased defences"
+    ],
+    "lines": [
+      [
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 20.0
+        },
+        "% increased intelligence"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 60.0
+        },
+        " to energy shield"
+      ],
+      [
+        "2% increased energy shield per 10 intelligence"
+      ],
+      [
+        "Regenerate 1% of energy shield per second per 150 intelligence"
+      ]
+    ]
+  },
+  {
+    "id": "unique_twilight_eminence",
+    "name": "Twilight Eminence",
+    "slot": "Belt",
+    "itemType": "Belt",
+    "reqLevel": 49,
+    "reqStr": null,
+    "reqDex": null,
+    "reqInt": null,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
+    "maxEnhancement": 10,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ % to chaos resistance",
+      "+ % to maximum chaos resistance",
+      "Take % of physical damage as chaos damage",
+      "Take % of elemental damage as chaos damage"
+    ],
+    "innate": [
+      "12% increased defences"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 5.0,
+          "max": 10.0
+        },
+        "% to maximum chaos resistance"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 10.0,
+          "max": 30.0
+        },
+        "% of physical damage as chaos damage"
+      ],
+      [
+        "Take ",
+        {
+          "type": "range",
+          "min": 30.0,
+          "max": 50.0
+        },
+        "% of elemental damage as chaos damage"
+      ]
+    ]
+  }
+]

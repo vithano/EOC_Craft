@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { MAX_PLANNER_LEVEL } from "../data/gameClasses";
+import { EQUIPMENT_SLOTS, getEquippedEntry, type EquippedEntry } from "../data/equipment";
 import type { ComputedBuildStats } from "../data/gameStats";
 
 interface BuildSummaryProps {
-  equipped: Record<string, string>;
+  equipped: Record<string, EquippedEntry>;
   upgradeTotalPoints: number;
   classesWithPoints: number;
   stats: ComputedBuildStats;
@@ -40,7 +41,9 @@ export default function BuildSummary({
 }: BuildSummaryProps) {
   const [buildName, setBuildName] = useState("My Build");
 
-  const equippedCount = Object.values(equipped).filter((v) => v && v !== "none").length;
+  const equippedCount = EQUIPMENT_SLOTS.filter(
+    (slot) => getEquippedEntry(equipped, slot).itemId !== "none"
+  ).length;
 
   const damageRating = Math.min(100, (stats.dps / 80) * 100);
   const defenseRating = Math.min(
@@ -99,7 +102,7 @@ export default function BuildSummary({
               equippedCount >= 8 ? "text-emerald-400" : equippedCount >= 5 ? "text-yellow-400" : "text-zinc-200"
             }
           >
-            {equippedCount} / 10
+            {equippedCount} / {EQUIPMENT_SLOTS.length}
           </span>
         </div>
         <div className="flex justify-between">

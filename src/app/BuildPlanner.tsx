@@ -7,28 +7,43 @@ import EocClassesPanel from "../components/EocClassesPanel";
 import EocStatsPanel from "../components/EocStatsPanel";
 import EquipmentPanel from "../components/EquipmentPanel";
 import FormulaViewer from "../components/FormulaViewer";
-import { DEFAULT_INVENTORY, EQUIPMENT_ITEMS, EQUIPMENT_SLOTS } from "../data/equipment";
-import type { InventoryStack, ItemModifiers } from "../data/equipment";
-import { aggregateItemModifiers, computeBuildStats } from "../data/gameStats";
+import {
+  DEFAULT_INVENTORY,
+  EQUIPMENT_SLOTS,
+  INVENTORY_MAX_SLOTS,
+  getEquippedEntry,
+  normalizeEquippedEntry,
+  weaponUsesBothHands,
+  type EquippedEntry,
+  type InventoryStack,
+} from "../data/equipment";
+import { aggregateEquippedToEquipmentModifiers, computeBuildStats } from "../data/gameStats";
 import { loadStoredPlanner, saveStoredPlanner } from "../lib/eocBuildStorage";
 import { NEXUS_TIER_ROWS } from "../data/nexusEnemyScaling";
 
-function itemModifiersFromEquipped(equipped: Record<string, string>) {
-  const equippedItems = EQUIPMENT_SLOTS.map((slot) => {
-    const itemId = equipped[slot] ?? "none";
-    const items = EQUIPMENT_ITEMS[slot] ?? [];
-    return items.find((i) => i.id === itemId) ?? { modifiers: {} as ItemModifiers };
-  });
-  return aggregateItemModifiers(equippedItems);
+function equipmentModifiersFromEquippedMap(equipped: Record<string, EquippedEntry>) {
+  return aggregateEquippedToEquipmentModifiers(EQUIPMENT_SLOTS, (slot) => getEquippedEntry(equipped, slot));
+}
+
+function stackIdentityKey(rolls: number[] | undefined, enhancement?: number): string {
+  return JSON.stringify({ rolls: rolls ?? [], en: enhancement ?? 0 });
 }
 
 function addOrMergeStack(
   inv: InventoryStack[],
   slot: string,
   itemId: string,
-  qty: number
+  qty: number,
+  rolls?: number[],
+  enhancement?: number
 ): InventoryStack[] {
-  const merge = inv.find((s) => s.slot === slot && s.itemId === itemId);
+  const en = enhancement !== undefined && enhancement > 0 ? enhancement : undefined;
+  const merge = inv.find(
+    (s) =>
+      s.slot === slot &&
+      s.itemId === itemId &&
+      stackIdentityKey(s.rolls, s.enhancement) === stackIdentityKey(rolls, en)
+  );
   if (merge) {
     return inv.map((s) => (s.id === merge.id ? { ...s, qty: s.qty + qty } : s));
   }
@@ -36,12 +51,30 @@ function addOrMergeStack(
     typeof crypto !== "undefined" && crypto.randomUUID
       ? `st-${crypto.randomUUID()}`
       : `st-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-  return [...inv, { id, slot, itemId, qty }];
+  const row: InventoryStack = { id, slot, itemId, qty };
+  if (rolls?.length) row.rolls = rolls;
+  if (en !== undefined) row.enhancement = en;
+  return [...inv, row];
+}
+
+function migrateEquippedFromSave(raw: unknown): Record<string, EquippedEntry> {
+  const out: Record<string, EquippedEntry> = {};
+  if (raw && typeof raw === "object") {
+    const o = raw as Record<string, unknown>;
+    for (const slot of EQUIPMENT_SLOTS) {
+      out[slot] = normalizeEquippedEntry(o[slot]);
+    }
+    return out;
+  }
+  for (const slot of EQUIPMENT_SLOTS) {
+    out[slot] = { itemId: "none" };
+  }
+  return out;
 }
 
 export default function BuildPlanner() {
   const [upgradeLevels, setUpgradeLevels] = useState<Record<string, number>>({});
-  const [equipped, setEquipped] = useState<Record<string, string>>({});
+  const [equipped, setEquipped] = useState<Record<string, EquippedEntry>>({});
   const [inventory, setInventory] = useState<InventoryStack[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const equipStateRef = useRef({ equipped, inventory });
@@ -56,7 +89,7 @@ export default function BuildPlanner() {
       const saved = loadStoredPlanner();
       if (saved) {
         setUpgradeLevels(saved.upgradeLevels);
-        if (saved.equipped) setEquipped(saved.equipped);
+        if (saved.equipped) setEquipped(migrateEquippedFromSave(saved.equipped));
         if (Object.prototype.hasOwnProperty.call(saved, "inventory")) {
           setInventory(saved.inventory ?? []);
         } else {
@@ -69,7 +102,7 @@ export default function BuildPlanner() {
     });
   }, []);
 
-  const equipmentModifiers = useMemo(() => itemModifiersFromEquipped(equipped), [equipped]);
+  const equipmentModifiers = useMemo(() => equipmentModifiersFromEquippedMap(equipped), [equipped]);
 
   const buildConfig = useMemo(
     () => ({ upgradeLevels, equipmentModifiers }),
@@ -83,29 +116,113 @@ export default function BuildPlanner() {
     saveStoredPlanner({ ...buildConfig, equipped, inventory });
   }, [buildConfig, equipped, inventory, hydrated]);
 
-  const equipFromStack = useCallback((stackId: string) => {
+  const updateInventoryStack = useCallback((stackId: string, rolls: number[], enhancement: number) => {
+    setInventory((inv) =>
+      inv.map((s) => {
+        if (s.id !== stackId) return s;
+        return {
+          ...s,
+          rolls: rolls.length ? rolls : undefined,
+          enhancement: enhancement > 0 ? enhancement : undefined,
+        };
+      })
+    );
+  }, []);
+
+  const updateEquippedSlot = useCallback((slot: string, rolls: number[], enhancement: number) => {
+    setEquipped((e) => {
+      const cur = getEquippedEntry(e, slot);
+      if (cur.itemId === "none") return e;
+      return {
+        ...e,
+        [slot]: {
+          itemId: cur.itemId,
+          rolls: rolls.length ? rolls : undefined,
+          enhancement: enhancement > 0 ? enhancement : undefined,
+        },
+      };
+    });
+  }, []);
+
+  const equipFromStack = useCallback(
+    (stackId: string, overrides?: { rolls?: number[]; enhancement?: number }) => {
     const { equipped: e, inventory: inv } = equipStateRef.current;
     const stack = inv.find((s) => s.id === stackId);
     if (!stack || stack.qty < 1) return;
     const { slot, itemId } = stack;
-    const prevId = e[slot] ?? "none";
+    const rolls =
+      overrides?.rolls !== undefined
+        ? overrides.rolls.length
+          ? overrides.rolls
+          : undefined
+        : stack.rolls;
+    const enhancement =
+      overrides?.enhancement !== undefined
+        ? overrides.enhancement > 0
+          ? overrides.enhancement
+          : undefined
+        : stack.enhancement !== undefined && stack.enhancement > 0
+          ? stack.enhancement
+          : undefined;
+    const prev = getEquippedEntry(e, slot);
     let nextInv = inv
       .map((s) => (s.id === stackId ? { ...s, qty: s.qty - 1 } : s))
       .filter((s) => s.qty > 0);
-    if (prevId !== "none") {
-      nextInv = addOrMergeStack(nextInv, slot, prevId, 1);
+    if (prev.itemId !== "none") {
+      nextInv = addOrMergeStack(nextInv, slot, prev.itemId, 1, prev.rolls, prev.enhancement);
     }
-    setEquipped({ ...e, [slot]: itemId });
+
+    let nextEquipped: Record<string, EquippedEntry> = {
+      ...e,
+      [slot]: { itemId, rolls, enhancement },
+    };
+
+    if (slot === "Weapon" && weaponUsesBothHands(itemId)) {
+      const off = getEquippedEntry(e, "Off-hand");
+      if (off.itemId !== "none") {
+        nextInv = addOrMergeStack(nextInv, "Off-hand", off.itemId, 1, off.rolls, off.enhancement);
+      }
+      nextEquipped = { ...nextEquipped, "Off-hand": { itemId: "none" } };
+    }
+
+    if (slot === "Off-hand") {
+      const w = getEquippedEntry(e, "Weapon");
+      if (w.itemId !== "none" && weaponUsesBothHands(w.itemId)) {
+        nextInv = addOrMergeStack(nextInv, "Weapon", w.itemId, 1, w.rolls, w.enhancement);
+        nextEquipped = { ...nextEquipped, Weapon: { itemId: "none" } };
+      }
+    }
+
+    setEquipped(nextEquipped);
     setInventory(nextInv);
-  }, []);
+  },
+  []
+);
 
   const unequipSlot = useCallback((slot: string) => {
     const { equipped: e, inventory: inv } = equipStateRef.current;
-    const id = e[slot] ?? "none";
-    if (id === "none") return;
-    setEquipped({ ...e, [slot]: "none" });
-    setInventory(addOrMergeStack(inv, slot, id, 1));
+    const cur = getEquippedEntry(e, slot);
+    if (cur.itemId === "none") return;
+    setEquipped({ ...e, [slot]: { itemId: "none" } });
+    setInventory(addOrMergeStack(inv, slot, cur.itemId, 1, cur.rolls, cur.enhancement));
   }, []);
+
+  const addUniqueToBag = useCallback(
+    (slot: string, itemId: string, rolls: number[], enhancement: number) => {
+      setInventory((inv) => {
+        if (inv.length >= INVENTORY_MAX_SLOTS) return inv;
+        return addOrMergeStack(
+          inv,
+          slot,
+          itemId,
+          1,
+          rolls.length ? rolls : undefined,
+          enhancement > 0 ? enhancement : undefined
+        );
+      });
+    },
+    []
+  );
 
   const extractStack = useCallback((stackId: string) => {
     setInventory((inv) => inv.filter((s) => s.id !== stackId));
@@ -231,9 +348,12 @@ export default function BuildPlanner() {
               equipped={equipped}
               inventory={inventory}
               onEquipStack={equipFromStack}
+              onUpdateInventoryStack={updateInventoryStack}
+              onUpdateEquippedSlot={updateEquippedSlot}
               onUnequipSlot={unequipSlot}
               onExtractStack={extractStack}
               onExtractAll={extractAll}
+              onAddUniqueToBag={addUniqueToBag}
               stats={stats}
               incomingDamage={incomingDamage}
               nexusTier={nexusTier}

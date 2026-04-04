@@ -1,4 +1,4 @@
-import type { BuildConfig } from '../data/gameStats'
+import { emptyEquipmentModifiers, type BuildConfig } from '../data/gameStats'
 import { GAME_CLASSES_BY_ID } from '../data/gameClasses'
 
 /** Spread `totalPoints` across a class's upgrades in round-robin, capping each at 5. */
@@ -31,18 +31,7 @@ function mergeLevels(...parts: Record<string, number>[]): Record<string, number>
   return acc
 }
 
-const emptyEq = {
-  flatLife: 0,
-  flatMana: 0,
-  flatArmor: 0,
-  flatEvasion: 0,
-  flatDamageMin: 0,
-  flatDamageMax: 0,
-  critChanceBonus: 0,
-  strBonus: 0,
-  dexBonus: 0,
-  intBonus: 0,
-}
+const emptyEq = emptyEquipmentModifiers()
 
 export const DEMO_BUILD_PRESETS: { id: string; label: string; config: BuildConfig }[] = [
   {
