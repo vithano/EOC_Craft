@@ -149,8 +149,9 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
       </div>
       <div className="text-zinc-600 text-xs space-y-1 border-t border-zinc-800 pt-3">
         <div>
-          Resists · fire/cold/lightning {stats.fireRes}/{stats.coldRes}/{stats.lightningRes}% (cap {stats.maxFireRes} fire) · chaos{" "}
-          {stats.chaosRes}%
+          Resists · fire/cold/lightning {stats.fireRes}/{stats.coldRes}/{stats.lightningRes}% (caps{" "}
+          {stats.maxFireRes}/{stats.maxColdRes}/{stats.maxLightningRes}) · chaos {stats.chaosRes}% (cap{" "}
+          {stats.maxChaosRes})
         </div>
         <div>
           Block {stats.blockChance}% · Dodge {stats.dodgeChance}% · Acc {stats.accuracy} · Mana/atk{" "}

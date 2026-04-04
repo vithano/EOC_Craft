@@ -285,5 +285,31 @@ function normalizeEquipment(
         : d.chillInflictEffectMultFromGear,
     abilitiesNoCostFromGear: Boolean(z.abilitiesNoCostFromGear),
     dealNoDamageExceptCritFromGear: Boolean(z.dealNoDamageExceptCritFromGear),
+
+    increasedFireDamageFromGear: Number(z.increasedFireDamageFromGear) || 0,
+    increasedColdDamageFromGear: Number(z.increasedColdDamageFromGear) || 0,
+
+    maxFireResBonusFromGear: Number(z.maxFireResBonusFromGear) || 0,
+    maxColdResBonusFromGear: Number(z.maxColdResBonusFromGear) || 0,
+    maxLightningResBonusFromGear: Number(z.maxLightningResBonusFromGear) || 0,
+    maxAllElementalResBonusFromGear: Number(z.maxAllElementalResBonusFromGear) || 0,
+    maxChaosResBonusFromGear: Number(z.maxChaosResBonusFromGear) || 0,
+
+    damageTakenToManaFirstPercentFromGear: Number(z.damageTakenToManaFirstPercentFromGear) || 0,
+
+    lifeRecoveredOnKillPercentFromGear: Number(z.lifeRecoveredOnKillPercentFromGear) || 0,
+    flatLifeOnKillFromGear: Number(z.flatLifeOnKillFromGear) || 0,
+    manaOnKillFlatFromGear: Number(z.manaOnKillFlatFromGear) || 0,
+
+    lifeRecoveredOnBlockPercentFromGear: Number(z.lifeRecoveredOnBlockPercentFromGear) || 0,
+    flatLifeOnBlockFromGear: Number(z.flatLifeOnBlockFromGear) || 0,
+    manaRecoveredOnBlockPercentFromGear: Number(z.manaRecoveredOnBlockPercentFromGear) || 0,
+    esRecoveredOnBlockPercentFromGear: Number(z.esRecoveredOnBlockPercentFromGear) || 0,
+    flatManaOnBlockFromGear: Number(z.flatManaOnBlockFromGear) || 0,
+    flatEsOnBlockFromGear: Number(z.flatEsOnBlockFromGear) || 0,
+
+    energyShieldOnHitFromGear: Number(z.energyShieldOnHitFromGear) || 0,
+    rangedDamageIncPctPer10StrFromGear: Number(z.rangedDamageIncPctPer10StrFromGear) || 0,
+    manaCostPaidWithLifeFromGear: Boolean(z.manaCostPaidWithLifeFromGear),
   };
 }

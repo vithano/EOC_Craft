@@ -229,6 +229,67 @@ function mitigatedPhysicalDamageAfterConversion(
   return physRem + chaosMitigated + fireMitigated + coldMitigated + lightMitigated
 }
 
+function applyOnKillRecovery(player: BattleParticipantState, stats: ComputedBuildStats): void {
+  const rec = stats.lifeRecoveryRateMult ?? 1
+  const pct = stats.lifeRecoveredOnKillPercent ?? 0
+  if (pct > 0) {
+    player.life = Math.min(
+      stats.maxLife,
+      player.life + stats.maxLife * (pct / 100) * rec
+    )
+  }
+  const flatLife = stats.flatLifeOnKill ?? 0
+  if (flatLife > 0) {
+    player.life = Math.min(stats.maxLife, player.life + flatLife * rec)
+  }
+  const flatMana = stats.flatManaOnKill ?? 0
+  if (flatMana > 0) {
+    player.mana = Math.min(stats.maxMana, player.mana + flatMana)
+  }
+}
+
+function applyBlockRecovery(
+  player: BattleParticipantState,
+  stats: ComputedBuildStats,
+  blocked: boolean
+): void {
+  if (!blocked) return
+  const rec = stats.lifeRecoveryRateMult ?? 1
+  const lp = stats.lifeRecoveredOnBlockPercent ?? 0
+  if (lp > 0) {
+    player.life = Math.min(
+      stats.maxLife,
+      player.life + stats.maxLife * (lp / 100) * rec
+    )
+  }
+  const flatL = stats.flatLifeOnBlock ?? 0
+  if (flatL > 0) {
+    player.life = Math.min(stats.maxLife, player.life + flatL * rec)
+  }
+  const mp = stats.manaRecoveredOnBlockPercent ?? 0
+  if (mp > 0) {
+    player.mana = Math.min(stats.maxMana, player.mana + stats.maxMana * (mp / 100))
+  }
+  const flatM = stats.flatManaOnBlock ?? 0
+  if (flatM > 0) {
+    player.mana = Math.min(stats.maxMana, player.mana + flatM)
+  }
+  const ep = stats.esRecoveredOnBlockPercent ?? 0
+  if (ep > 0 && stats.maxEnergyShield > 0) {
+    player.energyShield = Math.min(
+      stats.maxEnergyShield,
+      player.energyShield + stats.maxEnergyShield * (ep / 100)
+    )
+  }
+  const flatE = stats.flatEsOnBlock ?? 0
+  if (flatE > 0 && stats.maxEnergyShield > 0) {
+    player.energyShield = Math.min(
+      stats.maxEnergyShield,
+      player.energyShield + flatE
+    )
+  }
+}
+
 function applyDamageToPools(
   state: BattleParticipantState,
   rawAfterArmour: number,
@@ -236,6 +297,14 @@ function applyDamageToPools(
   maxMana: number
 ): number {
   let dmg = Math.max(0, rawAfterArmour)
+
+  const manaFirstPct = Math.min(100, Math.max(0, stats.damageTakenToManaFirstPercent ?? 0))
+  if (manaFirstPct > 0 && state.mana > 0 && dmg > 0) {
+    const wantMana = dmg * (manaFirstPct / 100)
+    const fromMana = Math.min(wantMana, state.mana)
+    state.mana -= fromMana
+    dmg -= fromMana
+  }
 
   if (stats.manaShieldActive && state.mana > maxMana * 0.5) {
     const portion = dmg * 0.25
@@ -539,6 +608,15 @@ function resolveEnemyAttack(
 
   const dealt = applyDamageToPools(playerState, afterConversion, stats, stats.maxMana)
 
+  applyBlockRecovery(playerState, stats, blocked)
+
+  if (dealt > 0 && (stats.energyShieldOnHit ?? 0) > 0 && stats.maxEnergyShield > 0) {
+    playerState.energyShield = Math.min(
+      stats.maxEnergyShield,
+      playerState.energyShield + (stats.energyShieldOnHit ?? 0)
+    )
+  }
+
   return {
     damageToDisplay: dealt,
     fullBeforeArmour: raw,
@@ -606,7 +684,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     const dotDpsTotal = dotDpsBleed + dotDpsPoison + dotDpsIgnite
     if (dotDpsTotal > 0) {
       const tick = dotDpsTotal * dt
+      const enemyLifeBeforeDot = enemyLife
       enemyLife -= tick
+      if (enemyLifeBeforeDot > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats)
       totalDotDamage += tick
       dotLogAcc.bleed += dotDpsBleed * dt
       dotLogAcc.poison += dotDpsPoison * dt
@@ -653,13 +733,19 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     const pAps = playerApsWithBerserker(stats, player.life)
 
     if (t + 1e-9 >= nextPlayer) {
-      if (player.mana >= stats.manaCostPerAttack) {
-        player.mana -= stats.manaCostPerAttack
+      const cost = stats.manaCostPerAttack
+      const payLife = stats.manaCostPaidWithLife ?? false
+      const canPay = payLife ? player.life > cost : player.mana >= cost
+      if (canPay) {
+        if (payLife) player.life -= cost
+        else player.mana -= cost
         const shockNow = activeShockPct(ailmentState, t)
+        const enemyLifeBeforeHit = enemyLife
         const { damage, outcome } = resolvePlayerAttack(enemy, enemyLife, stats, {
           targetTakesIncreasedDamagePct: shockNow,
         })
         enemyLife -= damage
+        if (enemyLifeBeforeHit > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats)
         if (damage > 0) {
           hitsPlayer++
           const rec = stats.lifeRecoveryRateMult ?? 1
@@ -699,7 +785,11 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           )
         }
       } else if (log.length < maxLog) {
-        log.push({ t, kind: 'player_attack', message: 'Out of mana — attack skipped' })
+        log.push({
+          t,
+          kind: 'player_attack',
+          message: payLife ? 'Not enough life — attack skipped' : 'Out of mana — attack skipped',
+        })
       }
       nextPlayer = t + 1 / Math.max(0.2, pAps)
     }

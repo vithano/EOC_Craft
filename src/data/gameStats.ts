@@ -262,6 +262,32 @@ export interface EquipmentModifiers {
 
   abilitiesNoCostFromGear: boolean
   dealNoDamageExceptCritFromGear: boolean
+
+  increasedFireDamageFromGear: number
+  increasedColdDamageFromGear: number
+
+  maxFireResBonusFromGear: number
+  maxColdResBonusFromGear: number
+  maxLightningResBonusFromGear: number
+  maxAllElementalResBonusFromGear: number
+  maxChaosResBonusFromGear: number
+
+  damageTakenToManaFirstPercentFromGear: number
+
+  lifeRecoveredOnKillPercentFromGear: number
+  flatLifeOnKillFromGear: number
+  manaOnKillFlatFromGear: number
+
+  lifeRecoveredOnBlockPercentFromGear: number
+  flatLifeOnBlockFromGear: number
+  manaRecoveredOnBlockPercentFromGear: number
+  esRecoveredOnBlockPercentFromGear: number
+  flatManaOnBlockFromGear: number
+  flatEsOnBlockFromGear: number
+
+  energyShieldOnHitFromGear: number
+  rangedDamageIncPctPer10StrFromGear: number
+  manaCostPaidWithLifeFromGear: boolean
 }
 
 export interface ComputedBuildStats {
@@ -286,7 +312,10 @@ export interface ComputedBuildStats {
   coldRes: number
   lightningRes: number
   chaosRes: number
-  maxFireRes: number // usually 75, +5 for Chieftain
+  maxFireRes: number
+  maxColdRes: number
+  maxLightningRes: number
+  maxChaosRes: number
 
   // Offense
   hitDamageMin: number
@@ -372,6 +401,19 @@ export interface ComputedBuildStats {
   chillInflictEffectMult: number
   /** Non-crit attacks deal no damage. */
   dealNoDamageExceptCrit: boolean
+
+  damageTakenToManaFirstPercent: number
+  lifeRecoveredOnKillPercent: number
+  flatLifeOnKill: number
+  flatManaOnKill: number
+  lifeRecoveredOnBlockPercent: number
+  flatLifeOnBlock: number
+  manaRecoveredOnBlockPercent: number
+  esRecoveredOnBlockPercent: number
+  flatManaOnBlock: number
+  flatEsOnBlock: number
+  energyShieldOnHit: number
+  manaCostPaidWithLife: boolean
 
   manaShieldActive: boolean           // Druid: 25% of damage taken to mana above 50%
   chaosNotBypassES: boolean           // Arcanist bonus
@@ -550,6 +592,32 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
 
     abilitiesNoCostFromGear: false,
     dealNoDamageExceptCritFromGear: false,
+
+    increasedFireDamageFromGear: 0,
+    increasedColdDamageFromGear: 0,
+
+    maxFireResBonusFromGear: 0,
+    maxColdResBonusFromGear: 0,
+    maxLightningResBonusFromGear: 0,
+    maxAllElementalResBonusFromGear: 0,
+    maxChaosResBonusFromGear: 0,
+
+    damageTakenToManaFirstPercentFromGear: 0,
+
+    lifeRecoveredOnKillPercentFromGear: 0,
+    flatLifeOnKillFromGear: 0,
+    manaOnKillFlatFromGear: 0,
+
+    lifeRecoveredOnBlockPercentFromGear: 0,
+    flatLifeOnBlockFromGear: 0,
+    manaRecoveredOnBlockPercentFromGear: 0,
+    esRecoveredOnBlockPercentFromGear: 0,
+    flatManaOnBlockFromGear: 0,
+    flatEsOnBlockFromGear: 0,
+
+    energyShieldOnHitFromGear: 0,
+    rangedDamageIncPctPer10StrFromGear: 0,
+    manaCostPaidWithLifeFromGear: false,
   }
 }
 
@@ -866,6 +934,52 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.cannotDealCriticalStrikesFromGear) eq.cannotDealCriticalStrikesFromGear = true
   if (p.abilitiesNoCostFromGear) eq.abilitiesNoCostFromGear = true
   if (p.dealNoDamageExceptCritFromGear) eq.dealNoDamageExceptCritFromGear = true
+  if (p.increasedFireDamageFromGear !== undefined) {
+    addNum('increasedFireDamageFromGear', p.increasedFireDamageFromGear)
+  }
+  if (p.increasedColdDamageFromGear !== undefined) {
+    addNum('increasedColdDamageFromGear', p.increasedColdDamageFromGear)
+  }
+  if (p.maxFireResBonusFromGear !== undefined) addNum('maxFireResBonusFromGear', p.maxFireResBonusFromGear)
+  if (p.maxColdResBonusFromGear !== undefined) {
+    addNum('maxColdResBonusFromGear', p.maxColdResBonusFromGear)
+  }
+  if (p.maxLightningResBonusFromGear !== undefined) {
+    addNum('maxLightningResBonusFromGear', p.maxLightningResBonusFromGear)
+  }
+  if (p.maxAllElementalResBonusFromGear !== undefined) {
+    addNum('maxAllElementalResBonusFromGear', p.maxAllElementalResBonusFromGear)
+  }
+  if (p.maxChaosResBonusFromGear !== undefined) {
+    addNum('maxChaosResBonusFromGear', p.maxChaosResBonusFromGear)
+  }
+  if (p.damageTakenToManaFirstPercentFromGear !== undefined) {
+    addNum('damageTakenToManaFirstPercentFromGear', p.damageTakenToManaFirstPercentFromGear)
+  }
+  if (p.lifeRecoveredOnKillPercentFromGear !== undefined) {
+    addNum('lifeRecoveredOnKillPercentFromGear', p.lifeRecoveredOnKillPercentFromGear)
+  }
+  if (p.flatLifeOnKillFromGear !== undefined) addNum('flatLifeOnKillFromGear', p.flatLifeOnKillFromGear)
+  if (p.manaOnKillFlatFromGear !== undefined) addNum('manaOnKillFlatFromGear', p.manaOnKillFlatFromGear)
+  if (p.lifeRecoveredOnBlockPercentFromGear !== undefined) {
+    addNum('lifeRecoveredOnBlockPercentFromGear', p.lifeRecoveredOnBlockPercentFromGear)
+  }
+  if (p.flatLifeOnBlockFromGear !== undefined) addNum('flatLifeOnBlockFromGear', p.flatLifeOnBlockFromGear)
+  if (p.manaRecoveredOnBlockPercentFromGear !== undefined) {
+    addNum('manaRecoveredOnBlockPercentFromGear', p.manaRecoveredOnBlockPercentFromGear)
+  }
+  if (p.esRecoveredOnBlockPercentFromGear !== undefined) {
+    addNum('esRecoveredOnBlockPercentFromGear', p.esRecoveredOnBlockPercentFromGear)
+  }
+  if (p.flatManaOnBlockFromGear !== undefined) addNum('flatManaOnBlockFromGear', p.flatManaOnBlockFromGear)
+  if (p.flatEsOnBlockFromGear !== undefined) addNum('flatEsOnBlockFromGear', p.flatEsOnBlockFromGear)
+  if (p.energyShieldOnHitFromGear !== undefined) {
+    addNum('energyShieldOnHitFromGear', p.energyShieldOnHitFromGear)
+  }
+  if (p.rangedDamageIncPctPer10StrFromGear !== undefined) {
+    addNum('rangedDamageIncPctPer10StrFromGear', p.rangedDamageIncPctPer10StrFromGear)
+  }
+  if (p.manaCostPaidWithLifeFromGear) eq.manaCostPaidWithLifeFromGear = true
 }
 
 function scaleHitDamageRowsOfType(
@@ -1155,13 +1269,20 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     eq.pctToAllElementalResFromGear
   const resistAllFlat = allEleBonus + eq.pctToAllResistancesFromGear
 
-  // Chieftain class bonus: +5% to maximum fire resistance
-  const maxFireRes    = bonus('chieftain') ? 80 : 75
-  const fireRes       = Math.min(maxFireRes, resistAllFlat + eq.pctFireResFromGear)
-  const coldRes       = Math.min(75, resistAllFlat + eq.pctColdResFromGear)
-  const lightningRes  = Math.min(75, resistAllFlat + eq.pctLightningResFromGear)
-  const chaosRes      = Math.min(
-    75,
+  // Chieftain class bonus: +5% to maximum fire resistance; gear can raise elemental/chaos caps.
+  const allEleCap = eq.maxAllElementalResBonusFromGear
+  const maxFireRes = Math.min(
+    90,
+    (bonus('chieftain') ? 80 : 75) + eq.maxFireResBonusFromGear + allEleCap
+  )
+  const maxColdRes = Math.min(90, 75 + eq.maxColdResBonusFromGear + allEleCap)
+  const maxLightningRes = Math.min(90, 75 + eq.maxLightningResBonusFromGear + allEleCap)
+  const maxChaosRes = Math.min(90, 75 + eq.maxChaosResBonusFromGear)
+  const fireRes = Math.min(maxFireRes, resistAllFlat + eq.pctFireResFromGear)
+  const coldRes = Math.min(maxColdRes, resistAllFlat + eq.pctColdResFromGear)
+  const lightningRes = Math.min(maxLightningRes, resistAllFlat + eq.pctLightningResFromGear)
+  const chaosRes = Math.min(
+    maxChaosRes,
     u('increasedChaosResistance') + resistAllFlat + eq.pctChaosResFromGear
   )
 
@@ -1296,8 +1417,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const meleeDmgFromStr    = str / 10                        // 1% increased melee damage per 10 str
   const spellDmgFromInt    = int_ / 10                       // 1% increased spell damage per 10 int
 
+  const rangedAttackDmgFromGear =
+    weaponTag === 'bow' || weaponTag === 'hand_crossbow'
+      ? (str / 10) * eq.rangedDamageIncPctPer10StrFromGear
+      : 0
   const increasedMeleeDamage    = u('increasedMeleeDamage')    + meleeDmgFromStr + eq.increasedMeleeDamageFromGear
-  const increasedAttackDamage   = u('increasedAttackDamage') + eq.increasedAttackDamageFromGear
+  const increasedAttackDamage   =
+    u('increasedAttackDamage') + eq.increasedAttackDamageFromGear + rangedAttackDmgFromGear
   const increasedSpellDamage    = u('increasedSpellDamage')    + spellDmgFromInt + eq.increasedSpellDamageFromGear
   const increasedElementalDamage =
     u('increasedElementalDamage')
@@ -1333,6 +1459,20 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   if (eq.increasedChaosDamageFromGear !== 0) {
     const cf = 1 + eq.increasedChaosDamageFromGear / 100
     hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'chaos', cf)
+    hitSum = sumHitDamageRange(hitDamageByType)
+    hitDamageMin = hitSum.min
+    hitDamageMax = hitSum.max
+  }
+  if (eq.increasedFireDamageFromGear !== 0) {
+    const ff = 1 + eq.increasedFireDamageFromGear / 100
+    hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'fire', ff)
+    hitSum = sumHitDamageRange(hitDamageByType)
+    hitDamageMin = hitSum.min
+    hitDamageMax = hitSum.max
+  }
+  if (eq.increasedColdDamageFromGear !== 0) {
+    const kf = 1 + eq.increasedColdDamageFromGear / 100
+    hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'cold', kf)
     hitSum = sumHitDamageRange(hitDamageByType)
     hitDamageMin = hitSum.min
     hitDamageMax = hitSum.max
@@ -1690,6 +1830,19 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const chillInflictEffectMult = eq.chillInflictEffectMultFromGear
   const dealNoDamageExceptCrit = eq.dealNoDamageExceptCritFromGear
 
+  const damageTakenToManaFirstPercent = eq.damageTakenToManaFirstPercentFromGear
+  const lifeRecoveredOnKillPercent = eq.lifeRecoveredOnKillPercentFromGear
+  const flatLifeOnKill = eq.flatLifeOnKillFromGear
+  const flatManaOnKill = eq.manaOnKillFlatFromGear
+  const lifeRecoveredOnBlockPercent = eq.lifeRecoveredOnBlockPercentFromGear
+  const flatLifeOnBlock = eq.flatLifeOnBlockFromGear
+  const manaRecoveredOnBlockPercent = eq.manaRecoveredOnBlockPercentFromGear
+  const esRecoveredOnBlockPercent = eq.esRecoveredOnBlockPercentFromGear
+  const flatManaOnBlock = eq.flatManaOnBlockFromGear
+  const flatEsOnBlock = eq.flatEsOnBlockFromGear
+  const energyShieldOnHit = eq.energyShieldOnHitFromGear
+  const manaCostPaidWithLife = eq.manaCostPaidWithLifeFromGear
+
   // -------------------------------------------------------------------------
   // Return
   // -------------------------------------------------------------------------
@@ -1716,6 +1869,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     lightningRes,
     chaosRes,
     maxFireRes,
+    maxColdRes,
+    maxLightningRes,
+    maxChaosRes,
 
     // Offense
     hitDamageMin,
@@ -1784,6 +1940,18 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     nonDamagingAilmentEffectIncreasedPercent,
     chillInflictEffectMult,
     dealNoDamageExceptCrit,
+    damageTakenToManaFirstPercent,
+    lifeRecoveredOnKillPercent,
+    flatLifeOnKill,
+    flatManaOnKill,
+    lifeRecoveredOnBlockPercent,
+    flatLifeOnBlock,
+    manaRecoveredOnBlockPercent,
+    esRecoveredOnBlockPercent,
+    flatManaOnBlock,
+    flatEsOnBlock,
+    energyShieldOnHit,
+    manaCostPaidWithLife,
     manaShieldActive,
     chaosNotBypassES,
     armorVsElementalMultiplier,
