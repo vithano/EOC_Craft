@@ -240,6 +240,28 @@ export interface EquipmentModifiers {
 
   cannotInflictElementalAilmentsFromGear: boolean
   hitsTakenCannotBeCriticalFromGear: boolean
+
+  /** Multiplicative on hit damage dealt (standalone “% less damage” on gear). */
+  damageDealtLessMultFromGear: number
+  lifeMoreMultFromGear: number
+  defencesLessMultFromGear: number
+  manaCostIncreasePercentFromGear: number
+  pctIncreasedManaRegenFromGear: number
+  pctIncreasedLifeRecoveryFromGear: number
+  doubleDamageChanceFromSpellsFromGear: number
+  maxBlockChanceBonusFromGear: number
+
+  physicalTakenAsChaosPercentFromGear: number
+  elementalTakenAsChaosPercentFromGear: number
+  physicalTakenAsFirePercentFromGear: number
+  physicalTakenAsColdPercentFromGear: number
+  physicalTakenAsLightningPercentFromGear: number
+
+  nonDamagingAilmentEffectIncreasedFromGear: number
+  chillInflictEffectMultFromGear: number
+
+  abilitiesNoCostFromGear: boolean
+  dealNoDamageExceptCritFromGear: boolean
 }
 
 export interface ComputedBuildStats {
@@ -335,6 +357,22 @@ export interface ComputedBuildStats {
   elementalPenetrationPercent: number
   cannotInflictElementalAilments: boolean
   hitsTakenCannotBeCritical: boolean
+  /** Multiplier on damage you deal (gear “% less damage”). */
+  damageDealtLessMult: number
+  /** Scales in-combat life regen % and life leech from hits. */
+  lifeRecoveryRateMult: number
+  /** Portions of enemy physical hit converted before ES/life (0–100 each, summed then clamped). */
+  physicalDamageTakenAsChaosPercent: number
+  physicalDamageTakenAsFirePercent: number
+  physicalDamageTakenAsColdPercent: number
+  physicalDamageTakenAsLightningPercent: number
+  elementalDamageTakenAsChaosPercent: number
+  /** % increased shock/chill effect you inflict (demo). */
+  nonDamagingAilmentEffectIncreasedPercent: number
+  chillInflictEffectMult: number
+  /** Non-crit attacks deal no damage. */
+  dealNoDamageExceptCrit: boolean
+
   manaShieldActive: boolean           // Druid: 25% of damage taken to mana above 50%
   chaosNotBypassES: boolean           // Arcanist bonus
   armorVsElementalMultiplier: number  // 0.5 base; 1.0 with Juggernaut
@@ -491,6 +529,27 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
 
     cannotInflictElementalAilmentsFromGear: false,
     hitsTakenCannotBeCriticalFromGear: false,
+
+    damageDealtLessMultFromGear: 1,
+    lifeMoreMultFromGear: 1,
+    defencesLessMultFromGear: 1,
+    manaCostIncreasePercentFromGear: 0,
+    pctIncreasedManaRegenFromGear: 0,
+    pctIncreasedLifeRecoveryFromGear: 0,
+    doubleDamageChanceFromSpellsFromGear: 0,
+    maxBlockChanceBonusFromGear: 0,
+
+    physicalTakenAsChaosPercentFromGear: 0,
+    elementalTakenAsChaosPercentFromGear: 0,
+    physicalTakenAsFirePercentFromGear: 0,
+    physicalTakenAsColdPercentFromGear: 0,
+    physicalTakenAsLightningPercentFromGear: 0,
+
+    nonDamagingAilmentEffectIncreasedFromGear: 0,
+    chillInflictEffectMultFromGear: 1,
+
+    abilitiesNoCostFromGear: false,
+    dealNoDamageExceptCritFromGear: false,
   }
 }
 
@@ -756,10 +815,57 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.evasionMoreMultFromGear !== undefined) {
     eq.evasionMoreMultFromGear *= p.evasionMoreMultFromGear
   }
+  if (p.damageDealtLessMultFromGear !== undefined) {
+    eq.damageDealtLessMultFromGear *= p.damageDealtLessMultFromGear
+  }
+  if (p.lifeMoreMultFromGear !== undefined) {
+    eq.lifeMoreMultFromGear *= p.lifeMoreMultFromGear
+  }
+  if (p.defencesLessMultFromGear !== undefined) {
+    eq.defencesLessMultFromGear *= p.defencesLessMultFromGear
+  }
+  if (p.manaCostIncreasePercentFromGear !== undefined) {
+    addNum('manaCostIncreasePercentFromGear', p.manaCostIncreasePercentFromGear)
+  }
+  if (p.pctIncreasedManaRegenFromGear !== undefined) {
+    addNum('pctIncreasedManaRegenFromGear', p.pctIncreasedManaRegenFromGear)
+  }
+  if (p.pctIncreasedLifeRecoveryFromGear !== undefined) {
+    addNum('pctIncreasedLifeRecoveryFromGear', p.pctIncreasedLifeRecoveryFromGear)
+  }
+  if (p.doubleDamageChanceFromSpellsFromGear !== undefined) {
+    addNum('doubleDamageChanceFromSpellsFromGear', p.doubleDamageChanceFromSpellsFromGear)
+  }
+  if (p.maxBlockChanceBonusFromGear !== undefined) {
+    addNum('maxBlockChanceBonusFromGear', p.maxBlockChanceBonusFromGear)
+  }
+  if (p.physicalTakenAsChaosPercentFromGear !== undefined) {
+    addNum('physicalTakenAsChaosPercentFromGear', p.physicalTakenAsChaosPercentFromGear)
+  }
+  if (p.elementalTakenAsChaosPercentFromGear !== undefined) {
+    addNum('elementalTakenAsChaosPercentFromGear', p.elementalTakenAsChaosPercentFromGear)
+  }
+  if (p.physicalTakenAsFirePercentFromGear !== undefined) {
+    addNum('physicalTakenAsFirePercentFromGear', p.physicalTakenAsFirePercentFromGear)
+  }
+  if (p.physicalTakenAsColdPercentFromGear !== undefined) {
+    addNum('physicalTakenAsColdPercentFromGear', p.physicalTakenAsColdPercentFromGear)
+  }
+  if (p.physicalTakenAsLightningPercentFromGear !== undefined) {
+    addNum('physicalTakenAsLightningPercentFromGear', p.physicalTakenAsLightningPercentFromGear)
+  }
+  if (p.nonDamagingAilmentEffectIncreasedFromGear !== undefined) {
+    addNum('nonDamagingAilmentEffectIncreasedFromGear', p.nonDamagingAilmentEffectIncreasedFromGear)
+  }
+  if (p.chillInflictEffectMultFromGear !== undefined) {
+    eq.chillInflictEffectMultFromGear *= p.chillInflictEffectMultFromGear
+  }
   if (p.cannotInflictElementalAilmentsFromGear) eq.cannotInflictElementalAilmentsFromGear = true
   if (p.hitsTakenCannotBeCriticalFromGear) eq.hitsTakenCannotBeCriticalFromGear = true
   if (p.hitsCannotBeEvadedFromGear) eq.hitsCannotBeEvadedFromGear = true
   if (p.cannotDealCriticalStrikesFromGear) eq.cannotDealCriticalStrikesFromGear = true
+  if (p.abilitiesNoCostFromGear) eq.abilitiesNoCostFromGear = true
+  if (p.dealNoDamageExceptCritFromGear) eq.dealNoDamageExceptCritFromGear = true
 }
 
 function scaleHitDamageRowsOfType(
@@ -961,6 +1067,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const lifeBeforeMultiplier = baseLife + (bonus('warrior') ? 100 : 0) + eq.flatLife
   const totalIncreasedLife   = u('increasedLife') + eq.pctIncreasedLifeFromGear
   let maxLife = Math.round(lifeBeforeMultiplier * (1 + totalIncreasedLife / 100))
+  if (!bonus('occultist')) maxLife = Math.round(maxLife * eq.lifeMoreMultFromGear)
 
   // Occultist class bonus: maximum life = 1
   if (bonus('occultist')) maxLife = 1
@@ -1004,6 +1111,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     eq.flatArmor
     * (1 + totalIncreasedArmor / 100)
     * (1 + defFromDex)
+    * eq.defencesLessMultFromGear
   )
 
   // -------------------------------------------------------------------------
@@ -1020,13 +1128,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     * (1 + totalIncreasedEvasion / 100)
     * (1 + defFromDex)
     * eq.evasionMoreMultFromGear
+    * eq.defencesLessMultFromGear
   )
 
   // -------------------------------------------------------------------------
   // 12. Block and dodge
   // -------------------------------------------------------------------------
   // Dragoon class bonus: +25% to maximum block chance (75 → 100)
-  const maxBlockChance = bonus('dragoon') ? 100 : 75
+  const maxBlockChance = (bonus('dragoon') ? 100 : 75) + eq.maxBlockChanceBonusFromGear
   const blockChance = Math.min(maxBlockChance, u('increasedChanceToBlock') + eq.blockChanceFromGear)
   const maxDodgeCap = 75 + eq.maxDodgeChanceBonusFromGear
   const dodgeChance = Math.min(
@@ -1166,7 +1275,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   let manaCostPerAttack =
     BASE_GAME_STATS.baseManaPerAttack *
     (bonus('sorcerer') ? 0.90 : 1.0) *
-    Math.max(0.2, 1 - eq.manaCostReductionFromGear / 100)
+    Math.max(0.2, 1 - eq.manaCostReductionFromGear / 100) *
+    (1 + eq.manaCostIncreasePercentFromGear / 100)
 
   // -------------------------------------------------------------------------
   // 19. Mana regeneration
@@ -1176,8 +1286,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // Druid class bonus: regenerate an additional 2% of max mana per second
   const druidRegenBonus = bonus('druid') ? maxMana * 0.02 : 0
   const manaRegenPerSecond =
-    (baseManaRegen + druidRegenBonus) * (1 + u('increasedManaRegeneration') / 100)
-    + maxMana * (eq.manaRegenPercentOfMaxManaPerSecondFromGear / 100)
+    ((baseManaRegen + druidRegenBonus) * (1 + u('increasedManaRegeneration') / 100)
+      + maxMana * (eq.manaRegenPercentOfMaxManaPerSecondFromGear / 100))
+    * (1 + eq.pctIncreasedManaRegenFromGear / 100)
 
   // -------------------------------------------------------------------------
   // 20. Damage modifiers
@@ -1425,6 +1536,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     * lifeRecoveryFromHunter
     * lifeRecoveryFromAcolyte
     * (1 + u('increasedLifeRecovery') / 100)
+    * (1 + eq.pctIncreasedLifeRecoveryFromGear / 100)
 
   // Arcanist class bonus: 50% increased post-encounter ES recovery
   const esRecoveryPct = BASE_GAME_STATS.baseEsRecoveryAfterEncounterPct
@@ -1464,15 +1576,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 24. Combat modifier flags
   // -------------------------------------------------------------------------
-  // Barbarian class bonus: +10% chance to deal double damage with attacks
-  // Destroyer class bonus: +25% chance to deal double damage with attacks
-  const doubleDamageChance = Math.min(
-    100,
-    (bonus('barbarian') ? 10 : 0) +
-      (bonus('destroyer') ? 25 : 0) +
-      eq.doubleDamageChanceFromGear +
-      attunementFlatDoubleChance
-  )
   const tripleDamageChance = Math.min(100, eq.tripleDamageChanceFromGear)
 
   // Barbarian class bonus: hits ignore 50% of enemy armor
@@ -1517,6 +1620,15 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // 26. Strikes per attack (gear + melee/ranged abilities; spells use 1 in demo combat)
   // -------------------------------------------------------------------------
   const spellCombat = abilityContribution?.type === 'Spells'
+  // Barbarian / Destroyer / gear double damage; spell-only double when a spell is selected.
+  const doubleDamageChance = Math.min(
+    100,
+    (bonus('barbarian') ? 10 : 0) +
+      (bonus('destroyer') ? 25 : 0) +
+      eq.doubleDamageChanceFromGear +
+      attunementFlatDoubleChance +
+      (spellCombat ? eq.doubleDamageChanceFromSpellsFromGear : 0)
+  )
   let strikesPerAttack = 1
   if (!spellCombat) {
     const aid = config.ability?.abilityId
@@ -1564,6 +1676,19 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const elementalPenetrationPercent = eq.elementalPenetrationFromGear
   const cannotInflictElementalAilments = eq.cannotInflictElementalAilmentsFromGear
   const hitsTakenCannotBeCritical = eq.hitsTakenCannotBeCriticalFromGear
+
+  if (eq.abilitiesNoCostFromGear) manaCostPerAttack = 0
+
+  const damageDealtLessMult = eq.damageDealtLessMultFromGear
+  const lifeRecoveryRateMult = 1 + eq.pctIncreasedLifeRecoveryFromGear / 100
+  const physicalDamageTakenAsChaosPercent = eq.physicalTakenAsChaosPercentFromGear
+  const physicalDamageTakenAsFirePercent = eq.physicalTakenAsFirePercentFromGear
+  const physicalDamageTakenAsColdPercent = eq.physicalTakenAsColdPercentFromGear
+  const physicalDamageTakenAsLightningPercent = eq.physicalTakenAsLightningPercentFromGear
+  const elementalDamageTakenAsChaosPercent = eq.elementalTakenAsChaosPercentFromGear
+  const nonDamagingAilmentEffectIncreasedPercent = eq.nonDamagingAilmentEffectIncreasedFromGear
+  const chillInflictEffectMult = eq.chillInflictEffectMultFromGear
+  const dealNoDamageExceptCrit = eq.dealNoDamageExceptCritFromGear
 
   // -------------------------------------------------------------------------
   // Return
@@ -1649,6 +1774,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     damageTakenMultiplierFromGear,
     cannotInflictElementalAilments,
     hitsTakenCannotBeCritical,
+    damageDealtLessMult,
+    lifeRecoveryRateMult,
+    physicalDamageTakenAsChaosPercent,
+    physicalDamageTakenAsFirePercent,
+    physicalDamageTakenAsColdPercent,
+    physicalDamageTakenAsLightningPercent,
+    elementalDamageTakenAsChaosPercent,
+    nonDamagingAilmentEffectIncreasedPercent,
+    chillInflictEffectMult,
+    dealNoDamageExceptCrit,
     manaShieldActive,
     chaosNotBypassES,
     armorVsElementalMultiplier,

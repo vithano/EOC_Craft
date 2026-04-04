@@ -196,6 +196,39 @@ function championDamageReductionFrac(stats: ComputedBuildStats, life: number): n
   return Math.floor(missingPct / 4) * 0.01
 }
 
+/** Demo: split physical hit after armour into elemental/chaos portions using player resists. */
+function mitigatedPhysicalDamageAfterConversion(
+  stats: ComputedBuildStats,
+  afterArmourPhysical: number
+): number {
+  let d = Math.max(0, afterArmourPhysical)
+  if (d <= 0) return 0
+
+  let pChaos = Math.min(100, stats.physicalDamageTakenAsChaosPercent ?? 0)
+  let pFire = Math.min(100, stats.physicalDamageTakenAsFirePercent ?? 0)
+  let pCold = Math.min(100, stats.physicalDamageTakenAsColdPercent ?? 0)
+  let pLight = Math.min(100, stats.physicalDamageTakenAsLightningPercent ?? 0)
+  const sum = pChaos + pFire + pCold + pLight
+  const scale = sum > 100 && sum > 0 ? 100 / sum : 1
+  pChaos *= scale
+  pFire *= scale
+  pCold *= scale
+  pLight *= scale
+
+  const c = d * (pChaos / 100)
+  const f = d * (pFire / 100)
+  const co = d * (pCold / 100)
+  const l = d * (pLight / 100)
+  const physRem = Math.max(0, d - c - f - co - l)
+
+  const resCap = (r: number) => Math.max(0, Math.min(0.9, r / 100))
+  const chaosMitigated = c * (1 - resCap(stats.chaosRes))
+  const fireMitigated = f * (1 - resCap(stats.fireRes))
+  const coldMitigated = co * (1 - resCap(stats.coldRes))
+  const lightMitigated = l * (1 - resCap(stats.lightningRes))
+  return physRem + chaosMitigated + fireMitigated + coldMitigated + lightMitigated
+}
+
 function applyDamageToPools(
   state: BattleParticipantState,
   rawAfterArmour: number,
@@ -248,9 +281,11 @@ function resolvePlayerAttack(
     let base = rollDamage(stats.hitDamageMin, stats.hitDamageMax, zealot)
     if (blocked) base *= DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
 
+    let isCrit = false
     if (!blocked) {
       if (Math.random() * 100 < stats.critChance) {
         base *= stats.critMultiplier
+        isCrit = true
       }
 
       const tChance = stats.tripleDamageChance ?? 0
@@ -263,8 +298,11 @@ function resolvePlayerAttack(
       } else if (Math.random() * 100 < stats.doubleDamageChance) {
         base *= 2
       }
+
+      if (stats.dealNoDamageExceptCrit && !isCrit) base = 0
     }
 
+    base *= stats.damageDealtLessMult ?? 1
     base *= 1 + outgoingPlayerIncreasedDamageFrac(stats)
     const frac = enemyLife / Math.max(1, enemy.maxLife)
     base *= enemyDamageTakenMultiplier(stats, frac)
@@ -360,6 +398,8 @@ function applyPlayerAilmentsOnHit(
 
   const gen = stats.elementalAilmentChance
   const noEle = stats.cannotInflictElementalAilments
+  const ndMult = 1 + (stats.nonDamagingAilmentEffectIncreasedPercent ?? 0) / 100
+  const chillOutMult = stats.chillInflictEffectMult ?? 1
 
   if (!noEle && portions.fire > 0.01) {
     const pIgn = Math.min(100, gen + stats.igniteInflictChanceBonus)
@@ -380,7 +420,7 @@ function applyPlayerAilmentsOnHit(
     const pShock = Math.min(100, gen + stats.shockInflictChanceBonus)
     if (Math.random() * 100 < pShock) {
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.lightning, enemyMaxLife, 0)
-      const shock = Math.min(50, Math.max(5, effectPct * 1.15))
+      const shock = Math.min(50, Math.max(5, effectPct * 1.15 * ndMult))
       const dur = BASE_SHOCK_CHILL_SEC * durMult
       state.shockMorePct = Math.max(state.shockMorePct, shock)
       state.shockUntil = Math.max(state.shockUntil, t + dur)
@@ -395,7 +435,7 @@ function applyPlayerAilmentsOnHit(
     const pChill = Math.min(100, gen + stats.chillInflictChanceBonus)
     if (Math.random() * 100 < pChill) {
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.cold, enemyMaxLife, 0)
-      const chillPct = Math.min(30, Math.max(5, effectPct * 0.85))
+      const chillPct = Math.min(30, Math.max(5, effectPct * 0.85 * ndMult * chillOutMult))
       const dur = BASE_SHOCK_CHILL_SEC * durMult
       const mult = 1 - chillPct / 100
       state.chillActionMult =
@@ -483,6 +523,7 @@ function resolveEnemyAttack(
   // Demo enemy uses physical hits only → full armor effectiveness (not elemental multiplier).
   const red = computeDamageReductionPercentFromArmour(stats.armor, afterPath, 0, 90)
   const afterArmour = afterPath * (1 - red / 100)
+  const afterConversion = mitigatedPhysicalDamageAfterConversion(stats, afterArmour)
 
   const prevented = Math.max(0, afterPath - afterArmour)
   if (blocked && stats.classBonusesActive.includes('templar')) {
@@ -496,7 +537,7 @@ function resolveEnemyAttack(
     if (playerState.life > stats.maxLife) playerState.life = stats.maxLife
   }
 
-  const dealt = applyDamageToPools(playerState, afterArmour, stats, stats.maxMana)
+  const dealt = applyDamageToPools(playerState, afterConversion, stats, stats.maxMana)
 
   return {
     damageToDisplay: dealt,
@@ -621,11 +662,12 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         enemyLife -= damage
         if (damage > 0) {
           hitsPlayer++
+          const rec = stats.lifeRecoveryRateMult ?? 1
           const gainOnHit =
             (stats.lifeOnHit ?? 0)
-            + damage * ((stats.lifeLeechFromHitDamagePercent ?? 0) / 100)
-            + damagePortionsFromHit(stats, damage).physical
-              * ((stats.lifeLeechFromPhysicalHitPercent ?? 0) / 100)
+            + (damage * ((stats.lifeLeechFromHitDamagePercent ?? 0) / 100)
+              + damagePortionsFromHit(stats, damage).physical
+                * ((stats.lifeLeechFromPhysicalHitPercent ?? 0) / 100)) * rec
           if (gainOnHit !== 0) {
             player.life = Math.min(
               stats.maxLife,
@@ -684,9 +726,10 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     player.mana = Math.min(stats.maxMana, player.mana + stats.manaRegenPerSecond * dt)
     const lifeRegenPct = stats.lifeRegenPercentOfMaxPerSecond ?? 0
     if (lifeRegenPct > 0 && player.life > 0) {
+      const rec = stats.lifeRecoveryRateMult ?? 1
       player.life = Math.min(
         stats.maxLife,
-        player.life + stats.maxLife * (lifeRegenPct / 100) * dt
+        player.life + stats.maxLife * (lifeRegenPct / 100) * dt * rec
       )
     }
     const esRegenPct = stats.esRegenPercentOfMaxPerSecond ?? 0

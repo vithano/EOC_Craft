@@ -256,5 +256,34 @@ function normalizeEquipment(
       Number(z.evasionMoreMultFromGear) > 0 ? Number(z.evasionMoreMultFromGear) : d.evasionMoreMultFromGear,
     cannotInflictElementalAilmentsFromGear: Boolean(z.cannotInflictElementalAilmentsFromGear),
     hitsTakenCannotBeCriticalFromGear: Boolean(z.hitsTakenCannotBeCriticalFromGear),
+
+    damageDealtLessMultFromGear:
+      Number(z.damageDealtLessMultFromGear) > 0
+        ? Number(z.damageDealtLessMultFromGear)
+        : d.damageDealtLessMultFromGear,
+    lifeMoreMultFromGear:
+      Number(z.lifeMoreMultFromGear) > 0 ? Number(z.lifeMoreMultFromGear) : d.lifeMoreMultFromGear,
+    defencesLessMultFromGear:
+      Number(z.defencesLessMultFromGear) > 0
+        ? Number(z.defencesLessMultFromGear)
+        : d.defencesLessMultFromGear,
+    manaCostIncreasePercentFromGear: Number(z.manaCostIncreasePercentFromGear) || 0,
+    pctIncreasedManaRegenFromGear: Number(z.pctIncreasedManaRegenFromGear) || 0,
+    pctIncreasedLifeRecoveryFromGear: Number(z.pctIncreasedLifeRecoveryFromGear) || 0,
+    doubleDamageChanceFromSpellsFromGear: Number(z.doubleDamageChanceFromSpellsFromGear) || 0,
+    maxBlockChanceBonusFromGear: Number(z.maxBlockChanceBonusFromGear) || 0,
+    physicalTakenAsChaosPercentFromGear: Number(z.physicalTakenAsChaosPercentFromGear) || 0,
+    elementalTakenAsChaosPercentFromGear: Number(z.elementalTakenAsChaosPercentFromGear) || 0,
+    physicalTakenAsFirePercentFromGear: Number(z.physicalTakenAsFirePercentFromGear) || 0,
+    physicalTakenAsColdPercentFromGear: Number(z.physicalTakenAsColdPercentFromGear) || 0,
+    physicalTakenAsLightningPercentFromGear: Number(z.physicalTakenAsLightningPercentFromGear) || 0,
+    nonDamagingAilmentEffectIncreasedFromGear:
+      Number(z.nonDamagingAilmentEffectIncreasedFromGear) || 0,
+    chillInflictEffectMultFromGear:
+      Number(z.chillInflictEffectMultFromGear) > 0
+        ? Number(z.chillInflictEffectMultFromGear)
+        : d.chillInflictEffectMultFromGear,
+    abilitiesNoCostFromGear: Boolean(z.abilitiesNoCostFromGear),
+    dealNoDamageExceptCritFromGear: Boolean(z.dealNoDamageExceptCritFromGear),
   };
 }

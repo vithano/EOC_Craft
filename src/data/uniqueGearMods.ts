@@ -155,6 +155,38 @@ export interface UniqueGearStatPatch {
 
   cannotInflictElementalAilmentsFromGear?: boolean;
   hitsTakenCannotBeCriticalFromGear?: boolean;
+
+  /** Standalone “X% less damage” — reduces damage you deal (not damage taken). */
+  damageDealtLessMultFromGear?: number;
+  /** Multiplicative “X% more life” on maximum life. */
+  lifeMoreMultFromGear?: number;
+  /** Multiplicative on final armour + evasion (e.g. 50% less defences). */
+  defencesLessMultFromGear?: number;
+  /** Added: mana cost × (1 + sum/100) after reduction. */
+  manaCostIncreasePercentFromGear?: number;
+  /** Multiplies base mana regen (with upgrade %). */
+  pctIncreasedManaRegenFromGear?: number;
+  /** Applies to in-combat life regen % and life leech from hits (demo). */
+  pctIncreasedLifeRecoveryFromGear?: number;
+  /** Double damage chance when the selected ability is a spell. */
+  doubleDamageChanceFromSpellsFromGear?: number;
+  /** Added to max block chance cap (75 or 100 with Dragoon). */
+  maxBlockChanceBonusFromGear?: number;
+
+  physicalTakenAsChaosPercentFromGear?: number;
+  elementalTakenAsChaosPercentFromGear?: number;
+  physicalTakenAsFirePercentFromGear?: number;
+  physicalTakenAsColdPercentFromGear?: number;
+  physicalTakenAsLightningPercentFromGear?: number;
+
+  /** % increased effect of shock/chill you inflict (demo ailments). */
+  nonDamagingAilmentEffectIncreasedFromGear?: number;
+  /** Multiplier on chill magnitude you inflict (1 = normal; 0.5 = 50% less effect). */
+  chillInflictEffectMultFromGear?: number;
+
+  abilitiesNoCostFromGear?: boolean;
+  /** Non-crit hits deal no damage (Broken Legacy-style). */
+  dealNoDamageExceptCritFromGear?: boolean;
 }
 
 function num(m: RegExpMatchArray | null, g = 1): number | null {
@@ -180,6 +212,13 @@ function pctFromParenOrSingle(m: RegExpMatchArray): number {
   return 0;
 }
 
+function normalizeUniqueRollText(raw: string): string {
+  return raw
+    .trim()
+    .replace(/\(([\d.,-]+)\s*-\s*([\d.,-]+)\)/g, "($1 to $2)")
+    .replace(/\badds\s*\(/gi, "adds (");
+}
+
 /**
  * Best-effort mapping of resolved unique mod text (innate + rolled lines) into planner stats.
  * Many conditional or build-specific mods are intentionally ignored.
@@ -198,6 +237,10 @@ export function equipmentModifiersFromUniqueTexts(
   let dmgTakenLessMult = 1;
   let dmgTakenMoreMult = 1;
   let evaMoreMult = 1;
+  let dmgDealtLessMult = 1;
+  let lifeMoreMult = 1;
+  let defencesLessMult = 1;
+  let chillInflictEffectMult = 1;
 
   const add = (patch: UniqueGearStatPatch) => {
     for (const [k, v] of Object.entries(patch)) {
@@ -213,7 +256,7 @@ export function equipmentModifiersFromUniqueTexts(
   };
 
   for (const raw of texts) {
-    const l = raw.trim();
+    const l = normalizeUniqueRollText(raw);
     if (!l) continue;
 
     let m: RegExpMatchArray | null;
@@ -221,6 +264,13 @@ export function equipmentModifiersFromUniqueTexts(
     const low = l.toLowerCase();
     if (/\byour\s+hits\s+cannot\s+be\s+evaded\b/i.test(l)) acc.hitsCannotBeEvadedFromGear = true;
     if (/\byou\s+cannot\s+deal\s+critical\s+hits\b/i.test(low)) acc.cannotDealCriticalStrikesFromGear = true;
+    if (/\babilities\s+have\s+no\s+cost\b/i.test(low)) acc.abilitiesNoCostFromGear = true;
+    if (/\bdeal\s+no\s+damage\s+with\s+non[- ]?critical\s+hits\b/i.test(low)) {
+      acc.dealNoDamageExceptCritFromGear = true;
+    }
+
+    m = l.match(/^([\d.]+)%\s+less\s+damage\s*$/i);
+    if (m) dmgDealtLessMult *= Math.max(0.05, 1 - num(m)! / 100);
 
     m = l.match(/gain\s+(\d+)\s+life\s+on\s+hit\b/i);
     if (m) add({ lifeOnHitFromGear: num(m)! });
@@ -229,12 +279,14 @@ export function equipmentModifiersFromUniqueTexts(
     if (m) add({ lifeOnHitFromGear: -num(m)! });
 
     m = l.match(
-      /leech\s+([\d.]+)%\s+of\s+physical\s+hit\s+damage\s+from\s+attacks\s+as\s+life\b/i
+      /leech\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+hit\s+damage\s+from\s+attacks\s+as\s+life\b/i
     );
-    if (m) add({ lifeLeechFromPhysicalHitPercentFromGear: num(m)! });
+    if (m) add({ lifeLeechFromHitDamagePercentFromGear: pctFromParenOrSingle(m) });
 
-    m = l.match(/leech\s+([\d.]+)%\s+of\s+hit\s+damage\s+from\s+attacks\s+as\s+life\b/i);
-    if (m) add({ lifeLeechFromHitDamagePercentFromGear: num(m)! });
+    m = l.match(
+      /leech\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+physical\s+hit\s+damage\s+from\s+attacks\s+as\s+life\b/i
+    );
+    if (m) add({ lifeLeechFromPhysicalHitPercentFromGear: pctFromParenOrSingle(m) });
 
     m = l.match(
       /convert\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+your\s+physical\s+damage\s+(?:to|into)\s+fire\s+damage\b/i
@@ -299,23 +351,29 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/([\d.]+)%\s+less\s+accuracy\s+rating\b/i);
     if (m) accLessMult *= Math.max(0.05, 1 - num(m)! / 100);
 
-    m = l.match(/([\d.]+)%\s+less\s+cast\s+speed\b/i);
-    if (m) castSpdLessMult *= Math.max(0.05, 1 - num(m)! / 100);
+    m = l.match(
+      /(?:\(([\d.-]+)\s+to\s+([\d.-]+)\)|([\d.-]+))%\s+less\s+cast\s+speed\b/i
+    );
+    if (m) {
+      const p = Math.abs(pctFromParenOrSingle(m));
+      castSpdLessMult *= Math.max(0.05, 1 - p / 100);
+    }
 
     m = l.match(/([\d.]+)%\s+more\s+evasion\s+rating\b/i);
     if (m) evaMoreMult *= 1 + num(m)! / 100;
 
-    m = l.match(/^([\d.]+)%\s+less\s+damage\s*$/i);
-    if (m) dmgTakenLessMult *= Math.max(0.05, 1 - num(m)! / 100);
+    m = l.match(
+      /take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+increased\s+damage(?!\s+while)\b/i
+    );
+    if (m) dmgTakenMoreMult *= 1 + pctFromParenOrSingle(m) / 100;
 
-    m = l.match(/take\s+([\d.]+)%\s+increased\s+damage\b/i);
-    if (m) dmgTakenMoreMult *= 1 + num(m)! / 100;
+    m = l.match(/take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+reduced\s+damage\b/i);
+    if (m) dmgTakenMoreMult *= Math.max(0.05, 1 - pctFromParenOrSingle(m) / 100);
 
-    m = l.match(/take\s+([\d.]+)%\s+reduced\s+damage\b/i);
-    if (m) dmgTakenMoreMult *= Math.max(0.05, 1 - num(m)! / 100);
-
-    m = l.match(/enemies\s+take\s+([\d.]+)%\s+increased\s+damage\b/i);
-    if (m) add({ enemyDamageTakenIncreasedFromGear: num(m)! });
+    m = l.match(
+      /enemies\s+take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+increased\s+damage\b/i
+    );
+    if (m) add({ enemyDamageTakenIncreasedFromGear: pctFromParenOrSingle(m) });
 
     m = l.match(/\+?(\d+(?:\.\d+)?)%\s+to\s+fire\s+resistance\b/i);
     if (m) add({ pctFireResFromGear: num(m)! });
@@ -422,14 +480,20 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/([\d.]+)%\s+increased\s+intelligence\b/i);
     if (m) add({ pctIncreasedIntelligenceFromGear: num(m)! });
 
-    m = l.match(/regenerate\s+([\d.]+)%\s+of\s+life\s+per\s+second\b/i);
-    if (m) add({ lifeRegenPercentOfMaxLifePerSecondFromGear: num(m)! });
+    m = l.match(
+      /regenerate\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+life\s+per\s+second\b/i
+    );
+    if (m) add({ lifeRegenPercentOfMaxLifePerSecondFromGear: pctFromParenOrSingle(m) });
 
-    m = l.match(/regenerate\s+([\d.]+)%\s+of\s+mana\s+per\s+second\b/i);
-    if (m) add({ manaRegenPercentOfMaxManaPerSecondFromGear: num(m)! });
+    m = l.match(
+      /regenerate\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+mana\s+per\s+second\b/i
+    );
+    if (m) add({ manaRegenPercentOfMaxManaPerSecondFromGear: pctFromParenOrSingle(m) });
 
-    m = l.match(/regenerate\s+([\d.]+)%\s+of\s+energy\s+shield\s+per\s+second\b/i);
-    if (m) add({ esRegenPercentOfMaxPerSecondFromGear: num(m)! });
+    m = l.match(
+      /regenerate\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+energy\s+shield\s+per\s+second\b/i
+    );
+    if (m) add({ esRegenPercentOfMaxPerSecondFromGear: pctFromParenOrSingle(m) });
 
     m = l.match(/gain\s+([\d.]+)%\s+of\s+life\s+as\s+extra\s+base\s+energy\s+shield\b/i);
     if (m) add({ lifeAsExtraEsPercentFromGear: num(m)! });
@@ -498,8 +562,14 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/([\d.]+)%\s+increase(?:d)?\s+energy\s+shield\b/i);
     if (m) add({ pctIncreasedEnergyShieldFromGear: num(m)! });
 
-    m = l.match(/([\d.]+)%\s+increased\s+local\s+defenses?\b/i);
-    if (m) add({ localIncreasedDefencesPct: num(m)! });
+    m = l.match(
+      /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+increased\s+local\s+defences?\b/i
+    );
+    if (m) add({ localIncreasedDefencesPct: pctFromParenOrSingle(m) });
+    else {
+      m = l.match(/([\d.]+)%\s+increased\s+local\s+defenses?\b/i);
+      if (m) add({ localIncreasedDefencesPct: num(m)! });
+    }
 
     m = l.match(/\+(\d+(?:\.\d+)?)\s+local\s+base\s+critical\s+hit\s+chance\b/i);
     if (m) add({ critChanceBonus: num(m)! });
@@ -573,10 +643,6 @@ export function equipmentModifiersFromUniqueTexts(
     // "increased defences" (global, no "local") — applies % globally to all armor/evasion
     m = l.match(/([\d.]+)%\s+increased\s+defences\b/i);
     if (m && !/local/i.test(l)) add({ pctIncreasedArmorFromGear: num(m)!, pctIncreasedEvasionFromGear: num(m)! });
-
-    // "increased local defences" — stored separately; applied to the item's own base in aggregation
-    m = l.match(/([\d.]+)%\s+increased\s+local\s+defences?\b/i);
-    if (m) add({ localIncreasedDefencesPct: num(m)! });
 
     m = l.match(/([\d.]+)%\s+increased\s+energy\s+shield\b/i);
     if (m) add({ pctIncreasedEnergyShieldFromGear: num(m)! });
@@ -680,8 +746,10 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/\(?([\d.-]+)\)?%?\s+to\s+chaos\s+resistance\b/i);
     if (m && !l.toLowerCase().includes("per")) add({ pctChaosResFromGear: num(m)! });
 
-    m = l.match(/([\d.]+)%\s+reduced\s+mana\s+cost\s+of\s+abilities\b/i);
-    if (m) add({ manaCostReductionFromGear: Math.abs(num(m)!) });
+    m = l.match(
+      /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+reduced\s+mana\s+cost\s+of\s+abilities\b/i
+    );
+    if (m) add({ manaCostReductionFromGear: Math.abs(pctFromParenOrSingle(m)) });
 
     m = l.match(
       /([\d.]+)%\s+increased\s+strikes\s+per\s+attack\s+with\s+strike\s+abilities\s+per\s+10\s+dexterity\b/i
@@ -717,6 +785,166 @@ export function equipmentModifiersFromUniqueTexts(
     // "X% increased local block chance" — stored separately; multiplied against shield base in aggregation
     m = l.match(/([\d.]+)%\s+increased\s+local\s+block\s+chance\b/i);
     if (m) add({ localIncreasedBlockPct: num(m)! });
+
+    m = l.match(
+      /take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+less\s+damage\b/i
+    );
+    if (m && !/poison/i.test(low)) {
+      dmgTakenLessMult *= Math.max(0.05, 1 - pctFromParenOrSingle(m) / 100);
+    }
+
+    m = l.match(
+      /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+increased\s+mana\s+cost\s+of\s+abilities\b/i
+    );
+    if (m) add({ manaCostIncreasePercentFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(/([\d.]+)%\s+increased\s+mana\s+regeneration\b/i);
+    if (m) add({ pctIncreasedManaRegenFromGear: num(m)! });
+
+    m = l.match(/([\d.]+)%\s+increased\s+mana\s+regen\b/i);
+    if (m) add({ pctIncreasedManaRegenFromGear: num(m)! });
+
+    m = l.match(/([\d.]+)%\s+increased\s+life\s+recovery\b/i);
+    if (m) add({ pctIncreasedLifeRecoveryFromGear: num(m)! });
+
+    m = l.match(
+      /\+\(([\d.]+)\s+to\s+([\d.]+)\)%\s+chance\s+to\s+deal\s+double\s+damage\s+with\s+spells\b/i
+    );
+    if (m) add({ doubleDamageChanceFromSpellsFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(/(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+more\s+life\b/i);
+    if (m) lifeMoreMult *= 1 + pctFromParenOrSingle(m) / 100;
+
+    m = l.match(/(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+less\s+defences\b/i);
+    if (m) defencesLessMult *= Math.max(0.05, 1 - pctFromParenOrSingle(m) / 100);
+
+    m = l.match(/\+\s*(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+to\s+maximum\s+chance\s+to\s+block\b/i);
+    if (m) add({ maxBlockChanceBonusFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(/-\s*(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+to\s+maximum\s+chance\s+to\s+block\b/i);
+    if (m) add({ maxBlockChanceBonusFromGear: -Math.abs(pctFromParenOrSingle(m)) });
+
+    m = l.match(
+      /take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+physical\s+damage\s+as\s+chaos\s+damage\b/i
+    );
+    if (m) add({ physicalTakenAsChaosPercentFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(
+      /take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+elemental\s+damage\s+as\s+chaos\s+damage\b/i
+    );
+    if (m) add({ elementalTakenAsChaosPercentFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(
+      /take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+physical\s+damage\s+as\s+fire\s+damage\b/i
+    );
+    if (m) add({ physicalTakenAsFirePercentFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(
+      /take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+physical\s+damage\s+as\s+cold\s+damage\b/i
+    );
+    if (m) add({ physicalTakenAsColdPercentFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(
+      /take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+physical\s+damage\s+as\s+lightning\s+damage\b/i
+    );
+    if (m) add({ physicalTakenAsLightningPercentFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(/([\d.]+)%\s+increased\s+effect\s+of\s+non[- ]?damaging\s+ailments?\b/i);
+    if (m) add({ nonDamagingAilmentEffectIncreasedFromGear: num(m)! });
+
+    m = l.match(
+      /(?:\(([\d.-]+)\s+to\s+([\d.-]+)\)|([\d.-]+))%\s+less\s+chill\s+effect\b/i
+    );
+    if (m) {
+      const p = Math.abs(pctFromParenOrSingle(m));
+      chillInflictEffectMult *= Math.max(0.05, 1 - p / 100);
+    }
+
+    m = l.match(/\+\s*\(([\d.-]+)\s+to\s+([\d.-]+)\)%\s+to\s+all\s+elemental\s+resistances\b/i);
+    if (m) {
+      const mid = (Number(m[1]) + Number(m[2])) / 2;
+      if (Number.isFinite(mid)) add({ pctToAllElementalResFromGear: mid });
+    }
+
+    m = l.match(/\+\(([\d.-]+)\s+to\s+([\d.-]+)\)%\s+to\s+all\s+resistances\b/i);
+    if (m) {
+      const mid = (Number(m[1]) + Number(m[2])) / 2;
+      if (Number.isFinite(mid)) add({ pctToAllResistancesFromGear: mid });
+    }
+
+    m = l.match(/\+\(([\d.-]+)\s+to\s+([\d.-]+)\)\s+to\s+maximum\s+life\b/i);
+    if (m) {
+      const mid = (Number(m[1]) + Number(m[2])) / 2;
+      if (Number.isFinite(mid)) add({ flatLife: mid });
+    }
+
+    m = l.match(/\+\(([\d.-]+)\s+to\s+([\d.-]+)\)\s+to\s+maximum\s+mana\b/i);
+    if (m) {
+      const mid = (Number(m[1]) + Number(m[2])) / 2;
+      if (Number.isFinite(mid)) add({ flatMana: mid });
+    }
+
+    m = l.match(/\+\(([\d.-]+)\s+to\s+([\d.-]+)\)\s+to\s+(strength|dexterity|intelligence)\b/i);
+    if (m) {
+      const mid = (Number(m[1]) + Number(m[2])) / 2;
+      if (Number.isFinite(mid)) {
+        const which = m[3]!.toLowerCase();
+        if (which === "strength") add({ strBonus: mid });
+        else if (which === "dexterity") add({ dexBonus: mid });
+        else add({ intBonus: mid });
+      }
+    }
+
+    m = l.match(/\+\(([\d.-]+)\s+to\s+([\d.-]+)\)\s+increased\s+ailment\s+duration\b/i);
+    if (m) {
+      const mid = (Number(m[1]) + Number(m[2])) / 2;
+      if (Number.isFinite(mid)) add({ ailmentDurationBonusFromGear: mid });
+    }
+
+    m = l.match(/\+\(([\d.-]+)\s+to\s+([\d.-]+)\)\s+increased\s+defences\b/i);
+    if (m) {
+      const mid = (Number(m[1]) + Number(m[2])) / 2;
+      if (Number.isFinite(mid)) add({ pctIncreasedArmorFromGear: mid, pctIncreasedEvasionFromGear: mid });
+    }
+
+    m = l.match(/\+\(([\d.-]+)\s+to\s+([\d.-]+)\)\s+increased\s+dexterity\b/i);
+    if (m) {
+      const mid = (Number(m[1]) + Number(m[2])) / 2;
+      if (Number.isFinite(mid)) add({ pctIncreasedDexterityFromGear: mid });
+    }
+
+    m = l.match(/\+\(([\d.-]+)\s+to\s+([\d.-]+)\)\s+to\s+chaos\s+resistance\b/i);
+    if (m) {
+      const mid = (Number(m[1]) + Number(m[2])) / 2;
+      if (Number.isFinite(mid)) add({ pctChaosResFromGear: mid });
+    }
+
+    m = l.match(/(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+increased\s+ignite\s+duration\b/i);
+    if (m) add({ ailmentDurationBonusFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(/(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+increased\s+chill\s+duration\b/i);
+    if (m) add({ ailmentDurationBonusFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(
+      /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+increased\s+attack\s+critical\s+hit\s+chance\b/i
+    );
+    if (m) add({ pctIncreasedCriticalHitChanceFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(
+      /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+increased\s+spell\s+critical\s+hit\s+chance\b/i
+    );
+    if (m) add({ pctIncreasedCriticalHitChanceFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(/([\d.]+)%\s+increased\s+cric?ital\s+hit\s+chance\b/i);
+    if (m) add({ pctIncreasedCriticalHitChanceFromGear: num(m)! });
+
+    m = l.match(/([\d.]+)%\s+increase\s+attack\s+and\s+cast\s+speed\b/i);
+    if (m) add({ pctIncreasedAttackSpeedFromGear: num(m)!, pctIncreasedCastSpeedFromGear: num(m)! });
+
+    m = l.match(
+      /\+\(([\d.]+)\s+to\s+([\d.]+)\)%\s+to\s+base\s+ciritcal\s+chance\s+hit\s+chance\b/i
+    );
+    if (m) add({ attackBaseCritChanceBonusFromGear: pctFromParenOrSingle(m) });
   }
 
   if (esLessMult !== 1) {
@@ -730,6 +958,10 @@ export function equipmentModifiersFromUniqueTexts(
   if (dmgTakenLessMult !== 1) acc.damageTakenLessMultFromGear = dmgTakenLessMult;
   if (dmgTakenMoreMult !== 1) acc.damageTakenMoreMultFromGear = dmgTakenMoreMult;
   if (evaMoreMult !== 1) acc.evasionMoreMultFromGear = evaMoreMult;
+  if (dmgDealtLessMult !== 1) acc.damageDealtLessMultFromGear = dmgDealtLessMult;
+  if (lifeMoreMult !== 1) acc.lifeMoreMultFromGear = lifeMoreMult;
+  if (defencesLessMult !== 1) acc.defencesLessMultFromGear = defencesLessMult;
+  if (chillInflictEffectMult !== 1) acc.chillInflictEffectMultFromGear = chillInflictEffectMult;
 
   return acc;
 }
