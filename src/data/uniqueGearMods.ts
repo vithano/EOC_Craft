@@ -14,6 +14,12 @@ export interface UniqueGearStatPatch {
   flatLightningMax?: number;
   flatChaosMin?: number;
   flatChaosMax?: number;
+  /** +N strikes per attack from unique lines. */
+  flatStrikesPerAttack?: number;
+  /** % increased strikes per attack (global, non-dex-scaled). */
+  increasedStrikesPerAttack?: number;
+  /** e.g. Galesong: 4% increased strikes per attack with strike abilities per 10 dexterity → 4 here. */
+  strikesIncPctPer10Dex?: number;
   critChanceBonus?: number;
   strBonus?: number;
   dexBonus?: number;
@@ -244,6 +250,21 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/([\d.]+)%\s+reduced\s+mana\s+cost\s+of\s+abilities\b/i);
     if (m) add({ manaCostReductionFromGear: Math.abs(num(m)!) });
+
+    m = l.match(
+      /([\d.]+)%\s+increased\s+strikes\s+per\s+attack\s+with\s+strike\s+abilities\s+per\s+10\s+dexterity\b/i
+    );
+    if (m) add({ strikesIncPctPer10Dex: num(m)! });
+
+    if (ctx.isWeapon) {
+      m = l.match(/\+(\d+)\s+strikes\s+per\s+attack\b/i);
+      if (m) add({ flatStrikesPerAttack: num(m)! });
+      m = l.match(/\+(\d+)\s+strike\s+per\s+attack\b/i);
+      if (m) add({ flatStrikesPerAttack: num(m)! });
+    }
+
+    m = l.match(/([\d.]+)%\s+increased\s+strikes\s+per\s+attack\b/i);
+    if (m && !/per\s+10\s+dexterity/i.test(l)) add({ increasedStrikesPerAttack: num(m)! });
 
     m = l.match(/\(?([\d.-]+)\)?%?\s+less\s+energy\s+shield\b/i);
     if (m) {

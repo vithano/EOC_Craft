@@ -143,6 +143,30 @@ export function abilitiesUsableWithWeapon(weaponTag: string | null): EocAbilityD
 }
 
 /** Interpolate attunement description: 0 → attunement0, 100 → attunement100, linear in between (display helper). */
+/** Extra strikes beyond the default first strike (attack abilities only). */
+export function extraStrikesFromAbilityLines(lines: string[]): number {
+  let add = 0;
+  for (const raw of lines) {
+    const l = raw.toLowerCase();
+    const m1 = l.match(/\+(\d+)\s+strikes\s+per\s+attack/);
+    if (m1) {
+      add += Number(m1[1]);
+      continue;
+    }
+    const m2 = l.match(/perform\s+\+(\d+)\s+strike/);
+    if (m2) {
+      add += Number(m2[1]);
+      continue;
+    }
+    const m3 = l.match(/\+(\d+)\s+strike\s+per\s+attack/);
+    if (m3) {
+      add += Number(m3[1]);
+      continue;
+    }
+  }
+  return add;
+}
+
 export function attunementLabel(def: EocAbilityDefinition, attunementPct: number): string {
   const t = Math.min(100, Math.max(0, attunementPct));
   if (t <= 0) return def.attunement0 || "";

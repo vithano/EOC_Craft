@@ -24,6 +24,20 @@ export const HIT_DAMAGE_TYPE_COLOR_CLASS: Record<HitDamageType, string> = {
   chaos: "text-fuchsia-400",
 };
 
+/**
+ * Local "Adds A to B" mods store min as A×0.5 in aggregation; recover display low roll with ×2.
+ * Physical uses the same storage in `flatDamageMin` / elemental `flat*Min` fields.
+ */
+export function localFlatDamageDisplayRange(flatMinStored: number, flatMaxStored: number): {
+  min: number;
+  max: number;
+} {
+  return {
+    min: Math.round(flatMinStored * 2),
+    max: Math.round(flatMaxStored),
+  };
+}
+
 export function buildHitDamageByType(rows: HitDamageTypeRow[]): HitDamageTypeRow[] {
   return rows.filter((r) => r.max > 0 || r.min > 0);
 }

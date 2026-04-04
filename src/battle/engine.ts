@@ -108,33 +108,41 @@ function resolvePlayerAttack(
 
   const blk = enemy.blockChance ?? 0
   const zealot = stats.classBonusesActive.includes('zealot')
+  const strikes = Math.max(1, stats.strikesPerAttack ?? 1)
+  let total = 0
+  let blockedStrikes = 0
 
-  if (blk > 0 && Math.random() * 100 < blk) {
+  for (let s = 0; s < strikes; s++) {
+    const blocked = blk > 0 && Math.random() * 100 < blk
+    if (blocked) blockedStrikes++
+
     let base = rollDamage(stats.hitDamageMin, stats.hitDamageMax, zealot)
-    base *= DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
+    if (blocked) base *= DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
+
+    if (!blocked) {
+      if (Math.random() * 100 < stats.critChance) {
+        base *= stats.critMultiplier
+      }
+
+      if (stats.classBonusesActive.includes('destroyer')) {
+        const tripleChance = stats.doubleDamageChance / 2
+        if (Math.random() * 100 < tripleChance) base *= 3
+        else if (Math.random() * 100 < stats.doubleDamageChance) base *= 2
+      } else if (Math.random() * 100 < stats.doubleDamageChance) {
+        base *= 2
+      }
+    }
+
+    base *= 1 + outgoingPlayerIncreasedDamageFrac(stats)
     const frac = enemyLife / Math.max(1, enemy.maxLife)
     base *= enemyDamageTakenMultiplier(stats, frac)
-    return { damage: mitigatedPlayerHitVsArmor(enemy, stats, base), outcome: 'enemy_blocked' }
+
+    total += mitigatedPlayerHitVsArmor(enemy, stats, base)
   }
 
-  let base = rollDamage(stats.hitDamageMin, stats.hitDamageMax, zealot)
-  if (Math.random() * 100 < stats.critChance) {
-    base *= stats.critMultiplier
-  }
-
-  if (stats.classBonusesActive.includes('destroyer')) {
-    const tripleChance = stats.doubleDamageChance / 2
-    if (Math.random() * 100 < tripleChance) base *= 3
-    else if (Math.random() * 100 < stats.doubleDamageChance) base *= 2
-  } else if (Math.random() * 100 < stats.doubleDamageChance) {
-    base *= 2
-  }
-
-  base *= 1 + outgoingPlayerIncreasedDamageFrac(stats)
-  const frac = enemyLife / Math.max(1, enemy.maxLife)
-  base *= enemyDamageTakenMultiplier(stats, frac)
-
-  return { damage: mitigatedPlayerHitVsArmor(enemy, stats, base), outcome: 'hit' }
+  const outcome: PlayerHitOutcome =
+    blockedStrikes === strikes && strikes > 0 ? 'enemy_blocked' : 'hit'
+  return { damage: total, outcome }
 }
 
 function resolveEnemyAttack(

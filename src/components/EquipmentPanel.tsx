@@ -22,6 +22,13 @@ import {
   type EocUniqueDefinition,
   type UniqueModPiece,
 } from "../data/eocUniques";
+import {
+  buildHitDamageByType,
+  HIT_DAMAGE_TYPE_COLOR_CLASS,
+  HIT_DAMAGE_TYPE_LABEL,
+  localFlatDamageDisplayRange,
+  type HitDamageTypeRow,
+} from "../data/damageTypes";
 import { equipmentModifiersFromUniqueTexts } from "../data/uniqueGearMods";
 import EocStatsPanel from "./EocStatsPanel";
 
@@ -376,6 +383,7 @@ export default function EquipmentPanel({
     const resolvedTexts = [resolved.innateText, ...resolved.lineTexts].filter((t) => t.trim());
     const patch = equipmentModifiersFromUniqueTexts(resolvedTexts, { isWeapon });
     const baseStatRows: { label: string; value: string }[] = [];
+    let weaponDamageByType: HitDamageTypeRow[] = [];
     if (isWeapon) {
       if (udef.baseDamageMin != null && udef.baseDamageMax != null) {
         const localPct = patch.localIncreasedPhysDamagePct ?? 0;
@@ -383,7 +391,20 @@ export default function EquipmentPanel({
         const flatMax = patch.flatDamageMax ?? 0;
         const effMin = Math.round(udef.baseDamageMin * (1 + localPct / 100) + flatMin);
         const effMax = Math.round(udef.baseDamageMax * (1 + localPct / 100) + flatMax);
-        baseStatRows.push({ label: "Physical Damage", value: `${effMin}-${effMax}` });
+        const fireR = localFlatDamageDisplayRange(patch.flatFireMin ?? 0, patch.flatFireMax ?? 0);
+        const coldR = localFlatDamageDisplayRange(patch.flatColdMin ?? 0, patch.flatColdMax ?? 0);
+        const lightningR = localFlatDamageDisplayRange(
+          patch.flatLightningMin ?? 0,
+          patch.flatLightningMax ?? 0
+        );
+        const chaosR = localFlatDamageDisplayRange(patch.flatChaosMin ?? 0, patch.flatChaosMax ?? 0);
+        weaponDamageByType = buildHitDamageByType([
+          { type: "physical", min: effMin, max: effMax },
+          { type: "fire", min: fireR.min, max: fireR.max },
+          { type: "cold", min: coldR.min, max: coldR.max },
+          { type: "lightning", min: lightningR.min, max: lightningR.max },
+          { type: "chaos", min: chaosR.min, max: chaosR.max },
+        ]);
       }
       if (udef.baseCritChance != null) {
         const localCrit = patch.critChanceBonus ?? 0;
@@ -489,6 +510,18 @@ export default function EquipmentPanel({
           </p>
 
           {/* Base stats */}
+          {weaponDamageByType.length > 0 && (
+            <div className="mt-2 space-y-0.5">
+              {weaponDamageByType.map((row) => (
+                <p key={row.type} className="text-sm">
+                  <span className="text-[#9a8b78]">{HIT_DAMAGE_TYPE_LABEL[row.type]}: </span>
+                  <span className={`font-bold ${HIT_DAMAGE_TYPE_COLOR_CLASS[row.type]}`}>
+                    {row.min}–{row.max}
+                  </span>
+                </p>
+              ))}
+            </div>
+          )}
           {baseStatRows.length > 0 && (
             <div className="mt-2 space-y-0.5">
               {baseStatRows.map(({ label, value }) => (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DEMO_ENEMIES } from "../../battle/enemies";
 import { simulateEncounter } from "../../battle/engine";
+import type { DemoEnemyDef } from "../../battle/types";
 import { DEMO_BUILD_PRESETS } from "../../battle/presets";
 import {
   HIT_DAMAGE_TYPE_COLOR_CLASS,
@@ -35,11 +36,21 @@ function plannerHasUsefulData(p: StoredPlannerPayload | null): boolean {
   );
 }
 
+function enemyFromPresetId(id: string): DemoEnemyDef {
+  const e = DEMO_ENEMIES.find((x) => x.id === id) ?? DEMO_ENEMIES[0];
+  return { ...e };
+}
+
 export default function BattleDemoPage() {
   const [presetId, setPresetId] = useState<string>(DEMO_BUILD_PRESETS[0].id);
   const [enemyId, setEnemyId] = useState(DEMO_ENEMIES[0].id);
+  const [enemyDraft, setEnemyDraft] = useState<DemoEnemyDef>(() => enemyFromPresetId(DEMO_ENEMIES[0].id));
   const [runKey, setRunKey] = useState(0);
   const [plannerSnapshot, setPlannerSnapshot] = useState<StoredPlannerPayload | null>(null);
+
+  useEffect(() => {
+    setEnemyDraft(enemyFromPresetId(enemyId));
+  }, [enemyId]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -72,17 +83,19 @@ export default function BattleDemoPage() {
 
   const stats = useMemo(() => computeBuildStats(activeConfig), [activeConfig]);
 
+  const activeEnemy = useMemo(
+    () => ({ ...enemyDraft, id: enemyId }),
+    [enemyDraft, enemyId]
+  );
+
   const result = useMemo(() => {
     void runKey;
-    const enemy = DEMO_ENEMIES.find((e) => e.id === enemyId) ?? DEMO_ENEMIES[0];
     return simulateEncounter({
       stats,
-      enemy,
+      enemy: activeEnemy,
       options: { maxDurationSeconds: 90, maxLogEntries: 100, dt: 0.05 },
     });
-  }, [stats, enemyId, runKey]);
-
-  const enemy = DEMO_ENEMIES.find((e) => e.id === enemyId) ?? DEMO_ENEMIES[0];
+  }, [stats, activeEnemy, runKey]);
 
   const showPlannerOption = plannerHasUsefulData(plannerSnapshot);
 
@@ -134,8 +147,8 @@ export default function BattleDemoPage() {
               Reload saved planner build
             </button>
           </div>
-          <label className="block space-y-2">
-            <span className="text-xs uppercase tracking-wider text-zinc-500">Enemy</span>
+          <div className="space-y-2">
+            <span className="block text-xs uppercase tracking-wider text-zinc-500">Enemy preset</span>
             <select
               className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm"
               value={enemyId}
@@ -147,7 +160,149 @@ export default function BattleDemoPage() {
                 </option>
               ))}
             </select>
-          </label>
+            <p className="text-[10px] text-zinc-600">
+              Stats below load from the preset; edit any field for this run.
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Enemy stats (this encounter)</div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Name</span>
+              <input
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5"
+                value={enemyDraft.name}
+                onChange={(e) => setEnemyDraft((d) => ({ ...d, name: e.target.value }))}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Max life</span>
+              <input
+                type="number"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                value={enemyDraft.maxLife}
+                onChange={(e) =>
+                  setEnemyDraft((d) => ({ ...d, maxLife: Math.max(1, Number(e.target.value) || 0) }))
+                }
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Armor</span>
+              <input
+                type="number"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                value={enemyDraft.armor}
+                onChange={(e) =>
+                  setEnemyDraft((d) => ({ ...d, armor: Math.max(0, Number(e.target.value) || 0) }))
+                }
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Evasion</span>
+              <input
+                type="number"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                value={enemyDraft.evasionRating}
+                onChange={(e) =>
+                  setEnemyDraft((d) => ({ ...d, evasionRating: Math.max(0, Number(e.target.value) || 0) }))
+                }
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Accuracy</span>
+              <input
+                type="number"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                value={enemyDraft.accuracy}
+                onChange={(e) =>
+                  setEnemyDraft((d) => ({ ...d, accuracy: Math.max(0, Number(e.target.value) || 0) }))
+                }
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Damage min</span>
+              <input
+                type="number"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                value={enemyDraft.damageMin}
+                onChange={(e) =>
+                  setEnemyDraft((d) => ({ ...d, damageMin: Math.max(0, Number(e.target.value) || 0) }))
+                }
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Damage max</span>
+              <input
+                type="number"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                value={enemyDraft.damageMax}
+                onChange={(e) =>
+                  setEnemyDraft((d) => ({
+                    ...d,
+                    damageMax: Math.max(d.damageMin, Number(e.target.value) || 0),
+                  }))
+                }
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Attacks / s</span>
+              <input
+                type="number"
+                step="0.05"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                value={enemyDraft.aps}
+                onChange={(e) =>
+                  setEnemyDraft((d) => ({ ...d, aps: Math.max(0.1, Number(e.target.value) || 0.1) }))
+                }
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Block % (0–100)</span>
+              <input
+                type="number"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                value={enemyDraft.blockChance ?? 0}
+                onChange={(e) => {
+                  const v = Number(e.target.value) || 0;
+                  setEnemyDraft((d) => ({
+                    ...d,
+                    blockChance: v <= 0 ? undefined : Math.min(100, Math.max(0, v)),
+                  }));
+                }}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Crit chance %</span>
+              <input
+                type="number"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                value={enemyDraft.critChance ?? 0}
+                onChange={(e) =>
+                  setEnemyDraft((d) => ({
+                    ...d,
+                    critChance: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
+                  }))
+                }
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Crit mult</span>
+              <input
+                type="number"
+                step="0.1"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                value={enemyDraft.critMultiplier ?? 2}
+                onChange={(e) =>
+                  setEnemyDraft((d) => ({
+                    ...d,
+                    critMultiplier: Math.max(1, Number(e.target.value) || 2),
+                  }))
+                }
+              />
+            </label>
+          </div>
         </div>
 
         <button
@@ -182,6 +337,12 @@ export default function BattleDemoPage() {
               </span>
               <span className="text-zinc-500">·</span>
               <span className="text-zinc-300">{stats.critChance.toFixed(1)}% crit</span>
+              {stats.abilityContribution?.type !== "Spells" && (
+                <>
+                  <span className="text-zinc-500">·</span>
+                  <span className="text-zinc-300">{stats.strikesPerAttack} strike(s)/atk</span>
+                </>
+              )}
             </div>
             <div>
               Armor {stats.armor} · Evasion {stats.evasionRating}
@@ -197,14 +358,16 @@ export default function BattleDemoPage() {
             )}
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm space-y-1">
-            <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Enemy</div>
+            <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Enemy (active)</div>
             <div>
-              {enemy.name}: {enemy.maxLife} life · {enemy.aps} atk/s
+              {activeEnemy.name}: {activeEnemy.maxLife} life · {activeEnemy.aps} atk/s
             </div>
             <div>
-              Dmg {enemy.damageMin}–{enemy.damageMax} · acc {enemy.accuracy} · eva {enemy.evasionRating} · arm{" "}
-              {enemy.armor}
-              {enemy.blockChance != null ? ` · ${enemy.blockChance}% block` : ""}
+              Dmg {activeEnemy.damageMin}–{activeEnemy.damageMax} · acc {activeEnemy.accuracy} · eva{" "}
+              {activeEnemy.evasionRating} · arm {activeEnemy.armor}
+              {activeEnemy.blockChance != null && activeEnemy.blockChance > 0
+                ? ` · ${activeEnemy.blockChance}% block`
+                : ""}
             </div>
           </div>
         </div>

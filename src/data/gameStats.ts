@@ -11,12 +11,14 @@ import {
   abilityMatchesWeapon,
   attackDamageMultiplierAtAbilityLevel,
   EOC_ABILITY_BY_ID,
+  extraStrikesFromAbilityLines,
   scaledSpellHitForAbility,
   weaponAbilityTagFromItemId,
   type EocAbilityType,
 } from './eocAbilities'
 import {
   buildHitDamageByType,
+  localFlatDamageDisplayRange,
   scaleHitDamageByType,
   spellElementToHitDamageType,
   sumHitDamageRange,
@@ -128,6 +130,12 @@ export interface EquipmentModifiers {
   weaponBaseCritChance: number | null
   /** Total block chance contribution from equipped gear (base shield block + local block mods + flat block bonuses). */
   blockChanceFromGear: number
+  /** +N strikes per attack from weapon unique mods. */
+  flatStrikesPerAttack: number
+  /** % increased strikes per attack (gear). */
+  increasedStrikesPerAttackFromGear: number
+  /** Sum of “X% increased strikes … per 10 dexterity” style mods (X values summed). */
+  strikesIncPctPer10DexFromGear: number
 }
 
 export interface ComputedBuildStats {
@@ -167,6 +175,8 @@ export interface ComputedBuildStats {
   avgHit: number
   avgEffectiveDamage: number
   dps: number
+  /** Player attack actions roll this many strike damages (demo combat); 1 for spell casts. */
+  strikesPerAttack: number
 
   // Recovery
   manaRegenPerSecond: number
@@ -251,6 +261,9 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     weaponEffectiveAps: null,
     weaponBaseCritChance: null,
     blockChanceFromGear: 0,
+    flatStrikesPerAttack: 0,
+    increasedStrikesPerAttackFromGear: 0,
+    strikesIncPctPer10DexFromGear: 0,
   }
 }
 
@@ -286,6 +299,13 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.flatLightningMax !== undefined) add('flatLightningMax', p.flatLightningMax)
   if (p.flatChaosMin !== undefined) add('flatChaosMin', p.flatChaosMin)
   if (p.flatChaosMax !== undefined) add('flatChaosMax', p.flatChaosMax)
+  if (p.flatStrikesPerAttack !== undefined) add('flatStrikesPerAttack', p.flatStrikesPerAttack)
+  if (p.increasedStrikesPerAttack !== undefined) {
+    add('increasedStrikesPerAttackFromGear', p.increasedStrikesPerAttack)
+  }
+  if (p.strikesIncPctPer10Dex !== undefined) {
+    add('strikesIncPctPer10DexFromGear', p.strikesIncPctPer10Dex)
+  }
   if (p.critChanceBonus !== undefined) add('critChanceBonus', p.critChanceBonus)
   if (p.strBonus !== undefined) add('strBonus', p.strBonus)
   if (p.dexBonus !== undefined) add('dexBonus', p.dexBonus)
@@ -605,32 +625,20 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 15. Offense — hit damage (split by type for display; totals match sum of parts)
   // -------------------------------------------------------------------------
+  const fireR = localFlatDamageDisplayRange(eq.flatFireMin, eq.flatFireMax)
+  const coldR = localFlatDamageDisplayRange(eq.flatColdMin, eq.flatColdMax)
+  const lightningR = localFlatDamageDisplayRange(eq.flatLightningMin, eq.flatLightningMax)
+  const chaosR = localFlatDamageDisplayRange(eq.flatChaosMin, eq.flatChaosMax)
   let hitDamageByType: HitDamageTypeRow[] = buildHitDamageByType([
     {
       type: 'physical',
       min: Math.round(BASE_GAME_STATS.baseHitDamageMin + eq.flatDamageMin),
       max: Math.round(BASE_GAME_STATS.baseHitDamageMax + eq.flatDamageMax),
     },
-    {
-      type: 'fire',
-      min: Math.round(eq.flatFireMin),
-      max: Math.round(eq.flatFireMax),
-    },
-    {
-      type: 'cold',
-      min: Math.round(eq.flatColdMin),
-      max: Math.round(eq.flatColdMax),
-    },
-    {
-      type: 'lightning',
-      min: Math.round(eq.flatLightningMin),
-      max: Math.round(eq.flatLightningMax),
-    },
-    {
-      type: 'chaos',
-      min: Math.round(eq.flatChaosMin),
-      max: Math.round(eq.flatChaosMax),
-    },
+    { type: 'fire', min: fireR.min, max: fireR.max },
+    { type: 'cold', min: coldR.min, max: coldR.max },
+    { type: 'lightning', min: lightningR.min, max: lightningR.max },
+    { type: 'chaos', min: chaosR.min, max: chaosR.max },
   ])
   let hitSum = sumHitDamageRange(hitDamageByType)
   let hitDamageMin = hitSum.min
@@ -892,6 +900,26 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   }
 
   // -------------------------------------------------------------------------
+  // 26. Strikes per attack (gear + melee/ranged abilities; spells use 1 in demo combat)
+  // -------------------------------------------------------------------------
+  const spellCombat = abilityContribution?.type === 'Spells'
+  let strikesPerAttack = 1
+  if (!spellCombat) {
+    const aid = config.ability?.abilityId
+    const ab = aid ? EOC_ABILITY_BY_ID[aid] : undefined
+    const abStrikes =
+      ab && (ab.type === 'Melee' || ab.type === 'Ranged') ? extraStrikesFromAbilityLines(ab.lines) : 0
+    const baseStrikes = 1 + eq.flatStrikesPerAttack + abStrikes
+    const incStrikes =
+      eq.increasedStrikesPerAttackFromGear + eq.strikesIncPctPer10DexFromGear * (dex / 10)
+    strikesPerAttack = Math.max(1, Math.round(baseStrikes * (1 + incStrikes / 100)))
+  }
+
+  if (!spellCombat) {
+    dps = avgEffectiveDamage * aps * strikesPerAttack
+  }
+
+  // -------------------------------------------------------------------------
   // Return
   // -------------------------------------------------------------------------
   return {
@@ -930,6 +958,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     avgHit,
     avgEffectiveDamage,
     dps,
+    strikesPerAttack,
 
     // Recovery
     manaRegenPerSecond,
