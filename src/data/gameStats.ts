@@ -1120,6 +1120,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // Convenient accessor with fallback to 0
   const u = (key: UpgradeModifierKey): number => upgAcc[key] ?? 0
 
+  // Character level: 1 = BASE_GAME stats only for these bonuses. Each passive rank spent is one level-up
+  // (planner shows ranks 0…MAX; 0 ranks ⇒ level 1; 1 rank ⇒ level 2 ⇒ first +3 acc / +10 life / +10 mana / +1% dmg).
+  const passiveRanksSpent = Object.values(config.upgradeLevels).reduce((sum, v) => sum + Math.max(0, v), 0)
+  const characterLevel = passiveRanksSpent + 1
+  const levelsGainedFromBase = characterLevel - 1
+  const levelFlatAccuracy = 3 * levelsGainedFromBase
+  const levelFlatLife = 10 * levelsGainedFromBase
+  const levelFlatMana = 10 * levelsGainedFromBase
+  const levelPctIncreasedDamage = levelsGainedFromBase
+
   // -------------------------------------------------------------------------
   // 3. Per-level attribute gains from each class
   // -------------------------------------------------------------------------
@@ -1187,7 +1197,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // 7. Maximum life
   // -------------------------------------------------------------------------
   const lifeFromStr      = str * attrLifeMult            // +1 life per str (doubled for guardian)
-  const baseLife         = BASE_GAME_STATS.baseLife + lifeFromStr
+  const baseLife         = BASE_GAME_STATS.baseLife + lifeFromStr + levelFlatLife
   // Warrior class bonus: +100 flat life added before % multiplier
   const lifeBeforeMultiplier = baseLife + (bonus('warrior') ? 100 : 0) + eq.flatLife
   const totalIncreasedLife   = u('increasedLife') + eq.pctIncreasedLifeFromGear
@@ -1201,7 +1211,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // 8. Maximum mana
   // -------------------------------------------------------------------------
   const manaFromInt = int_ * attrManaMult  // +1 mana per int (doubled for guardian)
-  const baseMana    = BASE_GAME_STATS.baseMana + manaFromInt + eq.flatMana
+  const baseMana    = BASE_GAME_STATS.baseMana + manaFromInt + levelFlatMana + eq.flatMana
   const maxMana     = Math.round(baseMana * (1 + (u('increasedMana') + eq.pctIncreasedManaFromGear) / 100))
 
   // -------------------------------------------------------------------------
@@ -1299,7 +1309,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // Flat: base + Rogue + gear flat. Increased: tree + gear % — same pattern as crit chance §16.
   const accuracyFlatBase =
-    BASE_GAME_STATS.baseAccuracy + (bonus('rogue') ? 150 : 0) + eq.flatAccuracy
+    BASE_GAME_STATS.baseAccuracy + (bonus('rogue') ? 150 : 0) + levelFlatAccuracy + eq.flatAccuracy
   const accuracyFromUpgrades =
     u('increasedAccuracyRating') + eq.pctIncreasedAccuracyFromGear
   const accuracy = Math.round(
@@ -1387,9 +1397,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const critMultFromUpgrades = () =>
     eq.increasedCriticalDamageMultiplierFromGear + attunementIncreasedCritMultiplierPct
   const recomputeCritMultiplier = () => {
-    critMultiplier = attackCritMultFlatBase * (1 + critMultFromUpgrades() / 100)
+    critMultiplier = attackCritMultFlatBase + (critMultFromUpgrades() / 100)
   }
-  let critMultiplier = attackCritMultFlatBase * (1 + critMultFromUpgrades() / 100)
+  let critMultiplier = attackCritMultFlatBase + (critMultFromUpgrades() / 100)
   // -------------------------------------------------------------------------
   // 17. Attacks per second
   // -------------------------------------------------------------------------
@@ -1449,7 +1459,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + eq.increasedElementalDamageFromGear
   // Occultist class bonus: 1% increased damage per 100 maximum energy shield
   const occultistDmgFromEsPct   = bonus('occultist') ? maxEnergyShield / 100 : 0
-  const increasedDamage         = u('increasedDamage') + occultistDmgFromEsPct + eq.increasedDamageFromGear
+  const increasedDamage         =
+    u('increasedDamage') + occultistDmgFromEsPct + eq.increasedDamageFromGear + levelPctIncreasedDamage
   let damageOverTimeMultiplier =
     u('increasedDamageOverTimeMultiplier')
     + eq.pctIncreasedDamageOverTimeFromGear

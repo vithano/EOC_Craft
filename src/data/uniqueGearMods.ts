@@ -451,13 +451,15 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/([\d.]+)%\s+increase\s+cast\s+speed\b/i);
     if (m) add({ pctIncreasedCastSpeedFromGear: num(m)! });
 
-    m = l.match(/your\s+critical\s+damage\s+multiplier\s+is\s+\+?(\d+)%/i);
+    // Whole-line only: avoid matching trailing clauses ("While … gain +60% to critical …")
+    // or scaling lines ("+1% to critical … per 20 accuracy").
+    m = l.match(/^\s*your\s+critical\s+damage\s+multiplier\s+is\s+\+?(\d+)%\s*$/i);
     if (m) add({ increasedCriticalDamageMultiplierFromGear: num(m)! });
 
-    m = l.match(/\+?(\d+(?:\.\d+)?)%\s+to\s+critical\s+damage\s+multiplier\b/i);
+    m = l.match(/^\s*\+?(\d+(?:\.\d+)?)%\s+to\s+critical\s+damage\s+multiplier\s*$/i);
     if (m) add({ increasedCriticalDamageMultiplierFromGear: num(m)! });
 
-    m = l.match(/\+(\d+)\s+to\s+critical\s+damage\s+multiplier\b/i);
+    m = l.match(/^\s*\+(\d+)\s+to\s+critical\s+damage\s+multiplier\s*$/i);
     if (m) add({ flatCriticalDamageMultiplierBonusFromGear: num(m)! });
 
     m = l.match(/\+?(\d+(?:\.\d+)?)%\s+to\s+attack\s+base\s+critical\s+hit\s+chance\b/i);
@@ -592,7 +594,7 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/([\d.]+)%\s+increased\s+amou?r\b/i);
     if (m) add({ pctIncreasedArmourFromGear: num(m)! });
-
+    
     m = l.match(/([\d.]+)%\s+increase(?:d)?\s+energy\s+shield\b/i);
     if (m) add({ pctIncreasedEnergyShieldFromGear: num(m)! });
 
@@ -676,10 +678,8 @@ export function equipmentModifiersFromUniqueTexts(
 
     // "increased defences" (global, no "local") — applies % globally to all armour/evasion
     m = l.match(/([\d.]+)%\s+increased\s+defences\b/i);
-    if (m && !/local/i.test(l)) add({ pctIncreasedArmourFromGear: num(m)!, pctIncreasedEvasionFromGear: num(m)! });
+    if (m && !/local/i.test(l)) add({ pctIncreasedArmourFromGear: num(m)!, pctIncreasedEvasionFromGear: num(m)!, pctIncreasedEnergyShieldFromGear: num(m)! });
 
-    m = l.match(/([\d.]+)%\s+increased\s+energy\s+shield\b/i);
-    if (m) add({ pctIncreasedEnergyShieldFromGear: num(m)! });
 
     m = l.match(/([\d.]+)%\s+increased\s+melee\s+physical\s+damage\b/i);
     if (m) add({ increasedMeleeDamageFromGear: num(m)! });

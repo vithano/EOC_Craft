@@ -31,6 +31,7 @@ import {
 } from "../data/damageTypes";
 import { equipmentModifiersFromUniqueTexts } from "../data/uniqueGearMods";
 import EocStatsPanel from "./EocStatsPanel";
+import { EmptySlotIcon, EquippedItemIcon, FilterIcon, plannerSlotToGlyphKey } from "./equipmentIcons";
 
 const rarityTone: Record<Rarity, string> = {
   common: "text-[#a8a29e]",
@@ -101,97 +102,6 @@ function uniquesForPlannerSlot(plannerSlot: string) {
   return EOC_UNIQUE_DEFINITIONS.filter((u) => u.slot === plannerSlot);
 }
 
-function SlotGlyph({ type }: { type: string }) {
-  const common = "h-6 w-6 opacity-[0.22] text-[#c4b5a0]";
-  switch (type) {
-    case "helmet":
-      return (
-        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M12 3C8 3 5 6 5 10v3h2v-2c0-2.2 1.8-4 4-4s4 1.8 4 4v2h2v-3c0-4-3-7-7-7zm-5 13v2c0 1.7 1.3 3 3 3h8c1.7 0 3-1.3 3-3v-2H7z" />
-        </svg>
-      );
-    case "chest":
-      return (
-        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M8 4h8l2 4v6H6V8l2-4zm-2 12h12v4H6v-4z" />
-        </svg>
-      );
-    case "gloves":
-      return (
-        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M7 10c0-1.1.9-2 2-2h1v8H8c-1.1 0-2-.9-2-2v-4zm5-2h2c1.1 0 2 .9 2 2v4c0 1.1-.9 2-2 2h-2V8zm-5 9h8v3H7v-3z" />
-        </svg>
-      );
-    case "boots":
-      return (
-        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M8 18h8v2H8v-2zm-1-8l1 8H6l-2-6 3-2zm9 0l3 2-2 6h-2l1-8z" />
-        </svg>
-      );
-    case "belt":
-      return (
-        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M4 10h16v4H4v-4zm2 2v1h12v-1H6zm1-4h10v2H7V8z" />
-        </svg>
-      );
-    case "amulet":
-      return (
-        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M12 4l2 3h3l-2 3 2 3h-3l-2 3-2-3H7l2-3-2-3h3l2-3zm0 9a2 2 0 100 4 2 2 0 000-4z" />
-        </svg>
-      );
-    case "ring":
-      return (
-        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M12 6a6 6 0 100 12 6 6 0 000-12zm0 2a4 4 0 110 8 4 4 0 010-8z" />
-        </svg>
-      );
-    case "weapon":
-      return (
-        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M4 20l12-12 2 2L6 22H4v-2zm13-13l3-3 2 2-3 3-2-2z" />
-        </svg>
-      );
-    case "shield":
-      return (
-        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M12 2l8 3v7c0 5-3.5 9-8 10-4.5-1-8-5-8-10V5l8-3zm0 2.2L6 6.3V12c0 4 2.5 7 6 8 3.5-1 6-4 6-8V6.3L12 4.2z" />
-        </svg>
-      );
-    default:
-      return null;
-  }
-}
-
-function ItemGlyph({ slot, itemId }: { slot: string; itemId: string }) {
-  if (itemId === "none") return null;
-  const hue = isUniqueItemId(itemId)
-    ? "text-[#d4af37]"
-    : slot === "Weapon"
-      ? "text-[#c0c0d8]"
-      : slot === "Off-hand"
-        ? "text-[#a89070]"
-        : slot.includes("Ring") || slot === "Amulet"
-          ? "text-[#9cf]"
-          : "text-[#6b8f71]";
-  if (slot === "Weapon" || slot === "Off-hand") {
-    return slot === "Off-hand" ? (
-      <svg className={`h-8 w-8 ${hue}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-        <path d="M12 3c2 0 4 1.5 4 4v9H8V7c0-2.5 2-4 4-4zm-4 15h8v2c0 1-1 2-2 2h-4c-1 0-2-1-2-2v-2z" />
-      </svg>
-    ) : (
-      <svg className={`h-8 w-8 ${hue}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-        <path d="M5 19l10-10 2 2L7 21H5v-2zm11-11l3-3 1.5 1.5-3 3L16 8z" />
-      </svg>
-    );
-  }
-  return (
-    <svg className={`h-7 w-7 ${hue}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M6 4h12v8l-3 8H9l-3-8V4zm2 2v5.5l2.5 7h5L16 11.5V6H8z" />
-    </svg>
-  );
-}
-
 export default function EquipmentPanel({
   equipped,
   inventory,
@@ -228,12 +138,10 @@ export default function EquipmentPanel({
 
   const invStacks = inventory.length;
 
-  const leftSlots: { slot: string; glyph: string }[] = [
-    { slot: "Helmet", glyph: "helmet" },
-    { slot: "Chest", glyph: "chest" },
-    { slot: "Gloves", glyph: "gloves" },
-    { slot: "Boots", glyph: "boots" },
-  ];
+  const leftSlots: { slot: string; glyph: string }[] = ["Helmet", "Chest", "Gloves", "Boots"].map((slot) => ({
+    slot,
+    glyph: plannerSlotToGlyphKey(slot),
+  }));
 
   const craftableUniques = useMemo(() => {
     const q = craftSearch.trim().toLowerCase();
@@ -252,12 +160,10 @@ export default function EquipmentPanel({
     const hi = Math.max(b.min, b.max);
     return Math.min(hi, Math.max(lo, v));
   }, [craftDef]);
-  const rightSlots: { slot: string; glyph: string }[] = [
-    { slot: "Amulet", glyph: "amulet" },
-    { slot: "Ring 1", glyph: "ring" },
-    { slot: "Ring 2", glyph: "ring" },
-    { slot: "Belt", glyph: "belt" },
-  ];
+  const rightSlots: { slot: string; glyph: string }[] = ["Amulet", "Ring 1", "Ring 2", "Belt"].map((slot) => ({
+    slot,
+    glyph: plannerSlotToGlyphKey(slot),
+  }));
 
   const syncDetailDraftFromEntry = useCallback((entry: EquippedEntry) => {
     const udef = isUniqueItemId(entry.itemId) ? EOC_UNIQUE_BY_ID[entry.itemId] : undefined;
@@ -338,7 +244,7 @@ export default function EquipmentPanel({
       return (
         <div className="flex h-full max-h-[min(70vh,520px)] flex-col items-center gap-3 overflow-y-auto px-4 py-5 text-center">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-sm border border-[#5c4d3d] bg-[#0d0a08]">
-            <ItemGlyph slot={slot} itemId={itemId} />
+            <EquippedItemIcon slot={slot} itemId={itemId} />
           </div>
           <h3 className={`font-serif text-lg tracking-wide ${item.rarity ? rarityTone[item.rarity] : "text-[#e8dcc8]"}`}>
             {item.name}
@@ -493,7 +399,7 @@ export default function EquipmentPanel({
             </h3>
             {/* Icon */}
             <div className="flex h-8 w-8 shrink-0 items-center justify-center">
-              <ItemGlyph slot={slot} itemId={itemId} />
+              <EquippedItemIcon slot={slot} itemId={itemId} />
             </div>
           </div>
 
@@ -615,7 +521,7 @@ export default function EquipmentPanel({
                       title={slot}
                       onClick={() => openEquippedDetail(slot)}
                     >
-                      {id === "none" ? <SlotGlyph type={glyph} /> : <ItemGlyph slot={slot} itemId={id} />}
+                      {id === "none" ? <EmptySlotIcon type={glyph} /> : <EquippedItemIcon slot={slot} itemId={id} />}
                       {id !== "none" && (
                         <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 font-mono text-[10px] text-[#e8dcc8]">
                           1
@@ -645,7 +551,7 @@ export default function EquipmentPanel({
                       title={slot}
                       onClick={() => openEquippedDetail(slot)}
                     >
-                      {id === "none" ? <SlotGlyph type={glyph} /> : <ItemGlyph slot={slot} itemId={id} />}
+                      {id === "none" ? <EmptySlotIcon type={glyph} /> : <EquippedItemIcon slot={slot} itemId={id} />}
                       {id !== "none" && (
                         <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 font-mono text-[10px] text-[#e8dcc8]">
                           1
@@ -659,7 +565,7 @@ export default function EquipmentPanel({
             <div className="mx-auto mt-3 flex max-w-[200px] justify-center gap-3">
               {(["Weapon", "Off-hand"] as const).map((slot) => {
                 const id = getEquippedEntry(equipped, slot).itemId;
-                const glyph = slot === "Weapon" ? "weapon" : "shield";
+                const glyph = plannerSlotToGlyphKey(slot);
                 return (
                   <button
                     key={slot}
@@ -668,7 +574,7 @@ export default function EquipmentPanel({
                     title={slot}
                     onClick={() => openEquippedDetail(slot)}
                   >
-                    {id === "none" ? <SlotGlyph type={glyph} /> : <ItemGlyph slot={slot} itemId={id} />}
+                    {id === "none" ? <EmptySlotIcon type={glyph} /> : <EquippedItemIcon slot={slot} itemId={id} />}
                     {id !== "none" && (
                       <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 font-mono text-[10px] text-[#e8dcc8]">
                         1
@@ -729,7 +635,7 @@ export default function EquipmentPanel({
                       });
                     }}
                   >
-                    <ItemGlyph slot={stack.slot} itemId={stack.itemId} />
+                    <EquippedItemIcon slot={stack.slot} itemId={stack.itemId} />
                     <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 font-mono text-[10px] text-[#e8dcc8]">
                       {stack.qty}
                     </span>
@@ -744,12 +650,12 @@ export default function EquipmentPanel({
               <div className="flex flex-wrap justify-center gap-1.5">
                 {(
                   [
-                    { id: "all" as const, icon: "chest", label: "All" },
-                    { id: "weapons" as const, icon: "sword", label: "Weapons" },
-                    { id: "armor" as const, icon: "helm", label: "Armor" },
-                    { id: "accessories" as const, icon: "neck", label: "Accessories" },
+                    { id: "all" as const, label: "All" },
+                    { id: "weapons" as const, label: "Weapons" },
+                    { id: "armor" as const, label: "Armor" },
+                    { id: "accessories" as const, label: "Accessories" },
                   ] as const
-                ).map(({ id, icon, label }) => (
+                ).map(({ id, label }) => (
                   <button
                     key={id}
                     type="button"
@@ -759,26 +665,7 @@ export default function EquipmentPanel({
                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border text-[#a89070] ${filter === id ? filterBtnOn : filterBtnOff}`}
                     onClick={() => setFilter(id)}
                   >
-                    {icon === "chest" && (
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                        <path d="M4 6h16v12H4V6zm2 2v8h12V8H6z" />
-                      </svg>
-                    )}
-                    {icon === "sword" && (
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                        <path d="M3 21l12-12 2 2L5 23H3v-2zm13-13l3-3 2 2-3 3-2-2z" />
-                      </svg>
-                    )}
-                    {icon === "helm" && (
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                        <path d="M12 4C8 4 5 7 5 11v2h2v-2c0-2 1.5-3.5 3.5-3.5S14 9 14 11v2h2v-2c0-4-3-7-7-7zm-4 15h8v1c0 1-.5 2-1.5 2h-5c-1 0-1.5-1-1.5-2v-1z" />
-                      </svg>
-                    )}
-                    {icon === "neck" && (
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                        <path d="M12 3l2 2h3l-1.5 2.5L18 12h-3l-1 2h-4l-1-2H6l2.5-4.5L7 5h3l2-2zm0 11a2 2 0 100 4 2 2 0 000-4z" />
-                      </svg>
-                    )}
+                    <FilterIcon kind={id} />
                   </button>
                 ))}
               </div>
