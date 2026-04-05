@@ -1,20 +1,20 @@
 'use client';
 
 /**
- * Fetches Uniques, Abilities, and Formulas (Nexus Tier Scaling) from Google Sheets
- * and updates the module-level data stores so all components see fresh values.
+ * Fetches Uniques, Abilities, and Formulas from Google Sheets and updates the
+ * module-level data stores so all components see fresh values.
  *
  * Tab names in the spreadsheet:
  *   "Uniques"   → unique item definitions  (same columns as uniques CSV)
  *   "Abilities" → ability definitions      (same columns as abilities CSV)
- *   "Formulas"  → Nexus Tier Enemy Scaling table
+ *   "Formulas"  → damage formula constants (Key/Value rows, see damage_formulas.csv)
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { parseUniquesCSV, parseAbilitiesCSV, parseNexusScalingCSV } from '../lib/parseSheetData';
+import { parseUniquesCSV, parseAbilitiesCSV, parseFormulaConstantsCSV } from '../lib/parseSheetData';
 import { updateUniqueDefinitions } from '../data/eocUniques';
 import { updateAbilityDefinitions } from '../data/eocAbilities';
-import { updateNexusTierRows } from '../data/nexusEnemyScaling';
+import { updateFormulaConstants } from '../data/formulaConstants';
 import { invalidateEquipmentItemsCache } from '../data/equipment';
 
 export interface GameDataState {
@@ -78,8 +78,8 @@ export function GameDataProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (formulasResult.status === 'fulfilled') {
-        const rows = parseNexusScalingCSV(formulasResult.value);
-        if (rows.length > 0) updateNexusTierRows(rows);
+        const patch = parseFormulaConstantsCSV(formulasResult.value);
+        if (Object.keys(patch).length > 0) updateFormulaConstants(patch);
       } else {
         errors.push(`Formulas: ${formulasResult.reason}`);
       }

@@ -630,7 +630,6 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/([\d.]+)\s+increased\s+elemental\s+damage\b/i);
     if (m && !/%/.test(l)) add({ increasedElementalDamageFromGear: num(m)! });
-
     m = l.match(/\+(\d+)\s+to\s+maximum\s+life\b/i);
     if (m) add({ flatLife: num(m)! });
 

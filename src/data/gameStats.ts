@@ -34,6 +34,7 @@ import {
   type HitDamageTypeRow,
 } from './damageTypes'
 import { EOC_UNIQUE_BY_ID, isUniqueItemId, resolveUniqueMods } from './eocUniques'
+import { FORMULA_CONSTANTS } from './formulaConstants'
 import {
   equipmentModifiersFromUniqueTexts,
   type UniqueGearStatPatch,
@@ -1290,14 +1291,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const resistAllFlat = allEleBonus + eq.pctToAllResistancesFromGear
 
   // Chieftain class bonus: +5% to maximum fire resistance; gear can raise elemental/chaos caps.
+  const eleBase  = FORMULA_CONSTANTS.elementalResCap
+  const chaosBase = FORMULA_CONSTANTS.chaosResCap
   const allEleCap = eq.maxAllElementalResBonusFromGear
   const maxFireRes = Math.min(
     90,
-    (bonus('chieftain') ? 80 : 75) + eq.maxFireResBonusFromGear + allEleCap
+    (bonus('chieftain') ? eleBase + 5 : eleBase) + eq.maxFireResBonusFromGear + allEleCap
   )
-  const maxColdRes = Math.min(90, 75 + eq.maxColdResBonusFromGear + allEleCap)
-  const maxLightningRes = Math.min(90, 75 + eq.maxLightningResBonusFromGear + allEleCap)
-  const maxChaosRes = Math.min(90, 75 + eq.maxChaosResBonusFromGear)
+  const maxColdRes      = Math.min(90, eleBase  + eq.maxColdResBonusFromGear + allEleCap)
+  const maxLightningRes = Math.min(90, eleBase  + eq.maxLightningResBonusFromGear + allEleCap)
+  const maxChaosRes     = Math.min(90, chaosBase + eq.maxChaosResBonusFromGear)
   const fireRes = Math.min(maxFireRes, resistAllFlat + eq.pctFireResFromGear)
   const coldRes = Math.min(maxColdRes, resistAllFlat + eq.pctColdResFromGear)
   const lightningRes = Math.min(maxLightningRes, resistAllFlat + eq.pctLightningResFromGear)
@@ -1475,6 +1478,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         ? { ...r, min: Math.round(r.min * ef), max: Math.round(r.max * ef) }
         : r
     )
+    console.log('increasedElementalDamage',hitDamageByType, ef);
     hitDamageByType = buildHitDamageByType(hitDamageByType)
     hitSum = sumHitDamageRange(hitDamageByType)
     hitDamageMin = hitSum.min
@@ -1771,17 +1775,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const chaosNotBypassES = bonus('arcanist')
 
   // Armour effectiveness vs elemental damage:
-  //   Default: 50% effective → multiplier 0.5
-  //   Juggernaut: +50% → multiplier 1.0 (full effectiveness)
-  const armourVsElementalMultiplier = 0.5 + (bonus('juggernaut') ? 0.5 : 0)
+  //   Base from FORMULA_CONSTANTS.armourVsElemental (default 0.5)
+  //   Juggernaut: +0.5 → full effectiveness
+  const armourVsElementalMultiplier =
+    FORMULA_CONSTANTS.armourVsElemental + (bonus('juggernaut') ? 0.5 : 0)
 
   // Armour effectiveness vs chaos damage:
-  //   Default: 25% effective → multiplier 0.25
-  //   Juggernaut: +25% → 0.50
-  //   Templar:    +50% → 0.75 (stacks with juggernaut → 1.00)
-  //   Chieftain:  +50% → can combine with others (capped logic left to battle engine)
+  //   Base from FORMULA_CONSTANTS.armourVsChaos (default 0.25)
+  //   Juggernaut: +0.25, Templar: +0.50, Chieftain: +0.50
   const armourVsChaosMultiplier =
-    0.25
+    FORMULA_CONSTANTS.armourVsChaos
     + (bonus('juggernaut') ? 0.25 : 0)
     + (bonus('templar')    ? 0.50 : 0)
     + (bonus('chieftain')  ? 0.50 : 0)

@@ -1,12 +1,13 @@
 /**
- * Parsers for Google Sheets CSV tabs: Uniques, Abilities, Formulas (Nexus Tier Scaling).
+ * Parsers for Google Sheets CSV tabs: Uniques, Abilities, Formulas.
  * Uniques parser is a TypeScript port of scripts/generate_eoc_uniques.py.
  * Abilities parser is a TypeScript port of scripts/generate_eoc_abilities.py.
+ * Formulas parser reads Key/Value rows into FormulaConstants.
  */
 
 import type { EocUniqueDefinition, UniqueModPiece } from '../data/eocUniques';
-import type { NexusTierRow } from '../data/nexusEnemyScaling';
 import type { EocAbilityDefinition, EocAbilityType, EocSpellHit } from '../data/eocAbilities';
+import type { FormulaConstants } from '../data/formulaConstants';
 
 // ---------------------------------------------------------------------------
 // Generic CSV parser (RFC 4180)
@@ -244,47 +245,55 @@ export function parseUniquesCSV(csv: string): EocUniqueDefinition[] {
 }
 
 // ---------------------------------------------------------------------------
-// Nexus Tier Scaling parser (Formulas tab)
+// Formula constants parser (Formulas tab)
+// Expected columns: Key, Value, Category, Description, Expression
+// Matches formulas/damage_formulas.csv
 // ---------------------------------------------------------------------------
 
 function parseNum(s: string): number {
-  // strip commas and percent signs that Google Sheets may add
   const t = s.trim().replace(/,/g, '').replace(/%$/, '');
   const n = parseFloat(t);
-  return isNaN(n) ? 0 : n;
+  return isNaN(n) ? NaN : n;
 }
 
-export function parseNexusScalingCSV(csv: string): NexusTierRow[] {
+/** Maps CSV Key strings to FormulaConstants property names. */
+const KEY_MAP: Record<string, keyof FormulaConstants> = {
+  armour_dr_c1:              'armourDrC1',
+  armour_dr_c2:              'armourDrC2',
+  armour_dr_cap:             'armourDrCap',
+  armour_vs_physical:        'armourVsPhysical',
+  armour_vs_elemental:       'armourVsElemental',
+  armour_vs_chaos:           'armourVsChaos',
+  evasion_acc_coeff:         'evasionAccCoeff',
+  evasion_divisor:           'evasionDivisor',
+  evasion_cap:               'evasionCap',
+  elemental_res_cap:         'elementalResCap',
+  chaos_res_cap:             'chaosResCap',
+  ailment_pool_divisor:      'ailmentPoolDivisor',
+  shock_extra_effect_mult:   'shockExtraEffectMult',
+  chill_special_mult:        'chillSpecialMult',
+  ailment_base_duration_sec: 'ailmentBaseDurationSec',
+  level100_player_accuracy:  'level100PlayerAccuracy',
+  level100_enemy_accuracy:   'level100EnemyAccuracy',
+  level100_enemy_evasion:    'level100EnemyEvasion',
+};
+
+export function parseFormulaConstantsCSV(csv: string): Partial<FormulaConstants> {
   const rows = parseCSV(csv);
-  if (rows.length < 2) return [];
+  if (rows.length < 2) return {};
   const hdr = headerMap(rows);
+  const out: Partial<FormulaConstants> = {};
 
-  const out: NexusTierRow[] = [];
   for (const row of rows.slice(1)) {
-    const tierStr = col(row, hdr, 'Nexus Tier');
-    if (!tierStr) continue;
-    const tier = parseInt(tierStr, 10);
-    if (isNaN(tier)) continue;
+    const key = col(row, hdr, 'Key').trim();
+    const rawVal = col(row, hdr, 'Value');
+    if (!key || !rawVal) continue;
 
-    out.push({
-      tier,
-      physMin: parseNum(col(row, hdr, 'Phys Min Hit')),
-      physMax: parseNum(col(row, hdr, 'Phys Max Hit')),
-      elementalMin: parseNum(col(row, hdr, 'Elemental Min Hit')),
-      elementalMax: parseNum(col(row, hdr, 'Elemental Max Hit')),
-      chaosMin: parseNum(col(row, hdr, 'Chaos Min Hit')),
-      chaosMax: parseNum(col(row, hdr, 'Chaos Max Hit')),
-      health: parseNum(col(row, hdr, 'Health')),
-      attacksPerSecond: parseNum(col(row, hdr, 'Attacks/second')),
-      accuracy: parseNum(col(row, hdr, 'Accuracy')),
-      evasion: parseNum(col(row, hdr, 'Evasion')),
-      armour: parseNum(col(row, hdr, 'Armour')),
-      elementalResPercent: parseNum(col(row, hdr, 'Elemental Res')),
-      chaosResPercent: parseNum(col(row, hdr, 'Chaos Res')),
-      physDps: parseNum(col(row, hdr, 'Phys DPS')),
-      eleDps: parseNum(col(row, hdr, 'Ele DPS')),
-      chaosDps: parseNum(col(row, hdr, 'Chaos DPS')),
-    });
+    const prop = KEY_MAP[key];
+    if (!prop) continue;
+
+    const val = parseNum(rawVal);
+    if (!isNaN(val)) (out as Record<string, number>)[prop] = val;
   }
   return out;
 }

@@ -1,0 +1,19 @@
+Key,Value,Category,Description,Expression
+armour_dr_c1,500,Armour DR,Armour reduction constant — damage reference and denominator base,DR = armour / (C1 * (dmg / (dmg + C1)) * C2 + armour)
+armour_dr_c2,18,Armour DR,Armour reduction scaling multiplier,DR = armour / (C1 * (dmg / (dmg + C1)) * C2 + armour)
+armour_dr_cap,90,Armour DR,Hard cap on armour damage reduction (%),min(cap% + physDR_flat%)
+armour_vs_physical,1.0,Armour Effectiveness,Armour effectiveness multiplier vs physical damage,effective_armour = armour * mult
+armour_vs_elemental,0.5,Armour Effectiveness,Armour effectiveness multiplier vs elemental (fire/cold/lightning) damage,effective_armour = armour * mult
+armour_vs_chaos,0.25,Armour Effectiveness,Armour effectiveness multiplier vs chaos damage,effective_armour = armour * mult
+evasion_acc_coeff,1.35,Evasion,Accuracy scaling coefficient in evasion formula,evasion_chance = 1 - (ACC * K / (ACC + EVA * evasion_divisor))
+evasion_divisor,0.1,Evasion,Evasion scaling divisor in evasion formula,evasion_chance = 1 - (ACC * acc_coeff / (ACC + EVA * K))
+evasion_cap,90,Evasion,Hard cap on evasion chance (%),min(cap% + flat_final_evasion%)
+elemental_res_cap,75,Resistances,Base cap for elemental resistances — fire / cold / lightning (%),min(cap + overcap_bonus% resistance)
+chaos_res_cap,75,Resistances,Base cap for chaos resistance (%),min(cap% resistance)
+ailment_pool_divisor,5,Ailments,Divides the (life + ES) pool in the ailment effect formula,ailment = sqrt(dmg / ((life + es) * K))
+shock_extra_effect_mult,1.4,Ailments,Extra effect multiplier applied to shock (vs chill),final_shock = base * K
+chill_special_mult,0.7,Ailments,Special reduction multiplier applied to chill,final_chill = base * K
+ailment_base_duration_sec,1.8,Ailments,Base shock / chill duration in seconds before increased duration,duration = base * (1 + inc_duration% / 100)
+level100_player_accuracy,317,Scaling Reference,Reference player accuracy at level 100 (used in default evasion preview),—
+level100_enemy_accuracy,327,Scaling Reference,Reference enemy accuracy at level 100 (used in default hit-chance preview),—
+level100_enemy_evasion,4402,Scaling Reference,Reference enemy evasion at level 100 (used in default hit-chance preview),—

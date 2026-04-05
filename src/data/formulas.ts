@@ -14,6 +14,7 @@ import {
   LEVEL_100_PLAYER_ACCURACY,
 } from './eocFormulas';
 import { getNexusTierRow } from './nexusEnemyScaling';
+import { FORMULA_CONSTANTS } from './formulaConstants';
 
 export interface ComputedStats {
   strength: number;
@@ -120,12 +121,12 @@ export function computeDamageReductionPercentFromArmour(
   armour: number,
   incomingDamage: number,
   physicalDamageReduction = 0,
-  maxDamageReduction = 90
+  maxDamageReduction = FORMULA_CONSTANTS.armourDrCap
 ) {
+  const { armourDrC1, armourDrC2 } = FORMULA_CONSTANTS;
   const a = Math.max(0, armour);
   const d = Math.max(0, incomingDamage);
-
-  const scaling = 500 * (d / (d + 500)) * 18;
+  const scaling = armourDrC1 * (d / (d + armourDrC1)) * armourDrC2;
   const armourReductionPct = a <= 0 ? 0 : (a / (scaling + a)) * 100;
   return clamp(armourReductionPct + physicalDamageReduction, 0, maxDamageReduction);
 }
