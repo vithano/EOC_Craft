@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useGameData } from "../contexts/GameDataContext";
 import type { AbilitySelectionState } from "../data/gameStats";
 import {
   EOC_ABILITY_BY_ID,
@@ -18,8 +19,10 @@ export interface AbilitiesPanelProps {
 }
 
 export default function AbilitiesPanel({ weaponItemId, ability, onChangeAbility }: AbilitiesPanelProps) {
+  // Subscribe to sheet data updates so ability list re-renders when live data arrives
+  const { lastUpdated: sheetVersion } = useGameData();
   const weaponTag = useMemo(() => weaponAbilityTagFromItemId(weaponItemId), [weaponItemId]);
-  const usable = useMemo(() => abilitiesUsableWithWeapon(weaponTag), [weaponTag]);
+  const usable = useMemo(() => abilitiesUsableWithWeapon(weaponTag), [weaponTag, sheetVersion]);
 
   const grouped = useMemo(() => {
     const m: Record<EocAbilityType, EocAbilityDefinition[]> = { Melee: [], Ranged: [], Spells: [] };

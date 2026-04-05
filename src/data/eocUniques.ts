@@ -1,5 +1,3 @@
-import rawUniques from "./eocUniques.generated.json";
-
 export type UniqueModPiece = string | { type: "range"; min: number; max: number };
 
 export interface EocUniqueDefinition {
@@ -35,12 +33,17 @@ export interface EocUniqueDefinition {
   baseBlockChance: number | null;
 }
 
-export const EOC_UNIQUE_DEFINITIONS: EocUniqueDefinition[] =
-  rawUniques as EocUniqueDefinition[];
+export let EOC_UNIQUE_DEFINITIONS: EocUniqueDefinition[] = [];
 
-export const EOC_UNIQUE_BY_ID: Record<string, EocUniqueDefinition> = Object.fromEntries(
+export let EOC_UNIQUE_BY_ID: Record<string, EocUniqueDefinition> = Object.fromEntries(
   EOC_UNIQUE_DEFINITIONS.map((u) => [u.id, u])
 );
+
+/** Called by GameDataProvider after fetching the Uniques sheet tab. */
+export function updateUniqueDefinitions(defs: EocUniqueDefinition[]): void {
+  EOC_UNIQUE_DEFINITIONS = defs;
+  EOC_UNIQUE_BY_ID = Object.fromEntries(defs.map((u) => [u.id, u]));
+}
 
 export function isUniqueItemId(itemId: string): boolean {
   return itemId.startsWith("unique_");

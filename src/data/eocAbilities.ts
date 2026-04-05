@@ -1,4 +1,3 @@
-import rawAbilities from "./eocAbilities.generated.json";
 import { EOC_UNIQUE_BY_ID, isUniqueItemId } from "./eocUniques";
 
 export type EocAbilityType = "Melee" | "Ranged" | "Spells";
@@ -29,18 +28,28 @@ export interface EocAbilityDefinition {
   spellHit: EocSpellHit | null;
 }
 
-export const EOC_ABILITY_DEFINITIONS: EocAbilityDefinition[] =
-  rawAbilities as EocAbilityDefinition[];
+export let EOC_ABILITY_DEFINITIONS: EocAbilityDefinition[] = [];
 
-export const EOC_ABILITY_BY_ID: Record<string, EocAbilityDefinition> = Object.fromEntries(
+export let EOC_ABILITY_BY_ID: Record<string, EocAbilityDefinition> = Object.fromEntries(
   EOC_ABILITY_DEFINITIONS.map((a) => [a.id, a])
 );
 
-export const EOC_ABILITIES_BY_TYPE: Record<EocAbilityType, EocAbilityDefinition[]> = {
+export let EOC_ABILITIES_BY_TYPE: Record<EocAbilityType, EocAbilityDefinition[]> = {
   Melee: EOC_ABILITY_DEFINITIONS.filter((a) => a.type === "Melee"),
   Ranged: EOC_ABILITY_DEFINITIONS.filter((a) => a.type === "Ranged"),
   Spells: EOC_ABILITY_DEFINITIONS.filter((a) => a.type === "Spells"),
 };
+
+/** Called by GameDataProvider after fetching the Abilities sheet tab. */
+export function updateAbilityDefinitions(defs: EocAbilityDefinition[]): void {
+  EOC_ABILITY_DEFINITIONS = defs;
+  EOC_ABILITY_BY_ID = Object.fromEntries(defs.map((a) => [a.id, a]));
+  EOC_ABILITIES_BY_TYPE = {
+    Melee: defs.filter((a) => a.type === "Melee"),
+    Ranged: defs.filter((a) => a.type === "Ranged"),
+    Spells: defs.filter((a) => a.type === "Spells"),
+  };
+}
 
 /** Melee weapon tags used when CSV lists `melee weapon` (must match generator). */
 export const EOC_MELEE_WEAPON_TAGS = [

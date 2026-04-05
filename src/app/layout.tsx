@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { GameDataProvider } from "../contexts/GameDataContext";
 
 export const metadata: Metadata = {
   title: "EOC Craft — Theorycrafting Planner",
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body className="min-h-full bg-zinc-950 text-zinc-100">{children}</body>
+      <body className="min-h-full bg-zinc-950 text-zinc-100">
+        <GameDataProvider>{children}</GameDataProvider>
+      </body>
     </html>
   );
 }

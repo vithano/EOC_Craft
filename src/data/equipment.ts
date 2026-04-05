@@ -2,17 +2,6 @@ import { EOC_UNIQUE_BY_ID, EOC_UNIQUE_DEFINITIONS, isUniqueItemId } from './eocU
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'unique';
 
-function uniqueItemsForGameSlot(gameSlot: string): EquipmentItem[] {
-  return EOC_UNIQUE_DEFINITIONS.filter((u) => u.slot === gameSlot).map((u) => ({
-    id: u.id,
-    name: u.name,
-    rarity: 'unique',
-    modifiers: {},
-  }));
-}
-
-const RING_UNIQUES = uniqueItemsForGameSlot('Ring');
-
 export interface ItemModifiers {
   armour?: number;
   damage?: number;
@@ -36,14 +25,6 @@ export interface EquipmentItem {
   twoHanded?: boolean;
 }
 
-/** True for two-handed base weapons or unique weapons flagged in data. */
-export function weaponUsesBothHands(itemId: string): boolean {
-  if (!itemId || itemId === 'none') return false;
-  if (isUniqueItemId(itemId)) return EOC_UNIQUE_BY_ID[itemId]?.twoHanded ?? false;
-  const row = EQUIPMENT_ITEMS.Weapon?.find((i) => i.id === itemId);
-  return row?.twoHanded ?? false;
-}
-
 export const EQUIPMENT_SLOTS: string[] = [
   'Helmet',
   'Chest',
@@ -56,6 +37,58 @@ export const EQUIPMENT_SLOTS: string[] = [
   'Ring 2',
   'Amulet',
 ];
+
+// ---------------------------------------------------------------------------
+// Dynamic equipment items (static uniques + fetched non-unique items)
+// ---------------------------------------------------------------------------
+
+function uniqueItemsForSlot(slot: string): EquipmentItem[] {
+  const uniSlot = slot === 'Ring 1' || slot === 'Ring 2' ? 'Ring' : slot;
+  return EOC_UNIQUE_DEFINITIONS.filter((u) => u.slot === uniSlot).map((u) => ({
+    id: u.id,
+    name: u.name,
+    rarity: 'unique' as const,
+    modifiers: {},
+  }));
+}
+
+/** Lazy-built cache; cleared whenever uniques are updated. */
+let _equipmentItemsCache: Record<string, EquipmentItem[]> | null = null;
+
+function getEquipmentItemsMap(): Record<string, EquipmentItem[]> {
+  console.log('EOC_UNIQUE_DEFINITIONS',EOC_UNIQUE_DEFINITIONS);
+  if (_equipmentItemsCache) return _equipmentItemsCache;
+  const map: Record<string, EquipmentItem[]> = {};
+  for (const slot of EQUIPMENT_SLOTS) {
+    map[slot] = [
+      { id: 'none', name: '-- None --', modifiers: {} },
+      ...uniqueItemsForSlot(slot),
+    ];
+  }
+  _equipmentItemsCache = map;
+  return map;
+}
+
+/** Called by GameDataProvider after uniques are updated (cache must be rebuilt). */
+export function invalidateEquipmentItemsCache(): void {
+  _equipmentItemsCache = null;
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/** True for two-handed base weapons or unique weapons flagged in data. */
+export function weaponUsesBothHands(itemId: string): boolean {
+  if (!itemId || itemId === 'none') return false;
+  if (isUniqueItemId(itemId)) return EOC_UNIQUE_BY_ID[itemId]?.twoHanded ?? false;
+  const row = getEquipmentItemsMap().Weapon?.find((i) => i.id === itemId);
+  return row?.twoHanded ?? false;
+}
+
+export function getItemDefinition(slot: string, itemId: string): EquipmentItem | undefined {
+  return getEquipmentItemsMap()[slot]?.find((i) => i.id === itemId);
+}
 
 /** Worn item: base id or unique id; rolls apply to uniques with variable modifiers. */
 export interface EquippedEntry {
@@ -133,8 +166,7 @@ export interface InventoryStack {
 
 export const INVENTORY_MAX_SLOTS = 100;
 
-export const DEFAULT_INVENTORY: InventoryStack[] = [
-];
+export const DEFAULT_INVENTORY: InventoryStack[] = [];
 
 export type EquipmentFilter = 'all' | 'weapons' | 'armor' | 'accessories';
 
@@ -143,51 +175,3 @@ export function slotCategory(slot: string): 'weapons' | 'armor' | 'accessories' 
   if (slot === 'Ring 1' || slot === 'Ring 2' || slot === 'Amulet') return 'accessories';
   return 'armor';
 }
-
-export function getItemDefinition(slot: string, itemId: string): EquipmentItem | undefined {
-  const list = EQUIPMENT_ITEMS[slot];
-  return list?.find((i) => i.id === itemId);
-}
-
-export const EQUIPMENT_ITEMS: Record<string, EquipmentItem[]> = {
-  Helmet: [
-    { id: 'none', name: '-- None --', modifiers: {} },
-    ...uniqueItemsForGameSlot('Helmet'),
-  ],
-  Chest: [
-    { id: 'none', name: '-- None --', modifiers: {} },
-    ...uniqueItemsForGameSlot('Chest'),
-  ],
-  Belt: [
-    { id: 'none', name: '-- None --', modifiers: {} },
-    ...uniqueItemsForGameSlot('Belt'),
-  ],
-  Gloves: [
-    { id: 'none', name: '-- None --', modifiers: {} },
-    ...uniqueItemsForGameSlot('Gloves'),
-  ],
-  Boots: [
-    { id: 'none', name: '-- None --', modifiers: {} },
-    ...uniqueItemsForGameSlot('Boots'),
-  ],
-  Weapon: [
-    { id: 'none', name: '-- None --', modifiers: {} },
-    ...uniqueItemsForGameSlot('Weapon'),
-  ],
-  'Off-hand': [
-    { id: 'none', name: '-- None --', modifiers: {} },
-    ...uniqueItemsForGameSlot('Off-hand'),
-  ],
-  'Ring 1': [
-    { id: 'none', name: '-- None --', modifiers: {} },
-    ...RING_UNIQUES,
-  ],
-  'Ring 2': [
-    { id: 'none', name: '-- None --', modifiers: {} },
-    ...RING_UNIQUES,
-  ],
-  Amulet: [
-    { id: 'none', name: '-- None --', modifiers: {} },
-    ...uniqueItemsForGameSlot('Amulet'),
-  ],
-};

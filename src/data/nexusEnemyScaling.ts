@@ -64,7 +64,7 @@ function n(
 }
 
 /** Tiers 0–30 from the CSV (enemy stats columns are constant across tiers in this export). */
-export const NEXUS_TIER_ROWS: readonly NexusTierRow[] = [
+export let NEXUS_TIER_ROWS: readonly NexusTierRow[] = [
   n(0, 286, 400, 572, 800, 380, 532, 30003, 0.95, 327, 4402, 2763, 15, 0, 326, 652, 433),
   n(1, 343, 480, 685, 960, 456, 638, 38247, 0.998, 327, 4402, 2763, 15, 0, 410, 821, 546),
   n(2, 412, 577, 824, 1153, 548, 767, 48757, 1.045, 327, 4402, 2763, 15, 0, 516, 1033, 687),
@@ -97,6 +97,11 @@ export const NEXUS_TIER_ROWS: readonly NexusTierRow[] = [
   n(29, 92629, 129682, 185259, 259363, 123197, 172477, 34267695, 2.328, 327, 4402, 2763, 15, 0, 258714, 517429, 344090),
   n(30, 114279, 159991, 228558, 319982, 151991, 212788, 43684115, 2.375, 327, 4402, 2763, 15, 0, 325695, 651391, 433175),
 ] as const;
+
+/** Called by GameDataProvider after fetching the Formulas sheet tab. */
+export function updateNexusTierRows(rows: NexusTierRow[]): void {
+  NEXUS_TIER_ROWS = rows;
+}
 
 export function getNexusTierRow(tier: number): NexusTierRow | undefined {
   return NEXUS_TIER_ROWS.find((r) => r.tier === tier);

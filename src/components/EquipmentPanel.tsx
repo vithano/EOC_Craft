@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useGameData } from "../contexts/GameDataContext";
 import type { ComputedBuildStats } from "../data/gameStats";
 import type { EquippedEntry, EquipmentFilter, InventoryStack, Rarity } from "../data/equipment";
 import {
@@ -96,6 +97,7 @@ function parseRollTextsToValues(def: EocUniqueDefinition, texts: string[]): numb
 }
 
 function uniquesForPlannerSlot(plannerSlot: string) {
+  console.log(EOC_UNIQUE_DEFINITIONS);
   if (plannerSlot === "Ring 1" || plannerSlot === "Ring 2") {
     return EOC_UNIQUE_DEFINITIONS.filter((u) => u.slot === "Ring");
   }
@@ -116,6 +118,8 @@ export default function EquipmentPanel({
   incomingDamage,
   nexusTier,
 }: EquipmentPanelProps) {
+  // Subscribe to sheet data updates so the component re-renders when live data arrives
+  const { lastUpdated: sheetVersion } = useGameData();
   const [filter, setFilter] = useState<EquipmentFilter>("all");
   const [selectedInvId, setSelectedInvId] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
@@ -148,7 +152,7 @@ export default function EquipmentPanel({
     const list = uniquesForPlannerSlot(craftSlot);
     if (!q) return list;
     return list.filter((u) => u.name.toLowerCase().includes(q));
-  }, [craftSlot, craftSearch]);
+  }, [craftSlot, craftSearch, sheetVersion]);
 
   const craftDef = craftUniqueId ? EOC_UNIQUE_BY_ID[craftUniqueId] : undefined;
 

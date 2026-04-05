@@ -27,6 +27,7 @@ import {
 import { abilityMatchesWeapon, EOC_ABILITY_BY_ID, weaponAbilityTagFromItemId } from "../data/eocAbilities";
 import { loadStoredPlanner, parseStoredPlannerJson, saveStoredPlanner } from "../lib/eocBuildStorage";
 import { NEXUS_TIER_ROWS } from "../data/nexusEnemyScaling";
+import { useGameData } from "../contexts/GameDataContext";
 
 function equipmentModifiersFromEquippedMap(equipped: Record<string, EquippedEntry>) {
   return aggregateEquippedToEquipmentModifiers(EQUIPMENT_SLOTS, (slot) => getEquippedEntry(equipped, slot));
@@ -65,6 +66,7 @@ function addOrMergeStack(
 }
 
 export default function BuildPlanner() {
+  const { loading: dataLoading, error: dataError, lastUpdated: sheetVersion } = useGameData();
   const [upgradeLevels, setUpgradeLevels] = useState<Record<string, number>>({});
   const [equipped, setEquipped] = useState<Record<string, EquippedEntry>>({});
   const [inventory, setInventory] = useState<InventoryStack[]>([]);
@@ -104,7 +106,7 @@ export default function BuildPlanner() {
     });
   }, []);
 
-  const equipmentModifiers = useMemo(() => equipmentModifiersFromEquippedMap(equipped), [equipped]);
+  const equipmentModifiers = useMemo(() => equipmentModifiersFromEquippedMap(equipped), [equipped, sheetVersion]);
 
   const weaponItemId = getEquippedEntry(equipped, "Weapon").itemId;
 
@@ -115,7 +117,7 @@ export default function BuildPlanner() {
     const d = EOC_ABILITY_BY_ID[ability.abilityId];
     if (!d || !abilityMatchesWeapon(d, tag)) return { ...ability, abilityId: null };
     return ability;
-  }, [weaponItemId, ability]);
+  }, [weaponItemId, ability, sheetVersion]);
 
   const buildConfig = useMemo(
     () => ({
@@ -308,6 +310,17 @@ export default function BuildPlanner() {
     };
     void navigator.clipboard.writeText(JSON.stringify(payload));
   }, [upgradeLevels, equipmentModifiers, ability, equipped, inventory]);
+
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-zinc-400 text-sm mb-1">Loading game data from sheets...</div>
+          {dataError && <div className="text-red-400 text-xs">{dataError}</div>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">

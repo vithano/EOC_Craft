@@ -56,8 +56,10 @@ export function normalizeAbilitySelection(raw: unknown): AbilitySelectionState {
   }
   const o = raw as Record<string, unknown>
   const idRaw = o.abilityId
-  const abilityId =
-    typeof idRaw === 'string' && idRaw.length > 0 && EOC_ABILITY_BY_ID[idRaw] ? idRaw : null
+  // Only normalize shape/types here; existence is validated at point-of-use
+  // (abilityForStats in BuildPlanner) so data can load asynchronously without
+  // wiping a saved ability that isn't in the lookup yet.
+  const abilityId = typeof idRaw === 'string' && idRaw.length > 0 ? idRaw : null
   const abilityLevel = Math.min(20, Math.max(0, Math.floor(Number(o.abilityLevel) || 0)))
   const attunementPct = Math.min(100, Math.max(0, Math.floor(Number(o.attunementPct) || 0)))
   return { abilityId, abilityLevel, attunementPct }
