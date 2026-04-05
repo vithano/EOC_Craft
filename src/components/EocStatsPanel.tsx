@@ -193,6 +193,7 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
           />
           <StatRow label="Energy shield" value={stats.maxEnergyShield} />
           <StatRow label="Life" value={stats.maxLife} />
+          <StatRow label="Mana" value={stats.maxMana} />
           <StatRow label="Chance to dodge" value={`${stats.dodgeChance.toFixed(0)}%`} />
           {stats.blockChance > 0 && (
             <StatRow label="Chance to block" value={`${stats.blockChance.toFixed(0)}%`} />

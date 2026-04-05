@@ -766,8 +766,8 @@ export function isClassUnlocked(
 }
 
 export const BASE_GAME_STATS = {
-  baseLife: 300,
-  baseMana: 150,
+  baseLife: 290,
+  baseMana: 140,
   baseStr: 15,
   baseDex: 15,
   baseInt: 15,

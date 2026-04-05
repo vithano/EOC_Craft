@@ -41,6 +41,14 @@ export interface ComputedStats {
 }
 
 export const FORMULA_DESCRIPTIONS: Record<string, string> = {
+  statStacking:
+    'computeBuildStats: all “increased” that apply to the same outcome are summed (Σ), then ×(1+Σ/100); “more”/“less” multiply separately (product of factors).',
+  plannerMaxLife:
+    'computeBuildStats: lifeFlat × (1 + Σ increased max life /100) × Π more max life (gear); occultist → 1',
+  plannerMaxMana:
+    'computeBuildStats: manaFlat × (1 + Σ increased max mana /100) × Π more max mana (gear)',
+  plannerManaRegen:
+    'computeBuildStats: (base regen + druid + %max mana flat from gear) × (1 + Σ increased mana regen /100)',
   health: 'baseHealth + (vitality * 10) + equipmentHealth',
   mana: 'baseMana + (intelligence * 8) + equipmentMana',
   damage: 'baseDamage + equipmentDamage + (strength * 2) + (intelligence * 1.5) + (agility * 0.5) + critBonus',
@@ -49,7 +57,7 @@ export const FORMULA_DESCRIPTIONS: Record<string, string> = {
   evasion:
     'computeBuildStats: (baseEvasion + flatEvasion) * (1 + (evasionFromUpgrades + defFromDex)/100) * evasionMoreMult * defencesLessMult; same defFromDex as armour',
   energyShield:
-    'computeBuildStats: esBase * (1 + (esFromUpgrades + defFromDex)/100) * occultistMore * esLessMult; esFromUpgrades = inc ES + inc armour&ES + inc eva&ES + gear; same defFromDex',
+    'computeBuildStats: esBase × (1 + Σ increased ES /100) × occultistMore × esLessMult; Σ = esFromUpgrades + defFromDex (same additive increased-defence treatment as armour)',
   critChance:
     'computeBuildStats: min(100, flat * (1 + inc%/100)); flat = weaponOrGameBase + assassin + attackCritGear + critChanceBonus (spells: spellBase + assassin + critBonus + spellCritGear); inc = increased crit upgrades + gear inc% + 2%/10 DEX (× attr mult)',
   critMultiplier:

@@ -160,6 +160,8 @@ export interface UniqueGearStatPatch {
   damageDealtLessMultFromGear?: number;
   /** Multiplicative “X% more life” on maximum life. */
   lifeMoreMultFromGear?: number;
+  /** Multiplicative “X% more maximum mana” (product with other more-mana lines). */
+  manaMoreMultFromGear?: number;
   /** Multiplicative on final armour + evasion (e.g. 50% less defences). */
   defencesLessMultFromGear?: number;
   /** Added: mana cost × (1 + sum/100) after reduction. */
@@ -219,6 +221,8 @@ export interface UniqueGearStatPatch {
 
   /** X in “X% increased ranged attack damage per 10 strength” (weapon must be bow/crossbow). */
   rangedDamageIncPctPer10StrFromGear?: number;
+  /** X in “X% increased damage per 10 combined strength, dexterity, and intelligence”. */
+  damageIncPctPer10CombinedAttrsFromGear?: number;
 
   manaCostPaidWithLifeFromGear?: boolean;
 }
@@ -686,8 +690,15 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/([\d.]+)%\s+increased\s+attack\s+damage\b/i);
     if (m) add({ increasedAttackDamageFromGear: num(m)! });
 
+    m = l.match(
+      /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+increased\s+damage\s+per\s+10\s+combined\s+strength,\s+dexterity,\s+and\s+intelligence\b/i
+    );
+    if (m) add({ damageIncPctPer10CombinedAttrsFromGear: pctFromParenOrSingle(m) });
+
     m = l.match(/([\d.]+)%\s+increased\s+damage\b/i);
-    if (m && !/elemental/i.test(l)) add({ increasedDamageFromGear: num(m)! });
+    if (m && !/elemental/i.test(l) && !/\bper\s+10\b/i.test(l)) {
+      add({ increasedDamageFromGear: num(m)! });
+    }
 
     m = l.match(/([\d.]+)%\s+increased\s+spell\s+damage\b/i);
     if (m) add({ increasedSpellDamageFromGear: num(m)! });

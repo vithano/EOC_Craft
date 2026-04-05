@@ -249,6 +249,8 @@ export interface EquipmentModifiers {
   /** Multiplicative on hit damage dealt (standalone “% less damage” on gear). */
   damageDealtLessMultFromGear: number
   lifeMoreMultFromGear: number
+  /** Product of “X% more maximum mana” lines (1 = none). */
+  manaMoreMultFromGear: number
   defencesLessMultFromGear: number
   manaCostIncreasePercentFromGear: number
   pctIncreasedManaRegenFromGear: number
@@ -294,6 +296,8 @@ export interface EquipmentModifiers {
 
   energyShieldOnHitFromGear: number
   rangedDamageIncPctPer10StrFromGear: number
+  /** Sum of X in “X% increased damage per 10 combined strength, dexterity, and intelligence”. */
+  damageIncPctPer10CombinedAttrsFromGear: number
   manaCostPaidWithLifeFromGear: boolean
 }
 
@@ -583,6 +587,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
 
     damageDealtLessMultFromGear: 1,
     lifeMoreMultFromGear: 1,
+    manaMoreMultFromGear: 1,
     defencesLessMultFromGear: 1,
     manaCostIncreasePercentFromGear: 0,
     pctIncreasedManaRegenFromGear: 0,
@@ -627,6 +632,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
 
     energyShieldOnHitFromGear: 0,
     rangedDamageIncPctPer10StrFromGear: 0,
+    damageIncPctPer10CombinedAttrsFromGear: 0,
     manaCostPaidWithLifeFromGear: false,
   }
 }
@@ -899,6 +905,9 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.lifeMoreMultFromGear !== undefined) {
     eq.lifeMoreMultFromGear *= p.lifeMoreMultFromGear
   }
+  if (p.manaMoreMultFromGear !== undefined) {
+    eq.manaMoreMultFromGear *= p.manaMoreMultFromGear
+  }
   if (p.defencesLessMultFromGear !== undefined) {
     eq.defencesLessMultFromGear *= p.defencesLessMultFromGear
   }
@@ -991,6 +1000,9 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
   if (p.rangedDamageIncPctPer10StrFromGear !== undefined) {
     addNum('rangedDamageIncPctPer10StrFromGear', p.rangedDamageIncPctPer10StrFromGear)
+  }
+  if (p.damageIncPctPer10CombinedAttrsFromGear !== undefined) {
+    addNum('damageIncPctPer10CombinedAttrsFromGear', p.damageIncPctPer10CombinedAttrsFromGear)
   }
   if (p.manaCostPaidWithLifeFromGear) eq.manaCostPaidWithLifeFromGear = true
 }
@@ -1097,6 +1109,11 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const weaponItemId = config.equippedWeaponItemId ?? 'none'
   const weaponTag = weaponAbilityTagFromItemId(weaponItemId)
 
+  // Stat stacking (sheet-style):
+  // - All “increased X” that apply to the same outcome are summed, then applied once as (1 + Σ/100).
+  // - “More” / “less” (and similar multiplicative modifiers) multiply separately; multiple “more” lines
+  //   are a product of (1 + p/100) each.
+
   // -------------------------------------------------------------------------
   // 1. Determine active class bonuses
   // -------------------------------------------------------------------------
@@ -1127,7 +1144,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // (planner shows ranks 0…MAX; 0 ranks ⇒ level 1; 1 rank ⇒ level 2 ⇒ first +3 acc / +10 life / +10 mana / +1% dmg).
   const passiveRanksSpent = Object.values(config.upgradeLevels).reduce((sum, v) => sum + Math.max(0, v), 0)
   const characterLevel = passiveRanksSpent + 1
-  const levelsGainedFromBase = characterLevel - 1
+  const levelsGainedFromBase = characterLevel - 2
   const levelFlatAccuracy = 3 * levelsGainedFromBase
   const levelFlatLife = 10 * levelsGainedFromBase
   const levelFlatMana = 10 * levelsGainedFromBase
@@ -1186,36 +1203,42 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   // -------------------------------------------------------------------------
   // 6. Guardian "doubled inherent attribute bonuses" multipliers
-  //    Affects: life per str, mana per int, defenses per dex, crit per dex
+  //    Affects: 10 life per 10 str, 10 mana per 10 int, defenses per dex, crit per dex
   // -------------------------------------------------------------------------
   const guardianDoubled = bonus('guardian')
-  const attrLifeMult = guardianDoubled ? 2 : 1  // +1 life per str → +2
-  const attrManaMult = guardianDoubled ? 2 : 1  // +1 mana per int → +2
+  const attrLifeMult = guardianDoubled ? 2 : 1  // 10 life per 10 str → 20 life per 10 str
+  const attrManaMult = guardianDoubled ? 2 : 1  // 10 mana per 10 int → 20 mana per 10 int
   const attrDefMult  = guardianDoubled ? 2 : 1  // 2% defenses per 10 dex → 4%
   const attrCritMult = guardianDoubled ? 2 : 1  // 2% crit per 10 dex → 4%
   // Shared by ES, armour, evasion: 2% increased defences per full 10 DEX (× guardian on attrDefMult).
   const defFromDex = Math.floor(dex / 10) * attrDefMult * 2
 
   // -------------------------------------------------------------------------
-  // 7. Maximum life
+  // 7. Maximum life — flat × (1 + Σ increased%) × Π more multipliers
   // -------------------------------------------------------------------------
-  const lifeFromStr      = str * attrLifeMult            // +1 life per str (doubled for guardian)
-  const baseLife         = BASE_GAME_STATS.baseLife + lifeFromStr + levelFlatLife
-  // Warrior class bonus: +100 flat life added before % multiplier
-  const lifeBeforeMultiplier = baseLife + (bonus('warrior') ? 100 : 0) + eq.flatLife
-  const totalIncreasedLife   = u('increasedLife') + eq.pctIncreasedLifeFromGear
-  let maxLife = Math.round(lifeBeforeMultiplier * (1 + totalIncreasedLife / 100))
-  if (!bonus('occultist')) maxLife = Math.round(maxLife * eq.lifeMoreMultFromGear)
+  const lifeFromStr = Math.floor(str / 10) * 10 * attrLifeMult
+  const lifeFlat =
+    BASE_GAME_STATS.baseLife
+    + lifeFromStr
+    + levelFlatLife
+    + (bonus('warrior') ? 100 : 0)
+    + eq.flatLife
+  const totalIncreasedLife = u('increasedLife') + eq.pctIncreasedLifeFromGear
+  // Occultist class bonus: maximum life = 1 (ignores life formula)
+  let maxLife = bonus('occultist')
+    ? 1
+    : Math.round(lifeFlat * (1 + totalIncreasedLife / 100) * eq.lifeMoreMultFromGear)
 
-  // Occultist class bonus: maximum life = 1
-  if (bonus('occultist')) maxLife = 1
-
   // -------------------------------------------------------------------------
-  // 8. Maximum mana
+  // 8. Maximum mana — flat × (1 + Σ increased%) × Π more multipliers
   // -------------------------------------------------------------------------
-  const manaFromInt = int_ * attrManaMult  // +1 mana per int (doubled for guardian)
-  const baseMana    = BASE_GAME_STATS.baseMana + manaFromInt + levelFlatMana + eq.flatMana
-  const maxMana     = Math.round(baseMana * (1 + (u('increasedMana') + eq.pctIncreasedManaFromGear) / 100))
+  const manaFromInt = Math.floor(int_ / 10) * 10 * attrManaMult
+  const manaFlat =
+    BASE_GAME_STATS.baseMana + manaFromInt + levelFlatMana + eq.flatMana
+  const totalIncreasedMana = u('increasedMana') + eq.pctIncreasedManaFromGear
+  const maxMana = Math.round(
+    manaFlat * (1 + totalIncreasedMana / 100) * eq.manaMoreMultFromGear
+  )
 
   // -------------------------------------------------------------------------
   // 9. Energy shield
@@ -1231,9 +1254,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + u('increasedArmourAndEnergyShield')
     + u('increasedEvasionRatingAndEnergyShield')
     + eq.pctIncreasedEnergyShieldFromGear
-  // Occultist class bonus: 40% MORE energy shield (multiplicative)
-  const occultistMoreES   = bonus('occultist') ? 1.40 : 1.0
-  let maxEnergyShield   = Math.round(
+  // Increased ES (incl. defFromDex) additive in one (1+Σ/100); occultist “more” and ES “less” multiply after.
+  const occultistMoreES = bonus('occultist') ? 1.40 : 1.0
+  let maxEnergyShield = Math.round(
     esBase * (1 + (esFromUpgrades + defFromDex) / 100) * occultistMoreES * eq.energyShieldLessMultFromGear
   )
 
@@ -1439,10 +1462,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const baseManaRegen  = maxMana * (BASE_GAME_STATS.baseManaRegenPercent / 100)
   // Druid class bonus: regenerate an additional 2% of max mana per second
   const druidRegenBonus = bonus('druid') ? maxMana * 0.02 : 0
+  const manaRegenFlatPerSecond =
+    baseManaRegen
+    + druidRegenBonus
+    + maxMana * (eq.manaRegenPercentOfMaxManaPerSecondFromGear / 100)
+  const totalIncreasedManaRegen =
+    u('increasedManaRegeneration') + eq.pctIncreasedManaRegenFromGear
   const manaRegenPerSecond =
-    ((baseManaRegen + druidRegenBonus) * (1 + u('increasedManaRegeneration') / 100)
-      + maxMana * (eq.manaRegenPercentOfMaxManaPerSecondFromGear / 100))
-    * (1 + eq.pctIncreasedManaRegenFromGear / 100)
+    manaRegenFlatPerSecond * (1 + totalIncreasedManaRegen / 100)
 
   // -------------------------------------------------------------------------
   // 20. Damage modifiers
@@ -1464,50 +1491,44 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + eq.increasedElementalDamageFromGear
   // Occultist class bonus: 1% increased damage per 100 maximum energy shield
   const occultistDmgFromEsPct   = bonus('occultist') ? maxEnergyShield / 100 : 0
+  const damageIncFromCombinedAttrsGear =
+    Math.floor((str + dex + int_) / 10) * eq.damageIncPctPer10CombinedAttrsFromGear
   const increasedDamage         =
-    u('increasedDamage') + occultistDmgFromEsPct + eq.increasedDamageFromGear + levelPctIncreasedDamage
+    u('increasedDamage')
+    + occultistDmgFromEsPct
+    + eq.increasedDamageFromGear
+    + levelPctIncreasedDamage
+    + damageIncFromCombinedAttrsGear
   let damageOverTimeMultiplier =
     u('increasedDamageOverTimeMultiplier')
     + eq.pctIncreasedDamageOverTimeFromGear
     + eq.pctIncreasedBleedDamageFromGear
 
-  if (increasedElementalDamage !== 0) {
-    const ef = 1 + increasedElementalDamage / 100
-    hitDamageByType = hitDamageByType.map((r) =>
-      r.type === 'fire' || r.type === 'cold' || r.type === 'lightning'
-        ? { ...r, min: Math.round(r.min * ef), max: Math.round(r.max * ef) }
-        : r
-    )
-    console.log('increasedElementalDamage',hitDamageByType, ef);
-    hitDamageByType = buildHitDamageByType(hitDamageByType)
-    hitSum = sumHitDamageRange(hitDamageByType)
-    hitDamageMin = hitSum.min
-    hitDamageMax = hitSum.max
+  // Elemental hit rows: shared “increased elemental” + per-element increased are one additive pool each.
+  const incElePool = increasedElementalDamage
+  const applyEleTypeInc = (type: 'fire' | 'cold' | 'lightning', gearInc: number) => {
+    const totalInc = incElePool + gearInc
+    if (totalInc === 0) return
+    hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, type, 1 + totalInc / 100)
   }
-  if (eq.increasedLightningDamageFromGear !== 0) {
-    const lf = 1 + eq.increasedLightningDamageFromGear / 100
-    hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'lightning', lf)
-    hitSum = sumHitDamageRange(hitDamageByType)
-    hitDamageMin = hitSum.min
-    hitDamageMax = hitSum.max
-  }
+  applyEleTypeInc('fire', eq.increasedFireDamageFromGear)
+  applyEleTypeInc('cold', eq.increasedColdDamageFromGear)
+  applyEleTypeInc('lightning', eq.increasedLightningDamageFromGear)
   if (eq.increasedChaosDamageFromGear !== 0) {
-    const cf = 1 + eq.increasedChaosDamageFromGear / 100
-    hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'chaos', cf)
-    hitSum = sumHitDamageRange(hitDamageByType)
-    hitDamageMin = hitSum.min
-    hitDamageMax = hitSum.max
+    hitDamageByType = scaleHitDamageRowsOfType(
+      hitDamageByType,
+      'chaos',
+      1 + eq.increasedChaosDamageFromGear / 100
+    )
   }
-  if (eq.increasedFireDamageFromGear !== 0) {
-    const ff = 1 + eq.increasedFireDamageFromGear / 100
-    hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'fire', ff)
-    hitSum = sumHitDamageRange(hitDamageByType)
-    hitDamageMin = hitSum.min
-    hitDamageMax = hitSum.max
-  }
-  if (eq.increasedColdDamageFromGear !== 0) {
-    const kf = 1 + eq.increasedColdDamageFromGear / 100
-    hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'cold', kf)
+  if (
+    incElePool !== 0
+    || eq.increasedFireDamageFromGear !== 0
+    || eq.increasedColdDamageFromGear !== 0
+    || eq.increasedLightningDamageFromGear !== 0
+    || eq.increasedChaosDamageFromGear !== 0
+  ) {
+    hitDamageByType = buildHitDamageByType(hitDamageByType)
     hitSum = sumHitDamageRange(hitDamageByType)
     hitDamageMin = hitSum.min
     hitDamageMax = hitSum.max
@@ -1530,6 +1551,17 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   let abilityContribution: AbilityContributionSummary | null = null
 
   const sel = config.ability
+  let appliedAttackIncBucketsToHit = false
+  let usedSpellHitDamage = false
+
+  const refreshHitTotalsFromRows = () => {
+    hitSum = sumHitDamageRange(hitDamageByType)
+    hitDamageMin = hitSum.min
+    hitDamageMax = hitSum.max
+    avgHit = (hitDamageMin + hitDamageMax) / 2
+    avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
+    dps = avgEffectiveDamage * aps
+  }
 
   let attunementStrikesIncPct = 0
   let attunementFlatDoubleChance = 0
@@ -1606,6 +1638,15 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           dps = avgEffectiveDamage * aps
         }
 
+        const meleeIncFromAbility = def.type === 'Melee' ? increasedMeleeDamage : 0
+        const attackIncBucketsFrac =
+          (increasedDamage + increasedAttackDamage + meleeIncFromAbility) / 100
+        if (attackIncBucketsFrac !== 0) {
+          hitDamageByType = scaleHitDamageByType(hitDamageByType, 1 + attackIncBucketsFrac)
+          refreshHitTotalsFromRows()
+        }
+        appliedAttackIncBucketsToHit = true
+
         abilityContribution = {
           id: def.id,
           name: def.name,
@@ -1648,6 +1689,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           const isEle = ['fire', 'cold', 'lightning'].includes(scaledHit.element)
           const incFrac =
             (increasedSpellDamage + increasedDamage + spellAttIncDmg + (isEle ? increasedElementalDamage : 0)) / 100
+          usedSpellHitDamage = true
           const castBase = def.castTimeSeconds != null && def.castTimeSeconds > 0 ? def.castTimeSeconds : 0.5
           const castSpeedInc =
             u('increasedCastSpeed')
@@ -1699,6 +1741,19 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           }
         }
       }
+    }
+  }
+
+  if (!appliedAttackIncBucketsToHit && !usedSpellHitDamage) {
+    const defaultMeleeInc =
+      weaponTag && weaponTag !== 'bow' && weaponTag !== 'hand_crossbow'
+        ? increasedMeleeDamage
+        : 0
+    const fallbackAttackIncFrac =
+      (increasedDamage + increasedAttackDamage + defaultMeleeInc) / 100
+    if (fallbackAttackIncFrac !== 0) {
+      hitDamageByType = scaleHitDamageByType(hitDamageByType, 1 + fallbackAttackIncFrac)
+      refreshHitTotalsFromRows()
     }
   }
 

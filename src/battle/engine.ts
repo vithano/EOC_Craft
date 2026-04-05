@@ -179,14 +179,6 @@ function flatEvasionFromClassBonuses(stats: ComputedBuildStats): number {
   return stats.classBonusesActive.includes('mirage') ? 5 : 0
 }
 
-function outgoingPlayerIncreasedDamageFrac(stats: ComputedBuildStats): number {
-  return (
-    stats.increasedAttackDamage
-    + stats.increasedMeleeDamage
-    + stats.increasedDamage
-  ) / 100
-}
-
 function playerApsWithBerserker(stats: ComputedBuildStats, life: number): number {
   const base = stats.aps
   if (!stats.classBonusesActive.includes('berserker')) return base
@@ -376,7 +368,6 @@ function resolvePlayerAttack(
     }
 
     base *= stats.damageDealtLessMult ?? 1
-    base *= 1 + outgoingPlayerIncreasedDamageFrac(stats)
     const frac = enemyLife / Math.max(1, enemy.maxLife)
     base *= enemyDamageTakenMultiplier(stats, frac)
     const shockPct = attackOpts?.targetTakesIncreasedDamagePct ?? 0

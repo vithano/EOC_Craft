@@ -289,6 +289,8 @@ function normalizeEquipment(
         : d.damageDealtLessMultFromGear,
     lifeMoreMultFromGear:
       Number(z.lifeMoreMultFromGear) > 0 ? Number(z.lifeMoreMultFromGear) : d.lifeMoreMultFromGear,
+    manaMoreMultFromGear:
+      Number(z.manaMoreMultFromGear) > 0 ? Number(z.manaMoreMultFromGear) : d.manaMoreMultFromGear,
     defencesLessMultFromGear:
       Number(z.defencesLessMultFromGear) > 0
         ? Number(z.defencesLessMultFromGear)
@@ -337,6 +339,8 @@ function normalizeEquipment(
 
     energyShieldOnHitFromGear: Number(z.energyShieldOnHitFromGear) || 0,
     rangedDamageIncPctPer10StrFromGear: Number(z.rangedDamageIncPctPer10StrFromGear) || 0,
+    damageIncPctPer10CombinedAttrsFromGear:
+      Number(z.damageIncPctPer10CombinedAttrsFromGear) || 0,
     manaCostPaidWithLifeFromGear: Boolean(z.manaCostPaidWithLifeFromGear),
   };
 }
