@@ -7,6 +7,101 @@ export interface HitDamageTypeRow {
   max: number;
 }
 
+/**
+ * How global “increased damage” buckets apply to a hit fragment (conversion lineage).
+ * - physical_style: physical-style increased only (no generic elemental); weapon flat lightning uses this.
+ * - physical_and_elemental: physical-style + elemental increased; phys→element and cold from that lightning.
+ * - elemental_style_only: elemental increased only; cold from lightning that was physical_style (e.g. native weapon lightning → cold).
+ * - chaos_style: attack increased + chaos-specific (no elemental increased).
+ */
+export type HitDamageScaling =
+  | "physical_style"
+  | "physical_and_elemental"
+  | "elemental_style_only"
+  | "chaos_style";
+
+export interface ProvHitDamageRow {
+  type: HitDamageType;
+  min: number;
+  max: number;
+  scaling: HitDamageScaling;
+}
+
+export function buildProvHitDamageByType(rows: ProvHitDamageRow[]): ProvHitDamageRow[] {
+  return rows.filter((r) => r.max > 0 || r.min > 0);
+}
+
+/** Merge provenance rows for UI / stored hit breakdown (same type summed). */
+export function collapseProvRowsToHitDamage(rows: ProvHitDamageRow[]): HitDamageTypeRow[] {
+  const order: HitDamageType[] = ["physical", "fire", "cold", "lightning", "chaos"];
+  const map = new Map<HitDamageType, { min: number; max: number }>();
+  for (const r of rows) {
+    if (r.max <= 0 && r.min <= 0) continue;
+    const cur = map.get(r.type) ?? { min: 0, max: 0 };
+    cur.min += r.min;
+    cur.max += r.max;
+    map.set(r.type, cur);
+  }
+  const out: HitDamageTypeRow[] = [];
+  for (const t of order) {
+    const v = map.get(t);
+    if (v && (v.min > 0 || v.max > 0)) out.push({ type: t, min: v.min, max: v.max });
+  }
+  return out;
+}
+
+export interface ProvHitIncreasedContext {
+  physIncTotal: number;
+  attackIncSum: number;
+  incEle: number;
+  attIncFire: number;
+  gearFire: number;
+  gearCold: number;
+  gearLightning: number;
+  chaosGear: number;
+}
+
+export function increasedPctForProvHitRow(row: ProvHitDamageRow, ctx: ProvHitIncreasedContext): number {
+  const typeGear =
+    row.type === "fire"
+      ? ctx.gearFire
+      : row.type === "cold"
+        ? ctx.gearCold
+        : row.type === "lightning"
+          ? ctx.gearLightning
+          : 0;
+  switch (row.scaling) {
+    case "physical_style":
+      if (row.type === "physical") return ctx.physIncTotal;
+      return ctx.physIncTotal + typeGear;
+    case "physical_and_elemental":
+      return ctx.physIncTotal + ctx.incEle + typeGear + (row.type === "fire" ? ctx.attIncFire : 0);
+    case "elemental_style_only":
+      return ctx.incEle + typeGear + (row.type === "fire" ? ctx.attIncFire : 0);
+    case "chaos_style":
+      return ctx.attackIncSum + ctx.chaosGear;
+    default: {
+      const _x: never = row.scaling;
+      return _x;
+    }
+  }
+}
+
+export function applyIncreasedToProvHitRows(
+  rows: ProvHitDamageRow[],
+  ctx: ProvHitIncreasedContext
+): ProvHitDamageRow[] {
+  return rows.map((r) => {
+    const pct = increasedPctForProvHitRow(r, ctx);
+    const m = 1 + pct / 100;
+    return {
+      ...r,
+      min: Math.round(r.min * m),
+      max: Math.round(r.max * m),
+    };
+  });
+}
+
 export const HIT_DAMAGE_TYPE_LABEL: Record<HitDamageType, string> = {
   physical: "Physical",
   fire: "Fire",
@@ -189,6 +284,161 @@ export function applyGainPhysicalAsExtraLightning(rows: HitDamageTypeRow[], pct:
     out.push({ type: "lightning", min: Math.round(addMin), max: Math.round(addMax) });
   }
   return buildHitDamageByType(out);
+}
+
+// ---------------------------------------------------------------------------
+// Provenance-aware conversions (separate hit instances; see applyIncreasedToProvHitRows)
+// ---------------------------------------------------------------------------
+
+/** Same as applyGearPhysicalConversion but adds new elemental rows (no merge) with physical_and_elemental lineage. */
+export function applyGearPhysicalConversionProv(
+  rows: ProvHitDamageRow[],
+  pctToFire: number,
+  pctToCold: number,
+  pctToLightning: number
+): ProvHitDamageRow[] {
+  if (pctToFire <= 0 && pctToCold <= 0 && pctToLightning <= 0) return rows;
+  const out = rows.map((r) => ({ ...r }));
+  const pi = out.findIndex((r) => r.type === "physical");
+  if (pi < 0) return rows;
+  const p = out[pi]!;
+  const origMin = p.min;
+  const origMax = p.max;
+  if (origMin <= 0 && origMax <= 0) return rows;
+
+  const take = (pct: number, lo: number, hi: number) => ({
+    min: lo * (pct / 100),
+    max: hi * (pct / 100),
+  });
+  const f = take(pctToFire, origMin, origMax);
+  const c = take(pctToCold, origMin, origMax);
+  const l = take(pctToLightning, origMin, origMax);
+
+  out[pi] = {
+    ...p,
+    min: Math.round(origMin - f.min - c.min - l.min),
+    max: Math.round(origMax - f.max - c.max - l.max),
+  };
+
+  const pushEle = (type: HitDamageType, dm: number, dM: number) => {
+    if (dm <= 0 && dM <= 0) return;
+    out.push({
+      type,
+      min: Math.round(dm),
+      max: Math.round(dM),
+      scaling: "physical_and_elemental",
+    });
+  };
+  pushEle("fire", f.min, f.max);
+  pushEle("cold", c.min, c.max);
+  pushEle("lightning", l.min, l.max);
+
+  return buildProvHitDamageByType(out);
+}
+
+/** Lightning → cold applied per lightning row; cold lineage follows source lightning scaling. */
+export function applyLightningToColdConversionProv(rows: ProvHitDamageRow[], pct: number): ProvHitDamageRow[] {
+  if (pct <= 0) return rows;
+  const f = pct / 100;
+  const out: ProvHitDamageRow[] = [];
+  const newCold: ProvHitDamageRow[] = [];
+  for (const r of rows) {
+    if (r.type !== "lightning") {
+      out.push({ ...r });
+      continue;
+    }
+    const takeMin = r.min * f;
+    const takeMax = r.max * f;
+    const coldScaling: HitDamageScaling =
+      r.scaling === "physical_style" || r.scaling === "elemental_style_only"
+        ? "elemental_style_only"
+        : "physical_and_elemental";
+    out.push({
+      ...r,
+      min: Math.round(r.min - takeMin),
+      max: Math.round(r.max - takeMax),
+    });
+    if (takeMin > 0 || takeMax > 0) {
+      newCold.push({
+        type: "cold",
+        min: Math.round(takeMin),
+        max: Math.round(takeMax),
+        scaling: coldScaling,
+      });
+    }
+  }
+  return buildProvHitDamageByType([...out, ...newCold]);
+}
+
+export function applyGainPhysicalAsExtraLightningProv(rows: ProvHitDamageRow[], pct: number): ProvHitDamageRow[] {
+  if (pct <= 0) return rows;
+  const f = pct / 100;
+  const out = rows.map((r) => ({ ...r }));
+  const pi = out.findIndex((r) => r.type === "physical");
+  if (pi < 0) return rows;
+  const p = out[pi]!;
+  const addMin = p.min * f;
+  const addMax = p.max * f;
+  if (addMin <= 0 && addMax <= 0) return buildProvHitDamageByType(out);
+  out.push({
+    type: "lightning",
+    min: Math.round(addMin),
+    max: Math.round(addMax),
+    scaling: "physical_and_elemental",
+  });
+  return buildProvHitDamageByType(out);
+}
+
+export function applyPhysicalToRandomElementsProv(rows: ProvHitDamageRow[], pct: number): ProvHitDamageRow[] {
+  if (pct <= 0) return rows;
+  const third = pct / 300;
+  return applyGearPhysicalConversionProv(rows, third * 100, third * 100, third * 100);
+}
+
+/** Elemental → chaos: strip each elemental row; added chaos uses chaos_style (attack + chaos inc). */
+export function applyElementalToChaosConversionProv(rows: ProvHitDamageRow[], pct: number): ProvHitDamageRow[] {
+  if (pct <= 0) return rows;
+  const f = pct / 100;
+  const out: ProvHitDamageRow[] = [];
+  let chaosMin = 0;
+  let chaosMax = 0;
+  const eleTypes = new Set<HitDamageType>(["fire", "cold", "lightning"]);
+  for (const r of rows) {
+    if (!eleTypes.has(r.type)) {
+      out.push({ ...r });
+      continue;
+    }
+    const takeMin = r.min * f;
+    const takeMax = r.max * f;
+    chaosMin += takeMin;
+    chaosMax += takeMax;
+    const remMin = r.min - takeMin;
+    const remMax = r.max - takeMax;
+    if (remMin > 0 || remMax > 0) {
+      out.push({ ...r, min: Math.round(remMin), max: Math.round(remMax) });
+    }
+  }
+  if (chaosMax > 0) {
+    out.push({
+      type: "chaos",
+      min: Math.round(chaosMin),
+      max: Math.round(chaosMax),
+      scaling: "chaos_style",
+    });
+  }
+  return buildProvHitDamageByType(out);
+}
+
+export function scaleProvHitDamageRows(
+  parts: ProvHitDamageRow[],
+  damageMultiplierFactor: number
+): ProvHitDamageRow[] {
+  if (damageMultiplierFactor === 1) return parts.map((p) => ({ ...p }));
+  return parts.map((p) => ({
+    ...p,
+    min: Math.round(p.min * damageMultiplierFactor),
+    max: Math.round(p.max * damageMultiplierFactor),
+  }));
 }
 
 export function sumHitDamageRange(parts: HitDamageTypeRow[]): { min: number; max: number } {

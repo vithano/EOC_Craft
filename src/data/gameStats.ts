@@ -21,14 +21,17 @@ import {
   type EocAbilityType,
 } from './eocAbilities'
 import {
-  applyElementalToChaosConversion,
-  applyGainPhysicalAsExtraLightning,
-  applyGearPhysicalConversion,
-  applyLightningToColdConversion,
-  applyPhysicalToRandomElements,
+  applyElementalToChaosConversionProv,
+  applyGainPhysicalAsExtraLightningProv,
+  applyGearPhysicalConversionProv,
+  applyIncreasedToProvHitRows,
+  applyLightningToColdConversionProv,
+  applyPhysicalToRandomElementsProv,
   buildHitDamageByType,
+  buildProvHitDamageByType,
+  collapseProvRowsToHitDamage,
   localFlatDamageDisplayRange,
-  scaleHitDamageByType,
+  scaleProvHitDamageRows,
   spellElementToHitDamageType,
   sumHitDamageRange,
   type HitDamageTypeRow,
@@ -1007,18 +1010,6 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.manaCostPaidWithLifeFromGear) eq.manaCostPaidWithLifeFromGear = true
 }
 
-function scaleHitDamageRowsOfType(
-  rows: HitDamageTypeRow[],
-  type: HitDamageTypeRow['type'],
-  factor: number
-): HitDamageTypeRow[] {
-  return rows.map((r) =>
-    r.type === type
-      ? { ...r, min: Math.round(r.min * factor), max: Math.round(r.max * factor) }
-      : r
-  )
-}
-
 /** Sum static items and rolled uniques for all worn slots. */
 export function aggregateEquippedToEquipmentModifiers(
   slots: string[],
@@ -1351,47 +1342,85 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const coldR = localFlatDamageDisplayRange(eq.flatColdMin, eq.flatColdMax)
   const lightningR = localFlatDamageDisplayRange(eq.flatLightningMin, eq.flatLightningMax)
   const chaosR = localFlatDamageDisplayRange(eq.flatChaosMin, eq.flatChaosMax)
-  let hitDamageByType: HitDamageTypeRow[] = buildHitDamageByType([
+  let hitProvRows = buildProvHitDamageByType([
     {
       type: 'physical',
       min: Math.round(BASE_GAME_STATS.baseHitDamageMin + eq.flatDamageMin),
       max: Math.round(BASE_GAME_STATS.baseHitDamageMax + eq.flatDamageMax),
+      scaling: 'physical_style',
     },
-    { type: 'fire', min: fireR.min, max: fireR.max },
-    { type: 'cold', min: coldR.min, max: coldR.max },
-    { type: 'lightning', min: lightningR.min, max: lightningR.max },
-    { type: 'chaos', min: chaosR.min, max: chaosR.max },
+    { type: 'fire', min: fireR.min, max: fireR.max, scaling: 'physical_and_elemental' },
+    { type: 'cold', min: coldR.min, max: coldR.max, scaling: 'physical_and_elemental' },
+    { type: 'lightning', min: lightningR.min, max: lightningR.max, scaling: 'physical_style' },
+    { type: 'chaos', min: chaosR.min, max: chaosR.max, scaling: 'chaos_style' },
   ])
-  hitDamageByType = applyGearPhysicalConversion(
-    hitDamageByType,
-    eq.physicalConvertedToFirePctFromGear,
-    eq.physicalConvertedToColdPctFromGear,
-    eq.physicalConvertedToLightningPctFromGear
+
+  // Melee/Ranged ability damage multiplier, then phys→element conversion: gear % + ability % summed
+  // in one pass (each % is of the same physical roll — see applyGearPhysicalConversionProv).
+  const selForHit = config.ability
+  if (selForHit?.abilityId) {
+    const abDef = EOC_ABILITY_BY_ID[selForHit.abilityId]
+    const abLevel = Math.min(20, Math.max(0, Math.floor(selForHit.abilityLevel ?? 0)))
+    if (
+      abDef
+      && abilityMatchesWeapon(abDef, weaponTag)
+      && (abDef.type === 'Melee' || abDef.type === 'Ranged')
+    ) {
+      const startLvl = abDef.startingAbilityLevel ?? 0
+      const scaledDm = attackDamageMultiplierAtAbilityLevel(
+        abDef.damageMultiplierPct ?? 100,
+        startLvl,
+        abLevel
+      )
+      hitProvRows = scaleProvHitDamageRows(hitProvRows, scaledDm / 100)
+    }
+  }
+  const convFromAbilityLines =
+    selForHit?.abilityId
+      ? (() => {
+          const abDef = EOC_ABILITY_BY_ID[selForHit.abilityId]
+          if (
+            !abDef
+            || !abilityMatchesWeapon(abDef, weaponTag)
+            || (abDef.type !== 'Melee' && abDef.type !== 'Ranged')
+          ) {
+            return { toFire: 0, toCold: 0, toLightning: 0 }
+          }
+          return physicalElementConversionFromAbilityLines(abDef.lines)
+        })()
+      : { toFire: 0, toCold: 0, toLightning: 0 }
+
+  hitProvRows = applyGearPhysicalConversionProv(
+    hitProvRows,
+    eq.physicalConvertedToFirePctFromGear + convFromAbilityLines.toFire,
+    eq.physicalConvertedToColdPctFromGear + convFromAbilityLines.toCold,
+    eq.physicalConvertedToLightningPctFromGear + convFromAbilityLines.toLightning
   )
   if (eq.physicalToRandomElementPctFromGear > 0) {
-    hitDamageByType = applyPhysicalToRandomElements(
-      hitDamageByType,
+    hitProvRows = applyPhysicalToRandomElementsProv(
+      hitProvRows,
       eq.physicalToRandomElementPctFromGear
     )
   }
   if (eq.gainPhysicalAsExtraLightningPctFromGear > 0) {
-    hitDamageByType = applyGainPhysicalAsExtraLightning(
-      hitDamageByType,
+    hitProvRows = applyGainPhysicalAsExtraLightningProv(
+      hitProvRows,
       eq.gainPhysicalAsExtraLightningPctFromGear
     )
   }
   if (eq.lightningToColdConversionPctFromGear > 0) {
-    hitDamageByType = applyLightningToColdConversion(
-      hitDamageByType,
+    hitProvRows = applyLightningToColdConversionProv(
+      hitProvRows,
       eq.lightningToColdConversionPctFromGear
     )
   }
   if (eq.elementalToChaosConversionPctFromGear > 0) {
-    hitDamageByType = applyElementalToChaosConversion(
-      hitDamageByType,
+    hitProvRows = applyElementalToChaosConversionProv(
+      hitProvRows,
       eq.elementalToChaosConversionPctFromGear
     )
   }
+  let hitDamageByType = collapseProvRowsToHitDamage(hitProvRows)
   let hitSum = sumHitDamageRange(hitDamageByType)
   let hitDamageMin = hitSum.min
   let hitDamageMax = hitSum.max
@@ -1472,7 +1501,11 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     manaRegenFlatPerSecond * (1 + totalIncreasedManaRegen / 100)
 
   // -------------------------------------------------------------------------
-  // 20. Damage modifiers
+  // 20. Damage modifiers — per hit instance (after §15 conversion lineage):
+  // - physical_style: physical-style pool only (weapon flat lightning, remaining phys).
+  // - physical_and_elemental: that pool + elemental + type gear (phys→element; cold from that lightning).
+  // - elemental_style_only: elemental + type gear (cold from physical_style lightning).
+  // - chaos_style: attack + chaos-specific (no elemental increased).
   // -------------------------------------------------------------------------
   const meleeDmgFromStr    = str / 10                        // 1% increased melee damage per 10 str
   const spellDmgFromInt    = int_ / 10                       // 1% increased spell damage per 10 int
@@ -1504,35 +1537,50 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + eq.pctIncreasedDamageOverTimeFromGear
     + eq.pctIncreasedBleedDamageFromGear
 
-  // Elemental hit rows: shared “increased elemental” + per-element increased are one additive pool each.
-  const incElePool = increasedElementalDamage
-  const applyEleTypeInc = (type: 'fire' | 'cold' | 'lightning', gearInc: number) => {
-    const totalInc = incElePool + gearInc
-    if (totalInc === 0) return
-    hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, type, 1 + totalInc / 100)
+  let attIncDamage = 0
+  let attIncPhysical = 0
+  let attIncFire = 0
+  if (config.ability?.abilityId) {
+    const ad = EOC_ABILITY_BY_ID[config.ability.abilityId]
+    if (ad && abilityMatchesWeapon(ad, weaponTag) && (ad.type === 'Melee' || ad.type === 'Ranged')) {
+      const attPctRaw = Math.min(100, Math.max(0, Number(config.ability.attunementPct) || 0))
+      const am = interpolateAttunementModifier(ad, attPctRaw, bonus('archmage') ? 2 : 1)
+      if (am) {
+        if (am.key === 'increased damage') attIncDamage = am.value
+        else if (am.key === 'increased physical damage') attIncPhysical = am.value
+        else if (am.key === 'increased fire damage') attIncFire = am.value
+      }
+    }
   }
-  applyEleTypeInc('fire', eq.increasedFireDamageFromGear)
-  applyEleTypeInc('cold', eq.increasedColdDamageFromGear)
-  applyEleTypeInc('lightning', eq.increasedLightningDamageFromGear)
-  if (eq.increasedChaosDamageFromGear !== 0) {
-    hitDamageByType = scaleHitDamageRowsOfType(
-      hitDamageByType,
-      'chaos',
-      1 + eq.increasedChaosDamageFromGear / 100
-    )
+
+  let meleePortionForHit = 0
+  if (config.ability?.abilityId) {
+    const dSel = EOC_ABILITY_BY_ID[config.ability.abilityId]
+    if (dSel && abilityMatchesWeapon(dSel, weaponTag) && dSel.type === 'Melee') {
+      meleePortionForHit = increasedMeleeDamage
+    }
+  } else if (weaponTag && weaponTag !== 'bow' && weaponTag !== 'hand_crossbow') {
+    meleePortionForHit = increasedMeleeDamage
   }
-  if (
-    incElePool !== 0
-    || eq.increasedFireDamageFromGear !== 0
-    || eq.increasedColdDamageFromGear !== 0
-    || eq.increasedLightningDamageFromGear !== 0
-    || eq.increasedChaosDamageFromGear !== 0
-  ) {
-    hitDamageByType = buildHitDamageByType(hitDamageByType)
-    hitSum = sumHitDamageRange(hitDamageByType)
-    hitDamageMin = hitSum.min
-    hitDamageMax = hitSum.max
-  }
+
+  const attackIncSum = increasedDamage + increasedAttackDamage + meleePortionForHit + attIncDamage
+  const incEle = increasedElementalDamage
+
+  const physIncTotal = attackIncSum + attIncPhysical
+  hitProvRows = applyIncreasedToProvHitRows(hitProvRows, {
+    physIncTotal,
+    attackIncSum,
+    incEle,
+    attIncFire,
+    gearFire: eq.increasedFireDamageFromGear,
+    gearCold: eq.increasedColdDamageFromGear,
+    gearLightning: eq.increasedLightningDamageFromGear,
+    chaosGear: eq.increasedChaosDamageFromGear,
+  })
+  hitDamageByType = collapseProvRowsToHitDamage(hitProvRows)
+  hitSum = sumHitDamageRange(hitDamageByType)
+  hitDamageMin = hitSum.min
+  hitDamageMax = hitSum.max
 
   // -------------------------------------------------------------------------
   // 21. Average hit and DPS
@@ -1551,17 +1599,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   let abilityContribution: AbilityContributionSummary | null = null
 
   const sel = config.ability
-  let appliedAttackIncBucketsToHit = false
-  let usedSpellHitDamage = false
-
-  const refreshHitTotalsFromRows = () => {
-    hitSum = sumHitDamageRange(hitDamageByType)
-    hitDamageMin = hitSum.min
-    hitDamageMax = hitSum.max
-    avgHit = (hitDamageMin + hitDamageMax) / 2
-    avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
-    dps = avgEffectiveDamage * aps
-  }
 
   let attunementStrikesIncPct = 0
   let attunementFlatDoubleChance = 0
@@ -1582,20 +1619,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         const baseDm = def.damageMultiplierPct ?? 100
         const scaledDm = attackDamageMultiplierAtAbilityLevel(baseDm, startLvl, level)
         const aspFactor = (def.attackSpeedMultiplierPct ?? 100) / 100
-        hitDamageByType = scaleHitDamageByType(hitDamageByType, scaledDm / 100)
-        const abConv = physicalElementConversionFromAbilityLines(def.lines)
-        if (abConv.toFire > 0 || abConv.toCold > 0 || abConv.toLightning > 0) {
-          hitDamageByType = applyGearPhysicalConversion(
-            hitDamageByType,
-            abConv.toFire,
-            abConv.toCold,
-            abConv.toLightning
-          )
-          hitDamageByType = buildHitDamageByType(hitDamageByType)
-        }
-        hitSum = sumHitDamageRange(hitDamageByType)
-        hitDamageMin = hitSum.min
-        hitDamageMax = hitSum.max
         aps = aps * aspFactor
         manaCostPerAttack = abilityManaCostAtLevel(baseAbilityMana, startLvl, level)
         avgHit = (hitDamageMin + hitDamageMax) / 2
@@ -1605,13 +1628,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         if (attMod) {
           const v = attMod.value
           const k = attMod.key
-          if (k === 'increased damage') {
-            hitDamageByType = scaleHitDamageByType(hitDamageByType, 1 + v / 100)
-          } else if (k === 'increased fire damage') {
-            hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'fire', 1 + v / 100)
-          } else if (k === 'increased physical damage') {
-            hitDamageByType = scaleHitDamageRowsOfType(hitDamageByType, 'physical', 1 + v / 100)
-          } else if (k === 'increased attack speed') {
+          if (k === 'increased attack speed') {
             aps *= 1 + v / 100
           } else if (k === 'increased critical hit chance') {
             critChance = Math.min(
@@ -1630,22 +1647,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           } else if (k === 'increased defences') {
             attunementDefencesPct += v
           }
-          hitSum = sumHitDamageRange(hitDamageByType)
-          hitDamageMin = hitSum.min
-          hitDamageMax = hitSum.max
           avgHit = (hitDamageMin + hitDamageMax) / 2
           avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
           dps = avgEffectiveDamage * aps
         }
-
-        const meleeIncFromAbility = def.type === 'Melee' ? increasedMeleeDamage : 0
-        const attackIncBucketsFrac =
-          (increasedDamage + increasedAttackDamage + meleeIncFromAbility) / 100
-        if (attackIncBucketsFrac !== 0) {
-          hitDamageByType = scaleHitDamageByType(hitDamageByType, 1 + attackIncBucketsFrac)
-          refreshHitTotalsFromRows()
-        }
-        appliedAttackIncBucketsToHit = true
 
         abilityContribution = {
           id: def.id,
@@ -1689,7 +1694,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           const isEle = ['fire', 'cold', 'lightning'].includes(scaledHit.element)
           const incFrac =
             (increasedSpellDamage + increasedDamage + spellAttIncDmg + (isEle ? increasedElementalDamage : 0)) / 100
-          usedSpellHitDamage = true
           const castBase = def.castTimeSeconds != null && def.castTimeSeconds > 0 ? def.castTimeSeconds : 0.5
           const castSpeedInc =
             u('increasedCastSpeed')
@@ -1741,19 +1745,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           }
         }
       }
-    }
-  }
-
-  if (!appliedAttackIncBucketsToHit && !usedSpellHitDamage) {
-    const defaultMeleeInc =
-      weaponTag && weaponTag !== 'bow' && weaponTag !== 'hand_crossbow'
-        ? increasedMeleeDamage
-        : 0
-    const fallbackAttackIncFrac =
-      (increasedDamage + increasedAttackDamage + defaultMeleeInc) / 100
-    if (fallbackAttackIncFrac !== 0) {
-      hitDamageByType = scaleHitDamageByType(hitDamageByType, 1 + fallbackAttackIncFrac)
-      refreshHitTotalsFromRows()
     }
   }
 
