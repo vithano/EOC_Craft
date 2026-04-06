@@ -103,6 +103,25 @@ function uniquesForPlannerSlot(plannerSlot: string) {
   return EOC_UNIQUE_DEFINITIONS.filter((u) => u.slot === plannerSlot);
 }
 
+/** Flatten all string pieces from innate + mod lines into searchable text. */
+function uniqueModSearchText(def: EocUniqueDefinition): string {
+  const parts: string[] = [def.itemType];
+  const collect = (pieces: UniqueModPiece[]) => {
+    for (const p of pieces) {
+      if (typeof p === "string") parts.push(p);
+    }
+  };
+  collect(def.innate);
+  for (const ln of def.lines) collect(ln);
+  return parts.join(" ").toLowerCase();
+}
+
+/** Resolve a unique's def.slot to a valid EQUIPMENT_SLOTS key (rings → "Ring 1"). */
+function resolveDefSlotForBag(defSlot: string): string {
+  if (defSlot === "Ring") return "Ring 1";
+  return defSlot;
+}
+
 export default function EquipmentPanel({
   equipped,
   inventory,
@@ -124,7 +143,7 @@ export default function EquipmentPanel({
   const [showStats, setShowStats] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [detail, setDetail] = useState<Detail>(null);
-  const [craftSlot, setCraftSlot] = useState<string>(EQUIPMENT_SLOTS[0] ?? "Helmet");
+  const [craftSlot, setCraftSlot] = useState<string>("__all__");
   const [craftSearch, setCraftSearch] = useState("");
   const [craftUniqueId, setCraftUniqueId] = useState<string>("");
   /** Raw text per roll so “-” / partial decimals are editable before blur. */
@@ -148,9 +167,13 @@ export default function EquipmentPanel({
 
   const craftableUniques = useMemo(() => {
     const q = craftSearch.trim().toLowerCase();
-    const list = uniquesForPlannerSlot(craftSlot);
+    const list = craftSlot === "__all__"
+      ? EOC_UNIQUE_DEFINITIONS
+      : uniquesForPlannerSlot(craftSlot);
     if (!q) return list;
-    return list.filter((u) => u.name.toLowerCase().includes(q));
+    return list.filter(
+      (u) => u.name.toLowerCase().includes(q) || uniqueModSearchText(u).includes(q)
+    );
   }, [craftSlot, craftSearch, sheetVersion]);
 
   const craftDef = craftUniqueId ? EOC_UNIQUE_BY_ID[craftUniqueId] : undefined;
@@ -687,20 +710,21 @@ export default function EquipmentPanel({
                     setCraftEnhancement(0);
                   }}
                 >
+                  <option value="__all__">All Slots</option>
                   {EQUIPMENT_SLOTS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
+                    <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
-                <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Search</label>
+                <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Search by name or modifier</label>
                 <input
                   className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
-                  placeholder="Filter by name…"
+                  placeholder="e.g. fire damage, increased life…"
                   value={craftSearch}
-                  onChange={(e) => setCraftSearch(e.target.value)}
+                  onChange={(e) => { setCraftSearch(e.target.value); setCraftUniqueId(""); setCraftRollTexts([]); setCraftEnhancement(0); }}
                 />
-                <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Unique</label>
+                <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">
+                  Unique{craftableUniques.length > 0 ? ` (${craftableUniques.length})` : ""}
+                </label>
                 <select
                   className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8]"
                   value={craftUniqueId}
@@ -715,7 +739,7 @@ export default function EquipmentPanel({
                   <option value="">— Choose —</option>
                   {craftableUniques.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.name}
+                      {craftSlot === "__all__" ? `[${u.slot}] ${u.name}` : u.name}
                     </option>
                   ))}
                 </select>
@@ -814,7 +838,10 @@ export default function EquipmentPanel({
                       const v = Number.isFinite(parsed) ? parsed : fallback;
                       return clampRollAt(i, v);
                     });
-                    onAddUniqueToBag(craftSlot, craftUniqueId, rolls, craftEnhancement);
+                    const addSlot = craftSlot === "__all__"
+                      ? resolveDefSlotForBag(craftDef?.slot ?? def.slot)
+                      : craftSlot;
+                    onAddUniqueToBag(addSlot, craftUniqueId, rolls, craftEnhancement);
                   }}
                 >
                   {invStacks >= INVENTORY_MAX_SLOTS ? "Bag full" : "Add to bag"}
