@@ -129,12 +129,12 @@ export function computeDamageReductionPercentFromArmour(
   armour: number,
   incomingDamage: number,
   physicalDamageReduction = 0,
-  maxDamageReduction = FORMULA_CONSTANTS.armourDrCap
+  maxDamageReduction = FORMULA_CONSTANTS.armourDrCap * 100
 ) {
-  const { armourDrC1, armourDrC2 } = FORMULA_CONSTANTS;
+  const { armourDrScaling, armourDrDamageRef } = FORMULA_CONSTANTS;
   const a = Math.max(0, armour);
   const d = Math.max(0, incomingDamage);
-  const scaling = armourDrC1 * (d / (d + armourDrC1)) * armourDrC2;
+  const scaling = armourDrScaling * (d / (d + armourDrDamageRef));
   const armourReductionPct = a <= 0 ? 0 : (a / (scaling + a)) * 100;
   return clamp(armourReductionPct + physicalDamageReduction, 0, maxDamageReduction);
 }

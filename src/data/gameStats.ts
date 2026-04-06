@@ -1305,16 +1305,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const resistAllFlat = allEleBonus + eq.pctToAllResistancesFromGear
 
   // Chieftain class bonus: +5% to maximum fire resistance; gear can raise elemental/chaos caps.
-  const eleBase  = FORMULA_CONSTANTS.elementalResCap
-  const chaosBase = FORMULA_CONSTANTS.chaosResCap
-  const allEleCap = eq.maxAllElementalResBonusFromGear
-  const maxFireRes = Math.min(
-    90,
-    (bonus('chieftain') ? eleBase + 5 : eleBase) + eq.maxFireResBonusFromGear + allEleCap
-  )
-  const maxColdRes      = Math.min(90, eleBase  + eq.maxColdResBonusFromGear + allEleCap)
-  const maxLightningRes = Math.min(90, eleBase  + eq.maxLightningResBonusFromGear + allEleCap)
-  const maxChaosRes     = Math.min(90, chaosBase + eq.maxChaosResBonusFromGear)
+  const eleBase        = FORMULA_CONSTANTS.elementalResCap
+  const chaosBase      = FORMULA_CONSTANTS.chaosResCap
+  const hardCap        = FORMULA_CONSTANTS.resistanceHardCap
+  const allEleCap      = eq.maxAllElementalResBonusFromGear
+  const maxFireRes      = Math.min(hardCap, (bonus('chieftain') ? eleBase + 5 : eleBase) + eq.maxFireResBonusFromGear + allEleCap)
+  const maxColdRes      = Math.min(hardCap, eleBase  + eq.maxColdResBonusFromGear + allEleCap)
+  const maxLightningRes = Math.min(hardCap, eleBase  + eq.maxLightningResBonusFromGear + allEleCap)
+  const maxChaosRes     = Math.min(hardCap, chaosBase + eq.maxChaosResBonusFromGear)
   const fireRes = Math.min(maxFireRes, resistAllFlat + eq.pctFireResFromGear)
   const coldRes = Math.min(maxColdRes, resistAllFlat + eq.pctColdResFromGear)
   const lightningRes = Math.min(maxLightningRes, resistAllFlat + eq.pctLightningResFromGear)
@@ -1820,15 +1818,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // Arcanist class bonus: chaos damage does not bypass energy shield
   const chaosNotBypassES = bonus('arcanist')
 
-  // Armour effectiveness vs elemental damage:
-  //   Base from FORMULA_CONSTANTS.armourVsElemental (default 0.5)
-  //   Juggernaut: +0.5 → full effectiveness
-  const armourVsElementalMultiplier =
-    FORMULA_CONSTANTS.armourVsElemental + (bonus('juggernaut') ? 0.5 : 0)
+  // Armour effectiveness per damage type — base from FORMULA_CONSTANTS, boosted by class bonuses.
+  // Juggernaut: +0.5 to all elemental, +0.25 to chaos
+  const eleEffectivenessBonus = bonus('juggernaut') ? 0.5 : 0
+  const armourVsElementalMultiplier =  // kept as single value for the return struct
+    FORMULA_CONSTANTS.armourVsFire + eleEffectivenessBonus
 
   // Armour effectiveness vs chaos damage:
-  //   Base from FORMULA_CONSTANTS.armourVsChaos (default 0.25)
-  //   Juggernaut: +0.25, Templar: +0.50, Chieftain: +0.50
   const armourVsChaosMultiplier =
     FORMULA_CONSTANTS.armourVsChaos
     + (bonus('juggernaut') ? 0.25 : 0)

@@ -1,0 +1,76 @@
+Key,Value,Category,Description
+armour_dr_scaling,10000,Armour DR,Main scaling constant: DR = FINAL_ARMOUR / (K * (dmg / (dmg + dmg_ref)) + FINAL_ARMOUR)
+armour_dr_damage_ref,500,Armour DR,Damage reference in the dmg/(dmg+K) fraction of the DR formula
+armour_dr_cap,0.9,Armour DR,Hard cap on damage reduction from armour (0.9 = 90%)
+armour_vs_physical,1.0,Armour Effectiveness,Armour effectiveness multiplier vs physical damage
+armour_vs_fire,0.5,Armour Effectiveness,Armour effectiveness multiplier vs fire damage
+armour_vs_cold,0.5,Armour Effectiveness,Armour effectiveness multiplier vs cold damage
+armour_vs_lightning,0.5,Armour Effectiveness,Armour effectiveness multiplier vs lightning damage
+armour_vs_chaos,0.25,Armour Effectiveness,Armour effectiveness multiplier vs chaos damage
+evasion_acc_coeff,1.35,Evasion,Accuracy coefficient K in: evasion_chance = 1 - (ACC*K / (ACC + EVA*divisor))
+evasion_divisor,0.1,Evasion,Evasion divisor in the evasion formula
+evasion_cap,0.9,Evasion,Hard cap on evasion chance (0.9 = 90%)
+elemental_res_cap,75,Resistances,Base cap for elemental resistances — fire / cold / lightning (%)
+chaos_res_cap,75,Resistances,Base cap for chaos resistance (%)
+resistance_hard_cap,90,Resistances,Absolute max resistance even with +max res gear (%)
+enemy_ele_res_per_zone,3,Resistances,Enemy elemental resistance gained per zone above zone 1 (%)
+enemy_ele_res_max,15,Resistances,Maximum enemy elemental resistance from zone scaling (%)
+ailment_pool_divisor,5,Ailments (Non-Damaging),Divides the (life+ES) pool: ailment = sqrt(dmg / ((life+es)*K))
+shock_extra_effect_mult,1.0,Ailments (Non-Damaging),Extra effect multiplier for shock when source is the player (1.0); enemy-sourced = 0.7
+chill_special_mult,0.7,Ailments (Non-Damaging),Special multiplier applied to chill vs shock in the ailment formula
+ailment_base_duration_sec,1.8,Ailments (Non-Damaging),Base shock/chill duration in seconds before increased duration modifiers
+bleed_inherent_mult,0.3,Ailments (Damaging),Bleed inherent multiplier: bleed_effect = pre_mitigation_phys * K * other_mults
+ignite_inherent_mult,0.45,Ailments (Damaging),Ignite inherent multiplier: ignite_effect = pre_mitigation_fire * K * other_mults
+poison_inherent_mult,0.15,Ailments (Damaging),Poison inherent multiplier: poison_effect = pre_mitigation_chaos_or_phys * K * other_mults
+enemy_base_life,40,Enemy Base Stats,Enemy base life at level 1
+enemy_base_armour,1,Enemy Base Stats,Enemy base armour at level 1
+enemy_base_evasion,50,Enemy Base Stats,Enemy base evasion rating at level 1
+enemy_base_speed,0.95,Enemy Base Stats,Enemy base attacks per second at level 1
+enemy_base_accuracy,12,Enemy Base Stats,Enemy base accuracy at level 1
+enemy_base_crit_chance,5,Enemy Base Stats,Enemy base crit chance (%) at level 1
+enemy_base_crit_multiplier,1.5,Enemy Base Stats,Enemy base crit damage multiplier at level 1 (1.5 = +50% damage on crit)
+enemy_base_damage_min,5,Enemy Base Stats,Enemy base physical damage minimum at level 1
+enemy_base_damage_max,7,Enemy Base Stats,Enemy base physical damage maximum at level 1
+enemy_base_ele_damage_mult,2.0,Enemy Base Stats,Multiplier applied to elemental damage at level 100 vs physical baseline
+enemy_base_chaos_damage_mult,1.33,Enemy Base Stats,Multiplier applied to chaos damage at level 100 vs physical baseline
+enemy_shock_chill_effect,1.0,Enemy Base Stats,Enemy base shock/chill effect multiplier (1.0 = 100%)
+enemy_life_scale_a,0.108,Enemy Scaling,Life scaling: LIFE = LIFE_PREV * (1 + (A * (B^(level-2))))
+enemy_life_scale_b,0.990201,Enemy Scaling,Life scaling decay coefficient per level
+enemy_damage_scale_a,0.089,Enemy Scaling,Damage scaling coefficient A
+enemy_damage_scale_b,0.98217,Enemy Scaling,Damage scaling decay coefficient B per level
+enemy_accuracy_scale_a,0.062,Enemy Scaling,Accuracy scaling coefficient A
+enemy_accuracy_scale_b,0.9863,Enemy Scaling,Accuracy scaling decay coefficient B per level
+enemy_evasion_scale_a,0.103,Enemy Scaling,Evasion scaling coefficient A
+enemy_evasion_scale_b,0.981,Enemy Scaling,Evasion scaling decay coefficient B per level
+enemy_armour_scale_a,0.17,Enemy Scaling,Armour scaling coefficient A
+enemy_armour_scale_b,0.9835,Enemy Scaling,Armour scaling decay coefficient B per level
+elite_life_mult,1.8,Enemy Rarity,Elite enemy life and energy shield multiplier
+elite_damage_mult,1.4,Enemy Rarity,Elite enemy damage multiplier
+elite_regen_mult,1.4,Enemy Rarity,Elite enemy life/ES regeneration multiplier
+boss_life_mult,2.6,Enemy Rarity,Boss enemy life and energy shield multiplier
+boss_damage_mult,1.8,Enemy Rarity,Boss enemy damage multiplier
+boss_regen_mult,1.8,Enemy Rarity,Boss enemy life/ES regeneration multiplier
+nexus_life_mult,1.27479,Nexus Scaling,Life multiplier per nexus tier
+nexus_damage_mult,1.2589,Nexus Scaling,Damage multiplier per nexus tier (speed increase removed from this)
+nexus_speed_per_tier_pct,5,Nexus Scaling,Enemy speed increase per nexus tier (%) — removed from damage mult to keep DPS constant
+mod_vital_life,20,Enemy Mods,Vital: flat life added to enemy base
+mod_plated_armour,1,Enemy Mods,Plated: flat armour multiplier added to enemy base
+mod_elusive_evasion,30,Enemy Mods,Elusive: flat evasion added to enemy base
+mod_barrier_es,20,Enemy Mods,Barrier: flat energy shield added to enemy base
+mod_hallowed_chaos_res,25,Enemy Mods,Hallowed: chaos resistance (%) added to enemy
+mod_warded_ele_res,20,Enemy Mods,Warded: elemental resistance (%) added to enemy
+mod_regenerating_life_regen,2,Enemy Mods,Regenerating: life regeneration per second
+mod_replenishing_es_regen,2,Enemy Mods,Replenishing: ES regeneration per second
+mod_powerful_damage_mult,1.5,Enemy Mods,Powerful: enemy damage multiplier
+mod_swift_speed,0.5,Enemy Mods,Swift: flat speed added to enemy base APS
+mod_deadeye_accuracy,15,Enemy Mods,Deadeye: flat accuracy added to enemy base
+mod_assassin_crit_chance,70,Enemy Mods,Assassin: crit chance (%) added to enemy base
+mod_sundering_armour_ignore,25,Enemy Mods,Sundering: armour ignore (%)
+mod_sundering_pen,20,Enemy Mods,Sundering: elemental and chaos penetration (%)
+mod_defender_block,50,Enemy Mods,Defender: block chance (%)
+mod_phasing_dodge,25,Enemy Mods,Phasing: dodge chance (%)
+mod_vampiric_life_leech,160,Enemy Mods,Vampiric: life leech (%)
+mod_soul_eater_es_leech,160,Enemy Mods,Soul Eater: ES leech (%)
+mod_fragile_life,-14,Enemy Mods,Fragile: flat life added to enemy base (negative)
+mod_slow_speed,-0.33,Enemy Mods,Slow: flat speed added to enemy base APS (negative)
+mod_weak_damage_mult,0.66,Enemy Mods,Weak: enemy damage multiplier

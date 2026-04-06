@@ -246,8 +246,8 @@ export function parseUniquesCSV(csv: string): EocUniqueDefinition[] {
 
 // ---------------------------------------------------------------------------
 // Formula constants parser (Formulas tab)
-// Expected columns: Key, Value, Category, Description, Expression
-// Matches formulas/damage_formulas.csv
+// Expected columns: Key, Value, Category, Description
+// Matches formulas/variables.csv
 // ---------------------------------------------------------------------------
 
 function parseNum(s: string): number {
@@ -256,26 +256,94 @@ function parseNum(s: string): number {
   return isNaN(n) ? NaN : n;
 }
 
-/** Maps CSV Key strings to FormulaConstants property names. */
+/** Maps every CSV Key from variables.csv to its FormulaConstants property. */
 const KEY_MAP: Record<string, keyof FormulaConstants> = {
-  armour_dr_c1:              'armourDrC1',
-  armour_dr_c2:              'armourDrC2',
-  armour_dr_cap:             'armourDrCap',
-  armour_vs_physical:        'armourVsPhysical',
-  armour_vs_elemental:       'armourVsElemental',
-  armour_vs_chaos:           'armourVsChaos',
-  evasion_acc_coeff:         'evasionAccCoeff',
-  evasion_divisor:           'evasionDivisor',
-  evasion_cap:               'evasionCap',
-  elemental_res_cap:         'elementalResCap',
-  chaos_res_cap:             'chaosResCap',
-  ailment_pool_divisor:      'ailmentPoolDivisor',
-  shock_extra_effect_mult:   'shockExtraEffectMult',
-  chill_special_mult:        'chillSpecialMult',
-  ailment_base_duration_sec: 'ailmentBaseDurationSec',
-  level100_player_accuracy:  'level100PlayerAccuracy',
-  level100_enemy_accuracy:   'level100EnemyAccuracy',
-  level100_enemy_evasion:    'level100EnemyEvasion',
+  // Armour DR
+  armour_dr_scaling:          'armourDrScaling',
+  armour_dr_damage_ref:       'armourDrDamageRef',
+  armour_dr_cap:              'armourDrCap',
+  // Armour effectiveness
+  armour_vs_physical:         'armourVsPhysical',
+  armour_vs_fire:             'armourVsFire',
+  armour_vs_cold:             'armourVsCold',
+  armour_vs_lightning:        'armourVsLightning',
+  armour_vs_chaos:            'armourVsChaos',
+  // Evasion
+  evasion_acc_coeff:          'evasionAccCoeff',
+  evasion_divisor:            'evasionDivisor',
+  evasion_cap:                'evasionCap',
+  // Resistances
+  elemental_res_cap:          'elementalResCap',
+  chaos_res_cap:              'chaosResCap',
+  resistance_hard_cap:        'resistanceHardCap',
+  enemy_ele_res_per_zone:     'enemyEleResPerZone',
+  enemy_ele_res_max:          'enemyEleResMax',
+  // Ailments (non-damaging)
+  ailment_pool_divisor:       'ailmentPoolDivisor',
+  shock_extra_effect_mult:    'shockExtraEffectMult',
+  chill_special_mult:         'chillSpecialMult',
+  ailment_base_duration_sec:  'ailmentBaseDurationSec',
+  // Ailments (damaging)
+  bleed_inherent_mult:        'bleedInherentMult',
+  ignite_inherent_mult:       'igniteInherentMult',
+  poison_inherent_mult:       'poisonInherentMult',
+  // Enemy base stats
+  enemy_base_life:            'enemyBaseLife',
+  enemy_base_armour:          'enemyBaseArmour',
+  enemy_base_evasion:         'enemyBaseEvasion',
+  enemy_base_speed:           'enemyBaseSpeed',
+  enemy_base_accuracy:        'enemyBaseAccuracy',
+  enemy_base_crit_chance:     'enemyBaseCritChance',
+  enemy_base_crit_multiplier: 'enemyBaseCritMultiplier',
+  enemy_base_damage_min:      'enemyBaseDamageMin',
+  enemy_base_damage_max:      'enemyBaseDamageMax',
+  enemy_base_ele_damage_mult: 'enemyBaseEleDamageMult',
+  enemy_base_chaos_damage_mult: 'enemyBaseChaosDamageMult',
+  enemy_shock_chill_effect:   'enemyShockChillEffect',
+  // Enemy scaling
+  enemy_life_scale_a:         'enemyLifeScaleA',
+  enemy_life_scale_b:         'enemyLifeScaleB',
+  enemy_damage_scale_a:       'enemyDamageScaleA',
+  enemy_damage_scale_b:       'enemyDamageScaleB',
+  enemy_accuracy_scale_a:     'enemyAccuracyScaleA',
+  enemy_accuracy_scale_b:     'enemyAccuracyScaleB',
+  enemy_evasion_scale_a:      'enemyEvasionScaleA',
+  enemy_evasion_scale_b:      'enemyEvasionScaleB',
+  enemy_armour_scale_a:       'enemyArmourScaleA',
+  enemy_armour_scale_b:       'enemyArmourScaleB',
+  // Enemy rarity
+  elite_life_mult:            'eliteLifeMult',
+  elite_damage_mult:          'eliteDamageMult',
+  elite_regen_mult:           'eliteRegenMult',
+  boss_life_mult:             'bossLifeMult',
+  boss_damage_mult:           'bossDamageMult',
+  boss_regen_mult:            'bossRegenMult',
+  // Nexus scaling
+  nexus_life_mult:            'nexusLifeMult',
+  nexus_damage_mult:          'nexusDamageMult',
+  nexus_speed_per_tier_pct:   'nexusSpeedPerTierPct',
+  // Enemy mods
+  mod_vital_life:             'modVitalLife',
+  mod_plated_armour:          'modPlatedArmour',
+  mod_elusive_evasion:        'modElusiveEvasion',
+  mod_barrier_es:             'modBarrierEs',
+  mod_hallowed_chaos_res:     'modHallowedChaosRes',
+  mod_warded_ele_res:         'modWardedEleRes',
+  mod_regenerating_life_regen: 'modRegeneratingLifeRegen',
+  mod_replenishing_es_regen:  'modReplenishingEsRegen',
+  mod_powerful_damage_mult:   'modPowerfulDamageMult',
+  mod_swift_speed:            'modSwiftSpeed',
+  mod_deadeye_accuracy:       'modDeadeyeAccuracy',
+  mod_assassin_crit_chance:   'modAssassinCritChance',
+  mod_sundering_armour_ignore: 'modSunderingArmourIgnore',
+  mod_sundering_pen:          'modSunderingPen',
+  mod_defender_block:         'modDefenderBlock',
+  mod_phasing_dodge:          'modPhasingDodge',
+  mod_vampiric_life_leech:    'modVampiricLifeLeech',
+  mod_soul_eater_es_leech:    'modSoulEaterEsLeech',
+  mod_fragile_life:           'modFragileLife',
+  mod_slow_speed:             'modSlowSpeed',
+  mod_weak_damage_mult:       'modWeakDamageMult',
 };
 
 export function parseFormulaConstantsCSV(csv: string): Partial<FormulaConstants> {
@@ -288,10 +356,8 @@ export function parseFormulaConstantsCSV(csv: string): Partial<FormulaConstants>
     const key = col(row, hdr, 'Key').trim();
     const rawVal = col(row, hdr, 'Value');
     if (!key || !rawVal) continue;
-
     const prop = KEY_MAP[key];
     if (!prop) continue;
-
     const val = parseNum(rawVal);
     if (!isNaN(val)) (out as Record<string, number>)[prop] = val;
   }

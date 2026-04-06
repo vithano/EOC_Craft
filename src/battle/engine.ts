@@ -1,9 +1,11 @@
 import {
-  BASE_SHOCK_CHILL_DURATION_SEC,
+  computeArmourDR,
+  computeArmourDRSingleType,
   computeEvasionChancePercent,
   computeNonDamagingAilmentEffectPercent,
+  getBaseShockChillDurationSec,
 } from '../data/eocFormulas'
-import { computeDamageReductionPercentFromArmour } from '../data/formulas'
+import { FORMULA_CONSTANTS } from '../data/formulaConstants'
 import type { ComputedBuildStats } from '../data/gameStats'
 import {
   DEFAULT_BLOCK_DAMAGE_TAKEN_MULT,
@@ -96,63 +98,46 @@ function rollDamage(min: number, max: number, rollTwiceHigh: boolean): number {
   return v
 }
 
-function fireDamageFraction(stats: ComputedBuildStats): number {
-  const a = avgHitByDamageType(stats)
-  if (a.total <= 0) return 0
-  return a.fire / a.total
-}
-
-function coldDamageFraction(stats: ComputedBuildStats): number {
-  const a = avgHitByDamageType(stats)
-  if (a.total <= 0) return 0
-  return a.cold / a.total
-}
-
-function lightningDamageFraction(stats: ComputedBuildStats): number {
-  const a = avgHitByDamageType(stats)
-  if (a.total <= 0) return 0
-  return a.lightning / a.total
-}
-
-function chaosDamageFraction(stats: ComputedBuildStats): number {
-  const a = avgHitByDamageType(stats)
-  if (a.total <= 0) return 0
-  return a.chaos / a.total
-}
 
 function mitigatedPlayerHitVsArmour(enemy: DemoEnemyDef, stats: ComputedBuildStats, raw: number): number {
-  const effArmour = enemy.armour * (1 - stats.armourIgnorePercent / 100)
-  const red = computeDamageReductionPercentFromArmour(effArmour, raw, 0, 90)
-  let out = raw * (1 - red / 100)
+  const armourIgnoredFrac = stats.armourIgnorePercent / 100
+  const baseArmour = enemy.armour
   const elePen = stats.elementalPenetrationPercent ?? 0
-  const fr = enemy.fireResistancePercent ?? 0
-  if (fr > 0) {
-    const eff = Math.max(0, fr - (stats.firePenetrationPercent ?? 0) - elePen)
-    const f = fireDamageFraction(stats)
-    if (f > 0 && eff > 0) out *= 1 - f * (eff / 100)
+
+  // Split raw hit into per-type amounts using current fractions
+  const a = avgHitByDamageType(stats)
+  const total = Math.max(1, a.total)
+  const physAmt  = raw * (a.physical  / total)
+  const fireAmt  = raw * (a.fire      / total)
+  const coldAmt  = raw * (a.cold      / total)
+  const lightAmt = raw * (a.lightning / total)
+  const chaosAmt = raw * (a.chaos     / total)
+
+  // Apply armour DR per type using the full multi-type formula (ARMOUR_RESISTANCE splits armour)
+  function afterArmour(amt: number, type: Parameters<typeof computeArmourDR>[3]): number {
+    if (amt <= 0) return 0
+    const dr = computeArmourDR(baseArmour, amt, raw, type, armourIgnoredFrac)
+    return amt * (1 - dr)
   }
-  const cr = enemy.coldResistancePercent ?? 0
-  if (cr > 0) {
-    const eff = Math.max(0, cr - (stats.coldPenetrationPercent ?? 0) - elePen)
-    const f = coldDamageFraction(stats)
-    if (f > 0 && eff > 0) out *= 1 - f * (eff / 100)
-  }
-  const lrBase = enemy.lightningResistancePercent ?? 0
-  if (lrBase > 0) {
-    const effRes = Math.max(
-      0,
-      lrBase - (stats.lightningPenetrationPercent ?? 0) - elePen
-    )
-    const lf = lightningDamageFraction(stats)
-    if (lf > 0 && effRes > 0) out *= 1 - lf * (effRes / 100)
-  }
-  const chr = enemy.chaosResistancePercent ?? 0
-  if (chr > 0) {
-    const eff = Math.max(0, chr - (stats.chaosPenetrationPercent ?? 0))
-    const cf = chaosDamageFraction(stats)
-    if (cf > 0 && eff > 0) out *= 1 - cf * (eff / 100)
-  }
-  return out
+
+  let physOut  = afterArmour(physAmt,  'physical')
+  let fireOut  = afterArmour(fireAmt,  'fire')
+  let coldOut  = afterArmour(coldAmt,  'cold')
+  let lightOut = afterArmour(lightAmt, 'lightning')
+  let chaosOut = afterArmour(chaosAmt, 'chaos')
+
+  // Apply resistances
+  const fr = Math.max(0, (enemy.fireResistancePercent ?? 0) - (stats.firePenetrationPercent ?? 0) - elePen)
+  const cr = Math.max(0, (enemy.coldResistancePercent ?? 0) - (stats.coldPenetrationPercent ?? 0) - elePen)
+  const lr = Math.max(0, (enemy.lightningResistancePercent ?? 0) - (stats.lightningPenetrationPercent ?? 0) - elePen)
+  const chr = Math.max(0, (enemy.chaosResistancePercent ?? 0) - (stats.chaosPenetrationPercent ?? 0))
+
+  if (fr  > 0) fireOut  *= 1 - fr  / 100
+  if (cr  > 0) coldOut  *= 1 - cr  / 100
+  if (lr  > 0) lightOut *= 1 - lr  / 100
+  if (chr > 0) chaosOut *= 1 - chr / 100
+
+  return physOut + fireOut + coldOut + lightOut + chaosOut
 }
 
 function enemyApsMultiplier(stats: ComputedBuildStats): number {
@@ -421,6 +406,7 @@ function applyPlayerAilmentsOnHit(
 ): void {
   if (mitigatedDamage <= 0) return
 
+  const { bleedInherentMult, igniteInherentMult, poisonInherentMult } = FORMULA_CONSTANTS
   const durMult = 1 + stats.ailmentDurationBonus / 100
   const dotMult =
     (1 + stats.damageOverTimeMultiplier / 100) * (stats.dotDamageMoreMultiplier ?? 1)
@@ -431,7 +417,7 @@ function applyPlayerAilmentsOnHit(
   }
 
   if (portions.physical > 0.01 && Math.random() * 100 < stats.bleedChance) {
-    const dps = ((portions.physical * 0.55) / BASE_BLEED_SEC) * dotMult
+    const dps = ((portions.physical * bleedInherentMult) / BASE_BLEED_SEC) * dotMult
     state.dots.push({
       kind: 'bleed',
       dps,
@@ -441,7 +427,7 @@ function applyPlayerAilmentsOnHit(
   }
 
   if (Math.random() * 100 < stats.poisonChance) {
-    const dps = ((mitigatedDamage * 0.45) / BASE_POISON_SEC) * dotMult
+    const dps = ((mitigatedDamage * poisonInherentMult) / BASE_POISON_SEC) * dotMult
     state.dots.push({
       kind: 'poison',
       dps,
@@ -458,7 +444,7 @@ function applyPlayerAilmentsOnHit(
   if (!noEle && portions.fire > 0.01) {
     const pIgn = Math.min(100, gen + stats.igniteInflictChanceBonus)
     if (Math.random() * 100 < pIgn) {
-      const dps = ((portions.fire * 0.5) / BASE_IGNITE_SEC) * dotMult
+      const dps = ((portions.fire * igniteInherentMult) / BASE_IGNITE_SEC) * dotMult
       state.dots.push({
         kind: 'ignite',
         dps,
@@ -475,7 +461,7 @@ function applyPlayerAilmentsOnHit(
     if (Math.random() * 100 < pShock) {
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.lightning, enemyMaxLife, 0)
       const shock = Math.min(50, Math.max(5, effectPct * 1.15 * ndMult))
-      const dur = BASE_SHOCK_CHILL_DURATION_SEC * durMult
+      const dur = getBaseShockChillDurationSec() * durMult
       state.shocks.push({ magnitudePct: shock, expiresAt: t + dur })
       debuffEvents.push({ t, kind: 'shock', magnitudePct: shock, durationSec: dur })
       tryLogAilment(
@@ -489,7 +475,7 @@ function applyPlayerAilmentsOnHit(
     if (Math.random() * 100 < pChill) {
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.cold, enemyMaxLife, 0)
       const chillPct = Math.min(30, Math.max(5, effectPct * 0.85 * ndMult * chillOutMult))
-      const dur = BASE_SHOCK_CHILL_DURATION_SEC * durMult
+      const dur = getBaseShockChillDurationSec() * durMult
       state.chills.push({ magnitudePct: chillPct, expiresAt: t + dur })
       debuffEvents.push({ t, kind: 'chill', magnitudePct: chillPct, durationSec: dur })
       tryLogAilment(
@@ -570,9 +556,9 @@ function resolveEnemyAttack(
     afterPath *= stats.blockDamageTakenMult ?? DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
   }
 
-  // Demo enemy uses physical hits only → full armour effectiveness (not elemental multiplier).
-  const red = computeDamageReductionPercentFromArmour(stats.armour, afterPath, 0, 90)
-  const afterArmour = afterPath * (1 - red / 100)
+  // Demo enemy uses physical hits only → full armour effectiveness (armourVsPhysical = 1.0).
+  const red = computeArmourDRSingleType(stats.armour, afterPath, 'physical')
+  const afterArmour = afterPath * (1 - red)
   const afterConversion = mitigatedPhysicalDamageAfterConversion(stats, afterArmour)
 
   const prevented = Math.max(0, afterPath - afterArmour)
