@@ -9,7 +9,7 @@ export interface HitDamageTypeRow {
 
 /**
  * How global “increased damage” buckets apply to a hit fragment (conversion lineage).
- * - physical_style: physical-style increased only (no generic elemental); weapon flat lightning uses this.
+ * - physical_style: physical-style increased only (no generic elemental); native weapon lightning uses this.
  * - physical_and_elemental: physical-style + elemental increased; phys→element and cold from that lightning.
  * - elemental_style_only: elemental increased only; cold from lightning that was physical_style (e.g. native weapon lightning → cold).
  * - chaos_style: attack increased + chaos-specific (no elemental increased).
@@ -137,6 +137,29 @@ export function buildHitDamageByType(rows: HitDamageTypeRow[]): HitDamageTypeRow
   return rows.filter((r) => r.max > 0 || r.min > 0);
 }
 
+/** Phys→fire/cold/lightning cannot exceed 100% of the same roll; scale all sources down proportionally. */
+export function normalizePhysicalConversionPcts(
+  pctToFire: number,
+  pctToCold: number,
+  pctToLightning: number
+): {
+  rawTotal: number;
+  normalizationFactor: number;
+  toFire: number;
+  toCold: number;
+  toLightning: number;
+} {
+  const rawTotal = Math.max(0, pctToFire) + Math.max(0, pctToCold) + Math.max(0, pctToLightning);
+  const normalizationFactor = rawTotal > 100 ? 100 / rawTotal : 1;
+  return {
+    rawTotal,
+    normalizationFactor,
+    toFire: Math.max(0, pctToFire) * normalizationFactor,
+    toCold: Math.max(0, pctToCold) * normalizationFactor,
+    toLightning: Math.max(0, pctToLightning) * normalizationFactor,
+  };
+}
+
 /**
  * Moves a percentage of the physical row into fire/cold/lightning (each % of original physical).
  * Multiple uniques stack additive percentages (e.g. three 33% lines ≈ 99% converted total).
@@ -148,6 +171,7 @@ export function applyGearPhysicalConversion(
   pctToLightning: number
 ): HitDamageTypeRow[] {
   if (pctToFire <= 0 && pctToCold <= 0 && pctToLightning <= 0) return rows;
+  const { toFire, toCold, toLightning } = normalizePhysicalConversionPcts(pctToFire, pctToCold, pctToLightning);
   const out = rows.map((r) => ({ ...r }));
   const pi = out.findIndex((r) => r.type === "physical");
   if (pi < 0) return rows;
@@ -160,10 +184,9 @@ export function applyGearPhysicalConversion(
     min: lo * (pct / 100),
     max: hi * (pct / 100),
   });
-  const f = take(pctToFire, origMin, origMax);
-  const c = take(pctToCold, origMin, origMax);
-  const l = take(pctToLightning, origMin, origMax);
-
+  const f = take(toFire, origMin, origMax);
+  const c = take(toCold, origMin, origMax);
+  const l = take(toLightning, origMin, origMax);
   out[pi] = {
     ...p,
     min: Math.round(origMin - f.min - c.min - l.min),
@@ -298,6 +321,8 @@ export function applyGearPhysicalConversionProv(
   pctToLightning: number
 ): ProvHitDamageRow[] {
   if (pctToFire <= 0 && pctToCold <= 0 && pctToLightning <= 0) return rows;
+  const { toFire, toCold, toLightning } = normalizePhysicalConversionPcts(pctToFire, pctToCold, pctToLightning);
+
   const out = rows.map((r) => ({ ...r }));
   const pi = out.findIndex((r) => r.type === "physical");
   if (pi < 0) return rows;
@@ -310,9 +335,9 @@ export function applyGearPhysicalConversionProv(
     min: lo * (pct / 100),
     max: hi * (pct / 100),
   });
-  const f = take(pctToFire, origMin, origMax);
-  const c = take(pctToCold, origMin, origMax);
-  const l = take(pctToLightning, origMin, origMax);
+  const f = take(toFire, origMin, origMax);
+  const c = take(toCold, origMin, origMax);
+  const l = take(toLightning, origMin, origMax);
 
   out[pi] = {
     ...p,

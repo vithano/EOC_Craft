@@ -30,10 +30,13 @@ import {
   buildHitDamageByType,
   buildProvHitDamageByType,
   collapseProvRowsToHitDamage,
+  increasedPctForProvHitRow,
   localFlatDamageDisplayRange,
+  normalizePhysicalConversionPcts,
   scaleProvHitDamageRows,
   spellElementToHitDamageType,
   sumHitDamageRange,
+  type HitDamageScaling,
   type HitDamageTypeRow,
 } from './damageTypes'
 import { EOC_UNIQUE_BY_ID, isUniqueItemId, resolveUniqueMods } from './eocUniques'
@@ -96,6 +99,81 @@ export interface AbilityContributionSummary {
   baselineHitMax: number
   baselineAps: number
   baselineCritChance: number
+}
+
+/** One additive line contributing to an “increased” pool (upgrade / gear / class / level). */
+export interface StatContributionLine {
+  label: string
+  value: number
+}
+
+/** Full attack hit pipeline: bases, conversion, per-instance scaling, crit, APS, DPS (planner). */
+export interface HitDamageComputationBreakdown {
+  baseWeaponDamage: {
+    physicalMin: number
+    physicalMax: number
+    includesCharacterBasePhysical: boolean
+    elemental: Array<{ type: HitDamageTypeRow['type']; min: number; max: number }>
+  }
+  abilityDamageMultiplier: null | {
+    abilityId: string
+    abilityName: string
+    level: number
+    basePct: number
+    scaledPct: number
+    /** Multiplier applied to all hit rows (scaledPct / 100). */
+    factor: number
+  }
+  physicalConversion: {
+    gearPct: { fire: number; cold: number; lightning: number }
+    abilityPct: { fire: number; cold: number; lightning: number }
+    combinedRawPct: { fire: number; cold: number; lightning: number }
+    rawTotalPercent: number
+    cappedAt100Percent: boolean
+    normalizationFactor: number
+    effectivePercent: { fire: number; cold: number; lightning: number }
+  }
+  laterConversions: Array<{ name: string; percent?: number }>
+  increased: {
+    attackIncSum: { total: number; lines: StatContributionLine[] }
+    physIncTotal: { total: number; lines: StatContributionLine[] }
+    elemental: { total: number; lines: StatContributionLine[] }
+    typeSpecificGear: { fire: number; cold: number; lightning: number; chaos: number }
+    attunementFire: number
+  }
+  /** Each fragment after conversion, before “increased” modifiers; multiplier is 1 + increased%/100. */
+  perInstanceBeforeIncreased: Array<{
+    type: HitDamageTypeRow['type']
+    scaling: HitDamageScaling
+    min: number
+    max: number
+    increasedDamagePercent: number
+    damageMultiplier: number
+  }>
+  collapsedAfterIncreased: HitDamageTypeRow[]
+  avgHit: number
+  critical: {
+    critChance: number
+    critMultiplier: number
+    /** Expected damage vs non-crit: 1 + (critChance/100)×(critMultiplier−1). */
+    effectiveDamageMultiplier: number
+  }
+  dps: {
+    avgEffectiveDamage: number
+    value: number
+    attacksPerSecond: number
+    apsContributions: StatContributionLine[]
+    apsMoreMultipliers: Array<{ label: string; factor: number }>
+    strikesPerAttack: number
+    strikesContributions: StatContributionLine[]
+    /** Short notes on how APS / DPS relate to weapon base and what is excluded. */
+    notes: string[]
+  }
+  /** These exist on the sheet but are not multiplied into planner hit range / DPS here (combat / enemy). */
+  combatOnlyNotInPlannerHitOrDps: {
+    enemiesTakeIncreasedDamagePercent: number
+    damageDealtLessMult: number
+  }
 }
 
 export interface EquipmentModifiers {
@@ -444,6 +522,8 @@ export interface ComputedBuildStats {
 
   /** Non-null when a valid ability is applied to hit damage / APS / DPS / mana cost. */
   abilityContribution: AbilityContributionSummary | null
+  /** Attack hit math (null when a spell replaces hit damage). */
+  hitDamageComputationBreakdown: HitDamageComputationBreakdown | null
 }
 
 // ---------------------------------------------------------------------------
@@ -1336,20 +1416,46 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 15. Offense — hit damage (split by type for display; totals match sum of parts)
   // -------------------------------------------------------------------------
+  const dmgPushIf = (arr: StatContributionLine[], label: string, v: number) => {
+    if (v !== 0) arr.push({ label, value: v })
+  }
+
+  let abilityHitDmBreak: HitDamageComputationBreakdown['abilityDamageMultiplier'] = null
+  let hitDamageBreakdownPartial: Omit<
+    HitDamageComputationBreakdown,
+    'avgHit' | 'critical' | 'dps' | 'combatOnlyNotInPlannerHitOrDps'
+  > | null = null
+
   const fireR = localFlatDamageDisplayRange(eq.flatFireMin, eq.flatFireMax)
   const coldR = localFlatDamageDisplayRange(eq.flatColdMin, eq.flatColdMax)
   const lightningR = localFlatDamageDisplayRange(eq.flatLightningMin, eq.flatLightningMax)
   const chaosR = localFlatDamageDisplayRange(eq.flatChaosMin, eq.flatChaosMax)
+  const basePhysMin = Math.round(BASE_GAME_STATS.baseHitDamageMin + eq.flatDamageMin)
+  const basePhysMax = Math.round(BASE_GAME_STATS.baseHitDamageMax + eq.flatDamageMax)
+  const baseWeaponDamageForBreakdown: HitDamageComputationBreakdown['baseWeaponDamage'] = {
+    physicalMin: basePhysMin,
+    physicalMax: basePhysMax,
+    includesCharacterBasePhysical: true,
+    elemental: (
+      [
+        { type: 'fire' as const, min: fireR.min, max: fireR.max },
+        { type: 'cold' as const, min: coldR.min, max: coldR.max },
+        { type: 'lightning' as const, min: lightningR.min, max: lightningR.max },
+        { type: 'chaos' as const, min: chaosR.min, max: chaosR.max },
+      ] satisfies Array<{ type: HitDamageTypeRow['type']; min: number; max: number }>
+    ).filter((x) => x.min > 0 || x.max > 0),
+  }
+
   let hitProvRows = buildProvHitDamageByType([
     {
       type: 'physical',
-      min: Math.round(BASE_GAME_STATS.baseHitDamageMin + eq.flatDamageMin),
-      max: Math.round(BASE_GAME_STATS.baseHitDamageMax + eq.flatDamageMax),
+      min: basePhysMin,
+      max: basePhysMax,
       scaling: 'physical_style',
     },
     { type: 'fire', min: fireR.min, max: fireR.max, scaling: 'physical_and_elemental' },
     { type: 'cold', min: coldR.min, max: coldR.max, scaling: 'physical_and_elemental' },
-    { type: 'lightning', min: lightningR.min, max: lightningR.max, scaling: 'physical_style' },
+    { type: 'lightning', min: lightningR.min, max: lightningR.max, scaling: 'physical_and_elemental' },
     { type: 'chaos', min: chaosR.min, max: chaosR.max, scaling: 'chaos_style' },
   ])
 
@@ -1370,6 +1476,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         startLvl,
         abLevel
       )
+      abilityHitDmBreak = {
+        abilityId: abDef.id,
+        abilityName: abDef.name,
+        level: abLevel,
+        basePct: abDef.damageMultiplierPct ?? 100,
+        scaledPct: scaledDm,
+        factor: scaledDm / 100,
+      }
       hitProvRows = scaleProvHitDamageRows(hitProvRows, scaledDm / 100)
     }
   }
@@ -1388,31 +1502,75 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         })()
       : { toFire: 0, toCold: 0, toLightning: 0 }
 
+  const gearPctFire = eq.physicalConvertedToFirePctFromGear
+  const gearPctCold = eq.physicalConvertedToColdPctFromGear
+  const gearPctLightning = eq.physicalConvertedToLightningPctFromGear
+  const combPctFire = gearPctFire + convFromAbilityLines.toFire
+  const combPctCold = gearPctCold + convFromAbilityLines.toCold
+  const combPctLightning = gearPctLightning + convFromAbilityLines.toLightning
+  const convNorm = normalizePhysicalConversionPcts(combPctFire, combPctCold, combPctLightning)
+  const physicalConversionForBreakdown: HitDamageComputationBreakdown['physicalConversion'] = {
+    gearPct: { fire: gearPctFire, cold: gearPctCold, lightning: gearPctLightning },
+    abilityPct: {
+      fire: convFromAbilityLines.toFire,
+      cold: convFromAbilityLines.toCold,
+      lightning: convFromAbilityLines.toLightning,
+    },
+    combinedRawPct: { fire: combPctFire, cold: combPctCold, lightning: combPctLightning },
+    rawTotalPercent: convNorm.rawTotal,
+    cappedAt100Percent: convNorm.rawTotal > 100,
+    normalizationFactor: convNorm.normalizationFactor,
+    effectivePercent: {
+      fire: convNorm.toFire,
+      cold: convNorm.toCold,
+      lightning: convNorm.toLightning,
+    },
+  }
+
+  const laterConversions: HitDamageComputationBreakdown['laterConversions'] = []
+
   hitProvRows = applyGearPhysicalConversionProv(
     hitProvRows,
-    eq.physicalConvertedToFirePctFromGear + convFromAbilityLines.toFire,
-    eq.physicalConvertedToColdPctFromGear + convFromAbilityLines.toCold,
-    eq.physicalConvertedToLightningPctFromGear + convFromAbilityLines.toLightning
+    combPctFire,
+    combPctCold,
+    combPctLightning
   )
   if (eq.physicalToRandomElementPctFromGear > 0) {
+    laterConversions.push({
+      name: 'Physical to random element (split to fire / cold / lightning)',
+      percent: eq.physicalToRandomElementPctFromGear,
+    })
     hitProvRows = applyPhysicalToRandomElementsProv(
       hitProvRows,
       eq.physicalToRandomElementPctFromGear
     )
   }
   if (eq.gainPhysicalAsExtraLightningPctFromGear > 0) {
+    laterConversions.push({
+      name: 'Gain physical damage as extra lightning',
+      percent: eq.gainPhysicalAsExtraLightningPctFromGear,
+    })
     hitProvRows = applyGainPhysicalAsExtraLightningProv(
       hitProvRows,
       eq.gainPhysicalAsExtraLightningPctFromGear
     )
   }
+
   if (eq.lightningToColdConversionPctFromGear > 0) {
+    laterConversions.push({
+      name: 'Lightning damage converted to cold (per lightning instance)',
+      percent: eq.lightningToColdConversionPctFromGear,
+    })
     hitProvRows = applyLightningToColdConversionProv(
       hitProvRows,
       eq.lightningToColdConversionPctFromGear
     )
   }
   if (eq.elementalToChaosConversionPctFromGear > 0) {
+    laterConversions.push({
+      name: 'Elemental damage converted to chaos',
+      percent: eq.elementalToChaosConversionPctFromGear,
+    })
     hitProvRows = applyElementalToChaosConversionProv(
       hitProvRows,
       eq.elementalToChaosConversionPctFromGear
@@ -1505,8 +1663,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // - elemental_style_only: elemental + type gear (cold from physical_style lightning).
   // - chaos_style: attack + chaos-specific (no elemental increased).
   // -------------------------------------------------------------------------
-  const meleeDmgFromStr    = str / 10                        // 1% increased melee damage per 10 str
-  const spellDmgFromInt    = int_ / 10                       // 1% increased spell damage per 10 int
+  const meleeDmgFromStr    = Math.floor(str / 10)                        // 1% increased melee damage per 10 str
+  const spellDmgFromInt    = Math.floor(int_ / 10)                       // 1% increased spell damage per 10 int
 
   const rangedAttackDmgFromGear =
     weaponTag === 'bow' || weaponTag === 'hand_crossbow'
@@ -1530,11 +1688,11 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + eq.increasedDamageFromGear
     + levelPctIncreasedDamage
     + damageIncFromCombinedAttrsGear
+
   let damageOverTimeMultiplier =
     u('increasedDamageOverTimeMultiplier')
     + eq.pctIncreasedDamageOverTimeFromGear
     + eq.pctIncreasedBleedDamageFromGear
-
   let attIncDamage = 0
   let attIncPhysical = 0
   let attIncFire = 0
@@ -1561,11 +1719,68 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     meleePortionForHit = increasedMeleeDamage
   }
 
-  const attackIncSum = increasedDamage + increasedAttackDamage + meleePortionForHit + attIncDamage
+  const attackIncSum = increasedDamage + increasedAttackDamage + attIncDamage + meleePortionForHit
   const incEle = increasedElementalDamage
-
   const physIncTotal = attackIncSum + attIncPhysical
-  hitProvRows = applyIncreasedToProvHitRows(hitProvRows, {
+
+  const attackIncLines: StatContributionLine[] = []
+  dmgPushIf(attackIncLines, 'Upgrades: increased damage', u('increasedDamage'))
+  if (occultistDmgFromEsPct !== 0) {
+    attackIncLines.push({
+      label: 'Occultist: increased damage per 100 maximum energy shield',
+      value: occultistDmgFromEsPct,
+    })
+  }
+  dmgPushIf(attackIncLines, 'Gear: increased damage', eq.increasedDamageFromGear)
+  if (levelPctIncreasedDamage !== 0) {
+    attackIncLines.push({
+      label: 'Character level: +1% increased damage per level above 1',
+      value: levelPctIncreasedDamage,
+    })
+  }
+  if (damageIncFromCombinedAttrsGear !== 0) {
+    attackIncLines.push({
+      label: 'Gear: increased damage per 10 combined Str, Dex, and Int',
+      value: damageIncFromCombinedAttrsGear,
+    })
+  }
+  dmgPushIf(attackIncLines, 'Upgrades: increased attack damage', u('increasedAttackDamage'))
+  dmgPushIf(attackIncLines, 'Gear: increased attack damage', eq.increasedAttackDamageFromGear)
+  if (rangedAttackDmgFromGear !== 0) {
+    attackIncLines.push({
+      label: 'Gear: increased attack damage per 10 strength (ranged)',
+      value: rangedAttackDmgFromGear,
+    })
+  }
+  if (attIncDamage !== 0) {
+    attackIncLines.push({ label: 'Ability attunement: increased damage', value: attIncDamage })
+  }
+  if (meleePortionForHit > 0) {
+    dmgPushIf(attackIncLines, 'Upgrades: increased melee damage', u('increasedMeleeDamage'))
+    if (meleeDmgFromStr !== 0) {
+      attackIncLines.push({
+        label: 'Strength: +1% increased melee damage per 10 Str (floored)',
+        value: meleeDmgFromStr,
+      })
+    }
+    dmgPushIf(attackIncLines, 'Gear: increased melee damage', eq.increasedMeleeDamageFromGear)
+  }
+
+  const physIncLines: StatContributionLine[] = [...attackIncLines]
+  if (attIncPhysical !== 0) {
+    physIncLines.push({ label: 'Ability attunement: increased physical damage', value: attIncPhysical })
+  }
+
+  const elementalLines: StatContributionLine[] = []
+  dmgPushIf(elementalLines, 'Upgrades: increased elemental damage', u('increasedElementalDamage'))
+  dmgPushIf(
+    elementalLines,
+    'Upgrades: increased elemental damage with attacks',
+    u('increasedElementalDamageWithAttacks')
+  )
+  dmgPushIf(elementalLines, 'Gear: increased elemental damage', eq.increasedElementalDamageFromGear)
+
+  const provIncCtx = {
     physIncTotal,
     attackIncSum,
     incEle,
@@ -1574,11 +1789,46 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     gearCold: eq.increasedColdDamageFromGear,
     gearLightning: eq.increasedLightningDamageFromGear,
     chaosGear: eq.increasedChaosDamageFromGear,
+  }
+  const hitProvRowsBeforeInc = hitProvRows.map((r) => ({ ...r }))
+  const perInstanceBeforeIncreased = hitProvRowsBeforeInc.map((row) => {
+    const increasedDamagePercent = increasedPctForProvHitRow(row, provIncCtx)
+    return {
+      type: row.type,
+      scaling: row.scaling,
+      min: row.min,
+      max: row.max,
+      increasedDamagePercent,
+      damageMultiplier: 1 + increasedDamagePercent / 100,
+    }
   })
+
+  hitProvRows = applyIncreasedToProvHitRows(hitProvRows, provIncCtx)
   hitDamageByType = collapseProvRowsToHitDamage(hitProvRows)
   hitSum = sumHitDamageRange(hitDamageByType)
   hitDamageMin = hitSum.min
   hitDamageMax = hitSum.max
+
+  hitDamageBreakdownPartial = {
+    baseWeaponDamage: baseWeaponDamageForBreakdown,
+    abilityDamageMultiplier: abilityHitDmBreak,
+    physicalConversion: physicalConversionForBreakdown,
+    laterConversions,
+    increased: {
+      attackIncSum: { total: attackIncSum, lines: attackIncLines },
+      physIncTotal: { total: physIncTotal, lines: physIncLines },
+      elemental: { total: incEle, lines: elementalLines },
+      typeSpecificGear: {
+        fire: eq.increasedFireDamageFromGear,
+        cold: eq.increasedColdDamageFromGear,
+        lightning: eq.increasedLightningDamageFromGear,
+        chaos: eq.increasedChaosDamageFromGear,
+      },
+      attunementFire: attIncFire,
+    },
+    perInstanceBeforeIncreased,
+    collapsedAfterIncreased: hitDamageByType,
+  }
 
   // -------------------------------------------------------------------------
   // 21. Average hit and DPS
@@ -1878,6 +2128,98 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   recomputeCritMultiplier()
 
   if (eq.cannotDealCriticalStrikesFromGear) critChance = 0
+  // Final crit multiplier can change from attunement; refresh expectation damage and DPS for attacks.
+  if (!spellCombat) {
+    avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
+    dps = avgEffectiveDamage * aps * strikesPerAttack
+  }
+
+  const mercenaryAspIncPctBr = bonus('mercenary') ? Math.min(str, dex) / 10 : 0
+  const totalIncreasedAtkBr =
+    u('increasedAttackSpeed')
+    + u('increasedAttackSpeedAndCastSpeed')
+    + mercenaryAspIncPctBr
+    + eq.pctIncreasedAttackSpeedFromGear
+  const apsFlatBaseBr = eq.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps
+  const rogueMultBr = bonus('rogue') ? 1.10 : 1.0
+
+  let hitDamageComputationBreakdown: HitDamageComputationBreakdown | null = null
+  if (hitDamageBreakdownPartial && abilityContribution?.type !== 'Spells') {
+    const strikesLines: StatContributionLine[] = []
+    if (!spellCombat) {
+      const aid = config.ability?.abilityId
+      const ab = aid ? EOC_ABILITY_BY_ID[aid] : undefined
+      const abStrikes =
+        ab && (ab.type === 'Melee' || ab.type === 'Ranged') ? extraStrikesFromAbilityLines(ab.lines) : 0
+      strikesLines.push({ label: 'Base strikes per attack', value: 1 })
+      dmgPushIf(strikesLines, 'Gear: additional strikes per attack', eq.flatStrikesPerAttack)
+      if (abStrikes !== 0) {
+        strikesLines.push({ label: 'Ability lines: extra strikes per attack', value: abStrikes })
+      }
+      dmgPushIf(strikesLines, 'Gear: increased strikes per attack', eq.increasedStrikesPerAttackFromGear)
+      if (eq.strikesIncPctPer10DexFromGear !== 0) {
+        strikesLines.push({
+          label: 'Gear: increased strikes per attack per 10 dexterity',
+          value: eq.strikesIncPctPer10DexFromGear * (dex / 10),
+        })
+      }
+      if (attunementStrikesIncPct !== 0) {
+        strikesLines.push({
+          label: 'Ability attunement: increased strikes per attack',
+          value: attunementStrikesIncPct,
+        })
+      }
+    }
+
+    const apsIncLines: StatContributionLine[] = []
+    dmgPushIf(apsIncLines, 'Upgrades: increased attack speed', u('increasedAttackSpeed'))
+    dmgPushIf(apsIncLines, 'Upgrades: increased attack speed and cast speed', u('increasedAttackSpeedAndCastSpeed'))
+    if (mercenaryAspIncPctBr !== 0) {
+      apsIncLines.push({
+        label: 'Mercenary: 1% increased attack speed per 10 Str or Dex (lower)',
+        value: mercenaryAspIncPctBr,
+      })
+    }
+    dmgPushIf(apsIncLines, 'Gear: increased attack speed', eq.pctIncreasedAttackSpeedFromGear)
+
+    const apsMore: Array<{ label: string; factor: number }> = []
+    if (bonus('rogue')) apsMore.push({ label: 'Rogue: 10% more attack speed', factor: 1.1 })
+    apsMore.push({ label: 'Gear: attack speed less / more multiplier', factor: eq.attackSpeedLessMultFromGear })
+    if (abilityContribution?.attackSpeedMultiplierPct != null && abilityContribution.attackSpeedMultiplierPct !== 100) {
+      apsMore.push({
+        label: `Ability (${abilityContribution.name}): attack speed multiplier`,
+        factor: (abilityContribution.attackSpeedMultiplierPct ?? 100) / 100,
+      })
+    }
+
+    hitDamageComputationBreakdown = {
+      ...hitDamageBreakdownPartial,
+      avgHit,
+      critical: {
+        critChance,
+        critMultiplier,
+        effectiveDamageMultiplier: 1 + (critChance / 100) * (critMultiplier - 1),
+      },
+      dps: {
+        avgEffectiveDamage,
+        value: dps,
+        attacksPerSecond: aps,
+        apsContributions: apsIncLines,
+        apsMoreMultipliers: apsMore,
+        strikesPerAttack,
+        strikesContributions: strikesLines,
+        notes: [
+          `Weapon base APS: ${apsFlatBaseBr.toFixed(2)} (before increased attack speed; total increased ${totalIncreasedAtkBr.toFixed(1)}%)`,
+          `Multiplicative APS: ×${rogueMultBr.toFixed(2)} Rogue (if inactive ×1), ×${eq.attackSpeedLessMultFromGear.toFixed(3)} gear, ability speed mult if any`,
+          'Planner hit range and DPS omit gear “% less damage dealt” and “enemies take increased damage” (see combat-only below).',
+        ],
+      },
+      combatOnlyNotInPlannerHitOrDps: {
+        enemiesTakeIncreasedDamagePercent: eq.enemyDamageTakenIncreasedFromGear,
+        damageDealtLessMult: eq.damageDealtLessMultFromGear,
+      },
+    }
+  }
 
   const dotDamageMoreMultiplier = eq.dotDamageMoreMultFromGear
   const lightningPenetrationPercent = eq.lightningPenetrationFromGear
@@ -2050,5 +2392,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     classLevelsActive,
 
     abilityContribution,
+    hitDamageComputationBreakdown,
   }
 }

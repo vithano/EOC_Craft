@@ -97,7 +97,6 @@ function parseRollTextsToValues(def: EocUniqueDefinition, texts: string[]): numb
 }
 
 function uniquesForPlannerSlot(plannerSlot: string) {
-  console.log(EOC_UNIQUE_DEFINITIONS);
   if (plannerSlot === "Ring 1" || plannerSlot === "Ring 2") {
     return EOC_UNIQUE_DEFINITIONS.filter((u) => u.slot === "Ring");
   }

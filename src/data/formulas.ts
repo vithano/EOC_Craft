@@ -61,7 +61,7 @@ export const FORMULA_DESCRIPTIONS: Record<string, string> = {
   critChance:
     'computeBuildStats: min(100, flat * (1 + inc%/100)); flat = weaponOrGameBase + assassin + attackCritGear + critChanceBonus (spells: spellBase + assassin + critBonus + spellCritGear); inc = increased crit upgrades + gear inc% + 2%/10 DEX (× attr mult)',
   critMultiplier:
-    'computeBuildStats: (baseCritMult + flatCritMultBonus) * (1 + (increasedCritMultFromGear + attunement) / 100) — same flat×(1+inc%) shape as crit chance; recomputeCritMultiplier() after DPS',
+    'computeBuildStats: (baseCritMult + flatCritMultBonus) * (1 + (increasedCritMultFromGear + attunement) / 100) — same flat×(1+inc%) shape as crit chance; recomputeCritMultiplier() then refresh avgEffectiveDamage and DPS',
   effectiveDamage:
     'computeBuildStats: avgHit * (1 + (critChance/100) * (critMultiplier - 1)) — only the portion above a non-crit uses (M-1), not M',
   damageReduction:

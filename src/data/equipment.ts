@@ -56,7 +56,6 @@ function uniqueItemsForSlot(slot: string): EquipmentItem[] {
 let _equipmentItemsCache: Record<string, EquipmentItem[]> | null = null;
 
 function getEquipmentItemsMap(): Record<string, EquipmentItem[]> {
-  console.log('EOC_UNIQUE_DEFINITIONS',EOC_UNIQUE_DEFINITIONS);
   if (_equipmentItemsCache) return _equipmentItemsCache;
   const map: Record<string, EquipmentItem[]> = {};
   for (const slot of EQUIPMENT_SLOTS) {

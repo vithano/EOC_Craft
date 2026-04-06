@@ -14,7 +14,249 @@ import { getNexusTierRow } from "../data/nexusEnemyScaling";
 import {
   HIT_DAMAGE_TYPE_COLOR_CLASS,
   HIT_DAMAGE_TYPE_LABEL,
+  type HitDamageScaling,
 } from "../data/damageTypes";
+import type { HitDamageComputationBreakdown } from "../data/gameStats";
+
+function scalingRuleLabel(s: HitDamageScaling): string {
+  switch (s) {
+    case "physical_style":
+      return "physical-style pool (+ type gear on lightning)";
+    case "physical_and_elemental":
+      return "physical-style + elemental + type gear (+ fire attunement on fire)";
+    case "elemental_style_only":
+      return "elemental + type gear only";
+    case "chaos_style":
+      return "attack + chaos-specific (no elemental increased)";
+    default:
+      return s;
+  }
+}
+
+function MultiplierBreakdownPanel({ b }: { b: HitDamageComputationBreakdown }) {
+  const p = b.physicalConversion;
+  return (
+    <details className="mt-2 border-t border-zinc-700/60 pt-2">
+      <summary className="cursor-pointer text-zinc-400 text-[10px] uppercase tracking-wider select-none hover:text-zinc-300">
+        Damage multipliers (sources)
+      </summary>
+      <div className="mt-2 space-y-3 text-[10px] text-zinc-400 leading-relaxed">
+        <div>
+          <div className="text-zinc-500 font-semibold mb-0.5">Base weapon (before ability / conversion)</div>
+          <div className="font-mono text-zinc-300">
+            Physical {b.baseWeaponDamage.physicalMin}–{b.baseWeaponDamage.physicalMax}
+            {b.baseWeaponDamage.includesCharacterBasePhysical ? " (includes character base)" : ""}
+          </div>
+          {b.baseWeaponDamage.elemental.map((e) => (
+            <div key={e.type} className={`font-mono ${HIT_DAMAGE_TYPE_COLOR_CLASS[e.type]}`}>
+              {HIT_DAMAGE_TYPE_LABEL[e.type]} {e.min}–{e.max}
+            </div>
+          ))}
+        </div>
+
+        {b.abilityDamageMultiplier && (
+          <div>
+            <div className="text-zinc-500 font-semibold mb-0.5">Ability damage multiplier</div>
+            <div className="font-mono text-zinc-300">
+              {b.abilityDamageMultiplier.abilityName} (lv {b.abilityDamageMultiplier.level}):{" "}
+              {b.abilityDamageMultiplier.basePct}% base → {b.abilityDamageMultiplier.scaledPct}% scaled → ×
+              {b.abilityDamageMultiplier.factor.toFixed(3)} on all hit rows
+            </div>
+          </div>
+        )}
+
+        <div>
+          <div className="text-zinc-500 font-semibold mb-0.5">Physical → elemental (gear + ability lines)</div>
+          <div className="font-mono">
+            Gear: {p.gearPct.fire}% fire, {p.gearPct.cold}% cold, {p.gearPct.lightning}% lightning
+          </div>
+          <div className="font-mono">
+            Ability: {p.abilityPct.fire}% fire, {p.abilityPct.cold}% cold, {p.abilityPct.lightning}% lightning
+          </div>
+          <div className="font-mono">
+            Combined raw: {p.combinedRawPct.fire}% / {p.combinedRawPct.cold}% / {p.combinedRawPct.lightning}% (sum{" "}
+            {p.rawTotalPercent.toFixed(1)}%)
+          </div>
+          {p.cappedAt100Percent && (
+            <div className="text-amber-400/90 mt-0.5">
+              Capped at 100% total conversion — normalization ×{p.normalizationFactor.toFixed(4)} → effective{" "}
+              {p.effectivePercent.fire.toFixed(2)}% / {p.effectivePercent.cold.toFixed(2)}% /{" "}
+              {p.effectivePercent.lightning.toFixed(2)}%
+            </div>
+          )}
+        </div>
+
+        {b.laterConversions.length > 0 && (
+          <div>
+            <div className="text-zinc-500 font-semibold mb-0.5">Further conversion</div>
+            <ul className="list-disc pl-4 space-y-0.5 font-mono">
+              {b.laterConversions.map((x, i) => (
+                <li key={i}>
+                  {x.name}
+                  {x.percent != null ? ` (${x.percent}%)` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div>
+          <div className="text-zinc-500 font-semibold mb-0.5">Increased damage pools (additive)</div>
+          <div className="text-zinc-500 mb-0.5">Attack + generic (Σ = {b.increased.attackIncSum.total.toFixed(1)}%)</div>
+          <ul className="list-disc pl-4 space-y-0.5">
+            {b.increased.attackIncSum.lines.map((l, i) => (
+              <li key={i} className="font-mono">
+                {l.label}: {l.value >= 0 ? "+" : ""}
+                {l.value.toFixed(1)}%
+              </li>
+            ))}
+          </ul>
+          <div className="text-zinc-500 mt-1 mb-0.5">
+            Physical-style total (Σ = {b.increased.physIncTotal.total.toFixed(1)}%) — used for physical + physical-style
+            lightning
+          </div>
+          <ul className="list-disc pl-4 space-y-0.5">
+            {b.increased.physIncTotal.lines.map((l, i) => (
+              <li key={i} className="font-mono">
+                {l.label}: {l.value >= 0 ? "+" : ""}
+                {l.value.toFixed(1)}%
+              </li>
+            ))}
+          </ul>
+          <div className="text-zinc-500 mt-1 mb-0.5">
+            Elemental increased (Σ = {b.increased.elemental.total.toFixed(1)}%)
+          </div>
+          <ul className="list-disc pl-4 space-y-0.5">
+            {b.increased.elemental.lines.map((l, i) => (
+              <li key={i} className="font-mono">
+                {l.label}: {l.value >= 0 ? "+" : ""}
+                {l.value.toFixed(1)}%
+              </li>
+            ))}
+          </ul>
+          <div className="mt-1 font-mono text-zinc-300">
+            Type-specific gear: fire {b.increased.typeSpecificGear.fire.toFixed(1)}%, cold{" "}
+            {b.increased.typeSpecificGear.cold.toFixed(1)}%, lightning {b.increased.typeSpecificGear.lightning.toFixed(1)}
+            %, chaos {b.increased.typeSpecificGear.chaos.toFixed(1)}%
+          </div>
+          {b.increased.attunementFire !== 0 && (
+            <div className="mt-0.5 font-mono">Fire attunement: +{b.increased.attunementFire.toFixed(1)}% (fire rows)</div>
+          )}
+        </div>
+
+        <div>
+          <div className="text-zinc-500 font-semibold mb-0.5">Per fragment (before → after increased)</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-[9px]">
+              <thead>
+                <tr className="text-zinc-500 border-b border-zinc-700">
+                  <th className="py-0.5 pr-1">Type</th>
+                  <th className="py-0.5 pr-1">Rule</th>
+                  <th className="py-0.5 pr-1">Range before</th>
+                  <th className="py-0.5 pr-1">Σ increased</th>
+                  <th className="py-0.5">×</th>
+                </tr>
+              </thead>
+              <tbody>
+                {b.perInstanceBeforeIncreased.map((row, i) => (
+                  <tr key={i} className="border-b border-zinc-800/80">
+                    <td className={`py-0.5 pr-1 ${HIT_DAMAGE_TYPE_COLOR_CLASS[row.type]}`}>
+                      {HIT_DAMAGE_TYPE_LABEL[row.type]}
+                    </td>
+                    <td className="py-0.5 pr-1 text-zinc-500 max-w-[140px]">{scalingRuleLabel(row.scaling)}</td>
+                    <td className="py-0.5 pr-1 font-mono text-zinc-300">
+                      {row.min}–{row.max}
+                    </td>
+                    <td className="py-0.5 pr-1 font-mono">+{row.increasedDamagePercent.toFixed(1)}%</td>
+                    <td className="py-0.5 font-mono">×{row.damageMultiplier.toFixed(3)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <div className="text-zinc-500 font-semibold mb-0.5">After increased (collapsed by type)</div>
+          <div className="font-mono space-y-0.5">
+            {b.collapsedAfterIncreased.map((r) => (
+              <div key={r.type} className={HIT_DAMAGE_TYPE_COLOR_CLASS[r.type]}>
+                {HIT_DAMAGE_TYPE_LABEL[r.type]} {r.min}–{r.max}
+              </div>
+            ))}
+          </div>
+          <div className="mt-1 text-zinc-300 font-mono">Average hit: {b.avgHit.toFixed(1)}</div>
+        </div>
+
+        <div>
+          <div className="text-zinc-500 font-semibold mb-0.5">Critical strikes (expected)</div>
+          <div className="font-mono space-y-0.5">
+            <div>
+              Crit chance {b.critical.critChance.toFixed(1)}%, multiplier ×{b.critical.critMultiplier.toFixed(2)}
+            </div>
+            <div>
+              Effective damage vs non-crit: ×{b.critical.effectiveDamageMultiplier.toFixed(4)} (= 1 + critChance ×
+              (M−1))
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="text-zinc-500 font-semibold mb-0.5">DPS</div>
+          <div className="font-mono text-zinc-300">
+            {b.dps.value.toFixed(1)} = {b.dps.avgEffectiveDamage.toFixed(1)} × {b.dps.attacksPerSecond.toFixed(2)} APS ×{" "}
+            {b.dps.strikesPerAttack} strike(s)
+          </div>
+          <div className="text-zinc-500 mt-1 mb-0.5">Increased attack speed (additive)</div>
+          <ul className="list-disc pl-4 font-mono space-y-0.5">
+            {b.dps.apsContributions.map((l, i) => (
+              <li key={i}>
+                {l.label}: +{l.value.toFixed(1)}%
+              </li>
+            ))}
+          </ul>
+          <div className="text-zinc-500 mt-1 mb-0.5">Multiplicative APS</div>
+          <ul className="list-disc pl-4 font-mono space-y-0.5">
+            {b.dps.apsMoreMultipliers.map((m, i) => (
+              <li key={i}>
+                {m.label}: ×{m.factor.toFixed(3)}
+              </li>
+            ))}
+          </ul>
+          {b.dps.strikesContributions.length > 0 && (
+            <>
+              <div className="text-zinc-500 mt-1 mb-0.5">Strikes per attack</div>
+              <ul className="list-disc pl-4 font-mono space-y-0.5">
+                {b.dps.strikesContributions.map((l, i) => (
+                  <li key={i}>
+                    {l.label}: {l.value >= 0 ? "+" : ""}
+                    {typeof l.value === "number" && l.value % 1 !== 0 ? l.value.toFixed(2) : l.value}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {b.dps.notes.map((n, i) => (
+            <p key={i} className="mt-1 text-zinc-500 italic">
+              {n}
+            </p>
+          ))}
+        </div>
+
+        <div>
+          <div className="text-zinc-500 font-semibold mb-0.5">Combat-only (not in planner hit / DPS above)</div>
+          <div className="font-mono">
+            Enemies take +{b.combatOnlyNotInPlannerHitOrDps.enemiesTakeIncreasedDamagePercent.toFixed(1)}% increased
+            damage
+          </div>
+          <div className="font-mono">
+            Gear less damage dealt: ×{b.combatOnlyNotInPlannerHitOrDps.damageDealtLessMult.toFixed(3)}
+          </div>
+        </div>
+      </div>
+    </details>
+  );
+}
 
 export interface EocStatsPanelProps {
   stats: ComputedBuildStats;
@@ -134,6 +376,9 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
           >
             {byType[0] ? `${byType[0].min}–${byType[0].max}` : `${stats.hitDamageMin}–${stats.hitDamageMax}`}
           </span>
+        )}
+        {stats.hitDamageComputationBreakdown && (
+          <MultiplierBreakdownPanel b={stats.hitDamageComputationBreakdown} />
         )}
       </div>
 
