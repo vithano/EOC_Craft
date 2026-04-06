@@ -125,8 +125,9 @@ export default function BuildPlanner() {
       equipmentModifiers,
       equippedWeaponItemId: weaponItemId,
       ability: abilityForStats,
+      equipped,
     }),
-    [upgradeLevels, equipmentModifiers, weaponItemId, abilityForStats]
+    [upgradeLevels, equipmentModifiers, weaponItemId, abilityForStats, equipped]
   );
 
   const stats = useMemo(() => computeBuildStats(buildConfig), [buildConfig]);

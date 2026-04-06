@@ -6,7 +6,12 @@ import {
   getClassLevel,
   isClassBonusActive,
 } from './gameClasses'
-import { getItemDefinition, type ItemModifiers } from './equipment'
+import {
+  EQUIPMENT_SLOTS,
+  getItemDefinition,
+  type EquippedEntry,
+  type ItemModifiers,
+} from './equipment'
 import {
   abilityManaCostAtLevel,
   abilityMatchesWeapon,
@@ -45,6 +50,7 @@ import {
 import { EOC_UNIQUE_BY_ID, isUniqueItemId, resolveUniqueMods } from './eocUniques'
 import { FORMULA_CONSTANTS } from './formulaConstants'
 import {
+  attributeThresholdConditionalPatchFromTexts,
   equipmentModifiersFromUniqueTexts,
   type UniqueGearStatPatch,
 } from './uniqueGearMods'
@@ -81,6 +87,11 @@ export interface BuildConfig {
   /** Optional weapon id for ability weapon-tag checks (e.g. equipped Weapon slot). */
   equippedWeaponItemId?: string | null
   ability?: AbilitySelectionState | null
+  /**
+   * Equipment snapshot (same shape as planner `equipped`). When set, attribute-threshold unique mods
+   * (e.g. Titansblood belt) are applied after Str/Dex/Int are computed.
+   */
+  equipped?: Record<string, EquippedEntry>
 }
 
 /** Snapshot of how the selected ability changed offensive stats (for UI). */
@@ -108,6 +119,119 @@ export interface AbilityContributionSummary {
 export interface StatContributionLine {
   label: string
   value: number
+}
+
+/** Source lines for a single planner stat (shown in expandable breakdown UI). */
+export interface StatBreakdownBlock {
+  /** Optional one-line summary of how the final value is obtained. */
+  formula?: string
+  lines: StatContributionLine[]
+}
+
+/**
+ * Per-stat contribution lines for the planner stats panel — mirrors {@link ComputedBuildStats} fields
+ * (except composite / large objects which get a short formula instead).
+ */
+export interface StatBreakdowns {
+  str: StatBreakdownBlock
+  dex: StatBreakdownBlock
+  int: StatBreakdownBlock
+  maxLife: StatBreakdownBlock
+  maxMana: StatBreakdownBlock
+  maxEnergyShield: StatBreakdownBlock
+  armour: StatBreakdownBlock
+  evasionRating: StatBreakdownBlock
+  blockChance: StatBreakdownBlock
+  dodgeChance: StatBreakdownBlock
+  fireRes: StatBreakdownBlock
+  coldRes: StatBreakdownBlock
+  lightningRes: StatBreakdownBlock
+  chaosRes: StatBreakdownBlock
+  maxFireRes: StatBreakdownBlock
+  maxColdRes: StatBreakdownBlock
+  maxLightningRes: StatBreakdownBlock
+  maxChaosRes: StatBreakdownBlock
+  hitDamageMin: StatBreakdownBlock
+  hitDamageMax: StatBreakdownBlock
+  hitDamageByType: StatBreakdownBlock
+  aps: StatBreakdownBlock
+  manaCostPerAttack: StatBreakdownBlock
+  accuracy: StatBreakdownBlock
+  critChance: StatBreakdownBlock
+  critMultiplier: StatBreakdownBlock
+  avgHit: StatBreakdownBlock
+  avgEffectiveDamage: StatBreakdownBlock
+  dps: StatBreakdownBlock
+  strikesPerAttack: StatBreakdownBlock
+  manaRegenPerSecond: StatBreakdownBlock
+  lifeRecoveryPct: StatBreakdownBlock
+  esRecoveryPct: StatBreakdownBlock
+  bleedChance: StatBreakdownBlock
+  poisonChance: StatBreakdownBlock
+  elementalAilmentChance: StatBreakdownBlock
+  ailmentDurationBonus: StatBreakdownBlock
+  ailmentDurationMultiplier: StatBreakdownBlock
+  igniteAilmentDurationMultiplier: StatBreakdownBlock
+  igniteInflictChanceBonus: StatBreakdownBlock
+  shockInflictChanceBonus: StatBreakdownBlock
+  chillInflictChanceBonus: StatBreakdownBlock
+  increasedMeleeDamage: StatBreakdownBlock
+  increasedAttackDamage: StatBreakdownBlock
+  increasedSpellDamage: StatBreakdownBlock
+  increasedElementalDamage: StatBreakdownBlock
+  increasedDamage: StatBreakdownBlock
+  damageOverTimeMultiplier: StatBreakdownBlock
+  doubleDamageChance: StatBreakdownBlock
+  tripleDamageChance: StatBreakdownBlock
+  armourIgnorePercent: StatBreakdownBlock
+  dotDamageMoreMultiplier: StatBreakdownBlock
+  lightningPenetrationPercent: StatBreakdownBlock
+  firePenetrationPercent: StatBreakdownBlock
+  coldPenetrationPercent: StatBreakdownBlock
+  chaosPenetrationPercent: StatBreakdownBlock
+  elementalPenetrationPercent: StatBreakdownBlock
+  lifeOnHit: StatBreakdownBlock
+  lifeLeechFromHitDamagePercent: StatBreakdownBlock
+  lifeLeechFromPhysicalHitPercent: StatBreakdownBlock
+  hitsCannotBeEvaded: StatBreakdownBlock
+  blockDamageTakenMult: StatBreakdownBlock
+  lifeRegenPercentOfMaxPerSecond: StatBreakdownBlock
+  esRegenPercentOfMaxPerSecond: StatBreakdownBlock
+  enemiesTakeIncreasedDamagePercent: StatBreakdownBlock
+  damageTakenMultiplierFromGear: StatBreakdownBlock
+  cannotInflictElementalAilments: StatBreakdownBlock
+  hitsTakenCannotBeCritical: StatBreakdownBlock
+  damageDealtLessMult: StatBreakdownBlock
+  lifeRecoveryRateMult: StatBreakdownBlock
+  physicalDamageTakenAsChaosPercent: StatBreakdownBlock
+  physicalDamageTakenAsFirePercent: StatBreakdownBlock
+  physicalDamageTakenAsColdPercent: StatBreakdownBlock
+  physicalDamageTakenAsLightningPercent: StatBreakdownBlock
+  elementalDamageTakenAsChaosPercent: StatBreakdownBlock
+  reducedPhysicalDamageTaken: StatBreakdownBlock
+  nonDamagingAilmentEffectIncreasedPercent: StatBreakdownBlock
+  chillInflictEffectMult: StatBreakdownBlock
+  dealNoDamageExceptCrit: StatBreakdownBlock
+  damageTakenToManaFirstPercent: StatBreakdownBlock
+  lifeRecoveredOnKillPercent: StatBreakdownBlock
+  flatLifeOnKill: StatBreakdownBlock
+  flatManaOnKill: StatBreakdownBlock
+  lifeRecoveredOnBlockPercent: StatBreakdownBlock
+  flatLifeOnBlock: StatBreakdownBlock
+  manaRecoveredOnBlockPercent: StatBreakdownBlock
+  esRecoveredOnBlockPercent: StatBreakdownBlock
+  flatManaOnBlock: StatBreakdownBlock
+  flatEsOnBlock: StatBreakdownBlock
+  energyShieldOnHit: StatBreakdownBlock
+  manaCostPaidWithLife: StatBreakdownBlock
+  manaShieldActive: StatBreakdownBlock
+  chaosNotBypassES: StatBreakdownBlock
+  armourVsElementalMultiplier: StatBreakdownBlock
+  armourVsChaosMultiplier: StatBreakdownBlock
+  classBonusesActive: StatBreakdownBlock
+  classLevelsActive: StatBreakdownBlock
+  abilityContribution: StatBreakdownBlock
+  hitDamageComputationBreakdown: StatBreakdownBlock
 }
 
 /** Full attack hit pipeline: bases, conversion, per-instance scaling, crit, APS, DPS (planner). */
@@ -319,6 +443,10 @@ export interface EquipmentModifiers {
   pctIncreasedDamageOverTimeFromGear: number
   pctIncreasedBleedDamageFromGear: number
   ailmentDurationBonusFromGear: number
+  /** Product of (1 − p/100) per “% less … duration” (ailment/bleed/poison/chill/shock). */
+  ailmentDurationLessMultFromGear: number
+  /** Product of (1 − p/100) per “% less ignite duration” (ignite DoT only, after global ailment mult). */
+  igniteDurationLessMultFromGear: number
 
   pctIncreasedAllAttributesFromGear: number
   pctIncreasedStrengthFromGear: number
@@ -459,7 +587,14 @@ export interface ComputedBuildStats {
   bleedChance: number
   poisonChance: number
   elementalAilmentChance: number
-  ailmentDurationBonus: number // % increased duration
+  ailmentDurationBonus: number // % increased duration (additive with upgrades; “reduced duration” is negative here)
+  /**
+   * Duration multiplier for bleed, poison, shock, chill (and the base factor for ignite before ignite-only less).
+   * (1 + ailmentDurationBonus/100) × ailmentDurationLessMultFromGear.
+   */
+  ailmentDurationMultiplier: number
+  /** Ignite DoT duration: {@link ailmentDurationMultiplier} × igniteDurationLessMultFromGear. */
+  igniteAilmentDurationMultiplier: number
   /** Added to ignite roll when fire damage is present (ability lines, e.g. +100% ignite). */
   igniteInflictChanceBonus: number
   /** Added to shock roll when lightning damage is present (e.g. Bladesurge +50% shock). */
@@ -549,6 +684,9 @@ export interface ComputedBuildStats {
   abilityContribution: AbilityContributionSummary | null
   /** Attack hit math (null when a spell replaces hit damage). */
   hitDamageComputationBreakdown: HitDamageComputationBreakdown | null
+
+  /** Source lines for every computed stat (planner UI breakdown). */
+  statBreakdowns: StatBreakdowns
 }
 
 // ---------------------------------------------------------------------------
@@ -660,6 +798,8 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     pctIncreasedDamageOverTimeFromGear: 0,
     pctIncreasedBleedDamageFromGear: 0,
     ailmentDurationBonusFromGear: 0,
+    ailmentDurationLessMultFromGear: 1,
+    igniteDurationLessMultFromGear: 1,
 
     pctIncreasedAllAttributesFromGear: 0,
     pctIncreasedStrengthFromGear: 0,
@@ -948,6 +1088,12 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.ailmentDurationBonusFromGear !== undefined) {
     addNum('ailmentDurationBonusFromGear', p.ailmentDurationBonusFromGear)
   }
+  if (p.ailmentDurationLessMultFromGear !== undefined) {
+    eq.ailmentDurationLessMultFromGear *= p.ailmentDurationLessMultFromGear
+  }
+  if (p.igniteDurationLessMultFromGear !== undefined) {
+    eq.igniteDurationLessMultFromGear *= p.igniteDurationLessMultFromGear
+  }
   if (p.pctIncreasedAllAttributesFromGear !== undefined) {
     addNum('pctIncreasedAllAttributesFromGear', p.pctIncreasedAllAttributesFromGear)
   }
@@ -1115,6 +1261,30 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.manaCostPaidWithLifeFromGear) eq.manaCostPaidWithLifeFromGear = true
 }
 
+/**
+ * Uniques with "While you have at least N strength/dexterity/intelligence …" need final attributes;
+ * merge their bonuses into `eq` after Str/Dex/Int are rounded.
+ */
+function mergeAttributeThresholdConditionalUniques(
+  eq: EquipmentModifiers,
+  equipped: Record<string, EquippedEntry> | undefined,
+  str: number,
+  dex: number,
+  int_: number
+): void {
+  if (!equipped) return
+  for (const slot of EQUIPMENT_SLOTS) {
+    const ent = equipped[slot]
+    if (!ent || ent.itemId === 'none' || !isUniqueItemId(ent.itemId)) continue
+    const def = EOC_UNIQUE_BY_ID[ent.itemId]
+    if (!def) continue
+    const { innateText, lineTexts } = resolveUniqueMods(def, ent.rolls, ent.enhancement ?? 0)
+    const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
+    const patch = attributeThresholdConditionalPatchFromTexts(texts, str, dex, int_)
+    mergeUniqueGearPatch(eq, patch)
+  }
+}
+
 /** Sum static items and rolled uniques for all worn slots. */
 export function aggregateEquippedToEquipmentModifiers(
   slots: string[],
@@ -1201,7 +1371,7 @@ export function aggregateItemModifiers(
 // ---------------------------------------------------------------------------
 
 export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
-  const { equipmentModifiers: eq } = config
+  const eq: EquipmentModifiers = { ...config.equipmentModifiers }
   const weaponItemId = config.equippedWeaponItemId ?? 'none'
   const weaponTag = weaponAbilityTagFromItemId(weaponItemId)
 
@@ -1304,6 +1474,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   str  = Math.round(str  * strMult)
   dex  = Math.round(dex  * dexMult)
   int_ = Math.round(int_ * intMult)
+
+  mergeAttributeThresholdConditionalUniques(eq, config.equipped, str, dex, int_)
 
   // -------------------------------------------------------------------------
   // 6. Guardian "doubled inherent attribute bonuses" multipliers
@@ -2095,6 +2267,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     u('increasedChanceToInflictElementalAilments') + eq.elementalAilmentInflictChanceFromGear
   const ailmentDurationBonus =
     u('increasedAilmentDuration') + eq.ailmentDurationBonusFromGear
+  const ailmentDurationMultiplier =
+    Math.max(0.05, 1 + ailmentDurationBonus / 100) * eq.ailmentDurationLessMultFromGear
+  const igniteAilmentDurationMultiplier =
+    ailmentDurationMultiplier * eq.igniteDurationLessMultFromGear
   let igniteInflictChanceBonus = eq.igniteInflictChanceFromGear
   let shockInflictChanceBonus = eq.shockInflictChanceFromGear
   let chillInflictChanceBonus = eq.chillInflictChanceFromGear
@@ -2347,8 +2523,686 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const manaCostPaidWithLife = eq.manaCostPaidWithLifeFromGear
 
   // -------------------------------------------------------------------------
-  // Return
+  // Planner stat breakdowns (every ComputedBuildStats field)
   // -------------------------------------------------------------------------
+  const blk = (lines: StatContributionLine[], formula?: string): StatBreakdownBlock => ({ lines, formula })
+
+  const pushClassAttr = (attr: 'str' | 'dex' | 'int'): StatContributionLine[] => {
+    const out: StatContributionLine[] = []
+    for (const cls of GAME_CLASSES) {
+      const level = getClassLevel(cls.id, config.upgradeLevels)
+      if (level <= 0) continue
+      const per = cls.perLevel[attr] ?? 0
+      if (per !== 0) {
+        out.push({ label: `${cls.name}: ${per} ${attr}/rank × ${level}`, value: per * level })
+      }
+    }
+    if ((attr === 'str' || attr === 'dex') && bonus('mercenary')) {
+      const ml = getClassLevel('mercenary', config.upgradeLevels)
+      if (ml > 0) {
+        out.push({
+          label: 'Mercenary bonus: +5 Str and +5 Dex per Mercenary level',
+          value: 5 * ml,
+        })
+      }
+    }
+    return out
+  }
+
+  const strPreGuardian = BASE_GAME_STATS.baseStr + totalStrFromClasses + eq.strBonus
+  const dexPreGuardian = BASE_GAME_STATS.baseDex + totalDexFromClasses + eq.dexBonus
+  const intPreGuardian = BASE_GAME_STATS.baseInt + totalIntFromClasses + eq.intBonus
+
+  const strLines2: StatContributionLine[] = [{ label: 'Base strength', value: BASE_GAME_STATS.baseStr }]
+  strLines2.push(...pushClassAttr('str'))
+  dmgPushIf(strLines2, 'Gear: strength', eq.strBonus)
+  if (bonus('guardian')) strLines2.push({ label: 'Guardian: +30 strength', value: 30 })
+  const strIncLines: StatContributionLine[] = []
+  dmgPushIf(strIncLines, 'Upgrades: increased strength', u('increasedStrength'))
+  if (bonus('warrior')) strIncLines.push({ label: 'Warrior: 15% increased strength (multiplier)', value: 15 })
+  dmgPushIf(strIncLines, 'Gear: increased strength', eq.pctIncreasedStrengthFromGear)
+  if (eq.pctIncreasedAllAttributesFromGear !== 0) {
+    strIncLines.push({
+      label: 'Gear: increased all attributes (applies to Str)',
+      value: eq.pctIncreasedAllAttributesFromGear,
+    })
+  }
+
+  const dexLines2: StatContributionLine[] = [{ label: 'Base dexterity', value: BASE_GAME_STATS.baseDex }]
+  dexLines2.push(...pushClassAttr('dex'))
+  dmgPushIf(dexLines2, 'Gear: dexterity', eq.dexBonus)
+  if (bonus('guardian')) dexLines2.push({ label: 'Guardian: +30 dexterity', value: 30 })
+  const dexIncLines: StatContributionLine[] = []
+  dmgPushIf(dexIncLines, 'Upgrades: increased dexterity', u('increasedDexterity'))
+  dmgPushIf(dexIncLines, 'Gear: increased dexterity', eq.pctIncreasedDexterityFromGear)
+  if (eq.pctIncreasedAllAttributesFromGear !== 0) {
+    dexIncLines.push({
+      label: 'Gear: increased all attributes (applies to Dex)',
+      value: eq.pctIncreasedAllAttributesFromGear,
+    })
+  }
+
+  const intLines2: StatContributionLine[] = [{ label: 'Base intelligence', value: BASE_GAME_STATS.baseInt }]
+  intLines2.push(...pushClassAttr('int'))
+  dmgPushIf(intLines2, 'Gear: intelligence', eq.intBonus)
+  if (bonus('guardian')) intLines2.push({ label: 'Guardian: +30 intelligence', value: 30 })
+  const intIncLines: StatContributionLine[] = []
+  dmgPushIf(intIncLines, 'Upgrades: increased intelligence', u('increasedIntelligence'))
+  dmgPushIf(intIncLines, 'Gear: increased intelligence', eq.pctIncreasedIntelligenceFromGear)
+  if (eq.pctIncreasedAllAttributesFromGear !== 0) {
+    intIncLines.push({
+      label: 'Gear: increased all attributes (applies to Int)',
+      value: eq.pctIncreasedAllAttributesFromGear,
+    })
+  }
+
+  const strBeforeMult = strPreGuardian + (bonus('guardian') ? 30 : 0)
+
+  const strBreak: StatBreakdownBlock = blk(
+    [
+      ...strLines2,
+      { label: 'Subtotal before % increased (includes Guardian +30 if active)', value: strBeforeMult },
+      { label: 'Final strength (rounded)', value: str },
+      ...strIncLines.map((l) => ({ ...l, label: `${l.label} (in Σ for mult)` })),
+    ],
+    `round((base + classes + flat gear + Guardian) × (1 + Σ increased%/100)) = ${str}`
+  )
+
+  const dexBeforeMult = dexPreGuardian + (bonus('guardian') ? 30 : 0)
+  const intBeforeMult = intPreGuardian + (bonus('guardian') ? 30 : 0)
+
+  const dexBreak: StatBreakdownBlock = blk(
+    [
+      ...dexLines2,
+      { label: 'Subtotal before % increased (includes Guardian +30 if active)', value: dexBeforeMult },
+      { label: 'Final dexterity (rounded)', value: dex },
+      ...dexIncLines.map((l) => ({ ...l, label: `${l.label} (in Σ for mult)` })),
+    ],
+    `round((base + classes + flat gear + Guardian) × (1 + Σ increased%/100)) = ${dex}`
+  )
+
+  const intBreak: StatBreakdownBlock = blk(
+    [
+      ...intLines2,
+      { label: 'Subtotal before % increased (includes Guardian +30 if active)', value: intBeforeMult },
+      { label: 'Final intelligence (rounded)', value: int_ },
+      ...intIncLines.map((l) => ({ ...l, label: `${l.label} (in Σ for mult)` })),
+    ],
+    `round((base + classes + flat gear + Guardian) × (1 + Σ increased%/100)) = ${int_}`
+  )
+
+  const lifeLines: StatContributionLine[] = [
+    { label: 'Base life', value: BASE_GAME_STATS.baseLife },
+    { label: 'Life from strength (10 per 10 Str × guardian life mult)', value: lifeFromStr },
+    { label: 'Life from character level (10 per level above 1)', value: levelFlatLife },
+  ]
+  dmgPushIf(lifeLines, 'Warrior bonus: +100 life', bonus('warrior') ? 100 : 0)
+  dmgPushIf(lifeLines, 'Gear: flat life', eq.flatLife)
+  dmgPushIf(lifeLines, 'Upgrades: increased life', u('increasedLife'))
+  dmgPushIf(lifeLines, 'Gear: increased life', eq.pctIncreasedLifeFromGear)
+  if (eq.lifeMoreMultFromGear !== 1) {
+    lifeLines.push({ label: 'Gear: more maximum life (mult)', value: (eq.lifeMoreMultFromGear - 1) * 100 })
+  }
+  const maxLifeBreak: StatBreakdownBlock = blk(
+    lifeLines,
+    bonus('occultist')
+      ? 'Occultist: maximum life fixed at 1'
+      : `round((flat subtotal) × (1 + increased%/100) × more life mult) = ${maxLife}`
+  )
+
+  const manaLines: StatContributionLine[] = [
+    { label: 'Base mana', value: BASE_GAME_STATS.baseMana },
+    { label: 'Mana from intelligence (10 per 10 Int × guardian mana mult)', value: manaFromInt },
+    { label: 'Mana from character level', value: levelFlatMana },
+  ]
+  dmgPushIf(manaLines, 'Gear: flat mana', eq.flatMana)
+  dmgPushIf(manaLines, 'Upgrades: increased mana', u('increasedMana'))
+  dmgPushIf(manaLines, 'Gear: increased mana', eq.pctIncreasedManaFromGear)
+  if (eq.manaMoreMultFromGear !== 1) {
+    manaLines.push({ label: 'Gear: more maximum mana (mult)', value: (eq.manaMoreMultFromGear - 1) * 100 })
+  }
+  const maxManaBreak: StatBreakdownBlock = blk(
+    manaLines,
+    `round(flat × (1 + Σ increased%/100) × more mana) = ${maxMana}`
+  )
+
+  const esLines: StatContributionLine[] = []
+  if (bonus('sorcerer')) esLines.push({ label: 'Sorcerer: 10% of max mana as base ES', value: maxMana * 0.1 })
+  dmgPushIf(esLines, 'Gear: flat energy shield', eq.flatEnergyShieldFromGear)
+  if (eq.lifeAsExtraEsPercentFromGear !== 0) {
+    esLines.push({
+      label: 'Gear: life as extra ES',
+      value: maxLife * (eq.lifeAsExtraEsPercentFromGear / 100),
+    })
+  }
+  if (eq.manaAsExtraEsPercentFromGear !== 0) {
+    esLines.push({
+      label: 'Gear: mana as extra ES',
+      value: maxMana * (eq.manaAsExtraEsPercentFromGear / 100),
+    })
+  }
+  dmgPushIf(esLines, 'Upgrades: increased energy shield', u('increasedEnergyShield'))
+  dmgPushIf(esLines, 'Upgrades: increased armour and energy shield', u('increasedArmourAndEnergyShield'))
+  dmgPushIf(esLines, 'Upgrades: increased evasion and energy shield', u('increasedEvasionRatingAndEnergyShield'))
+  dmgPushIf(esLines, 'Gear: increased energy shield', eq.pctIncreasedEnergyShieldFromGear)
+  esLines.push({
+    label: 'Defences from dexterity: +2% ES per 10 Dex (× guardian)',
+    value: defFromDex,
+  })
+  if (bonus('occultist')) esLines.push({ label: 'Occultist: 40% more energy shield', value: 40 })
+  if (eq.energyShieldLessMultFromGear !== 1) {
+    esLines.push({
+      label: 'Gear: less energy shield (mult)',
+      value: (eq.energyShieldLessMultFromGear - 1) * 100,
+    })
+  }
+  if (attunementDefencesPct !== 0) {
+    esLines.push({ label: 'Ability attunement: increased defences (applied to ES)', value: attunementDefencesPct })
+  }
+  const maxEsBreak: StatBreakdownBlock = blk(
+    esLines,
+    `round(base × (1 + Σ increased%/100) × occultist × less ES) = ${maxEnergyShield}`
+  )
+
+  const armourLines: StatContributionLine[] = [
+    { label: 'Base armour', value: BASE_GAME_STATS.baseArmour },
+  ]
+  dmgPushIf(armourLines, 'Gear: flat armour', eq.flatArmour)
+  dmgPushIf(armourLines, 'Upgrades: increased armour', u('increasedArmour'))
+  dmgPushIf(armourLines, 'Upgrades: increased armour and evasion', u('increasedArmourAndEvasionRating'))
+  dmgPushIf(armourLines, 'Upgrades: increased armour and energy shield', u('increasedArmourAndEnergyShield'))
+  dmgPushIf(armourLines, 'Gear: increased armour', eq.pctIncreasedArmourFromGear)
+  armourLines.push({
+    label: 'Defences from dexterity: +2% armour per 10 Dex (× guardian)',
+    value: defFromDex,
+  })
+  if (eq.defencesLessMultFromGear !== 1) {
+    armourLines.push({
+      label: 'Gear: less defences (mult on armour)',
+      value: (eq.defencesLessMultFromGear - 1) * 100,
+    })
+  }
+  if (attunementDefencesPct !== 0) {
+    armourLines.push({ label: 'Ability attunement: increased defences', value: attunementDefencesPct })
+  }
+  const armourBreak: StatBreakdownBlock = blk(
+    armourLines,
+    `round(flat × (1 + Σ increased%/100) × less defences) = ${armour}`
+  )
+
+  const evasionLines: StatContributionLine[] = [{ label: 'Base evasion', value: BASE_GAME_STATS.baseEvasion }]
+  dmgPushIf(evasionLines, 'Gear: flat evasion', eq.flatEvasion)
+  dmgPushIf(evasionLines, 'Upgrades: increased evasion', u('increasedEvasionRating'))
+  dmgPushIf(evasionLines, 'Upgrades: increased armour and evasion', u('increasedArmourAndEvasionRating'))
+  dmgPushIf(evasionLines, 'Upgrades: increased evasion and energy shield', u('increasedEvasionRatingAndEnergyShield'))
+  dmgPushIf(evasionLines, 'Gear: increased evasion', eq.pctIncreasedEvasionFromGear)
+  evasionLines.push({
+    label: 'Defences from dexterity: +2% evasion per 10 Dex (× guardian)',
+    value: defFromDex,
+  })
+  if (eq.evasionMoreMultFromGear !== 1) {
+    evasionLines.push({
+      label: 'Gear: more evasion (mult)',
+      value: (eq.evasionMoreMultFromGear - 1) * 100,
+    })
+  }
+  if (eq.defencesLessMultFromGear !== 1) {
+    evasionLines.push({
+      label: 'Gear: less defences (mult on evasion)',
+      value: (eq.defencesLessMultFromGear - 1) * 100,
+    })
+  }
+  if (attunementDefencesPct !== 0) {
+    evasionLines.push({ label: 'Ability attunement: increased defences', value: attunementDefencesPct })
+  }
+  const evasionBreak: StatBreakdownBlock = blk(
+    evasionLines,
+    `round(flat × (1 + Σ increased%/100) × more evasion × less defences) = ${evasionRating}`
+  )
+
+  const blockLines: StatContributionLine[] = []
+  dmgPushIf(blockLines, 'Upgrades: increased chance to block', u('increasedChanceToBlock'))
+  dmgPushIf(blockLines, 'Gear: block chance', eq.blockChanceFromGear)
+  const blockBreak: StatBreakdownBlock = blk(
+    blockLines,
+    `min(max block ${maxBlockChance}%, upgrades + gear) = ${blockChance}`
+  )
+
+  const dodgeLines: StatContributionLine[] = []
+  dmgPushIf(dodgeLines, 'Upgrades: increased chance to dodge', u('increasedChanceToDodge'))
+  dmgPushIf(dodgeLines, 'Gear: dodge chance', eq.dodgeChanceFromGear)
+  if (eq.dodgeChancePer10DexFromGear !== 0) {
+    dodgeLines.push({
+      label: 'Gear: dodge per 10 dexterity',
+      value: eq.dodgeChancePer10DexFromGear * (dex / 10),
+    })
+  }
+  const dodgeBreak: StatBreakdownBlock = blk(
+    dodgeLines,
+    `min(max dodge ${maxDodgeCap}%, Σ sources) = ${dodgeChance}`
+  )
+
+  const fireResLines: StatContributionLine[] = []
+  dmgPushIf(fireResLines, 'Upgrades: all elemental resistances', u('increasedAllElementalResistances'))
+  if (fighterBonus !== 0) fireResLines.push({ label: 'Fighter: +15% to all elemental resistances', value: fighterBonus })
+  dmgPushIf(fireResLines, 'Gear: all elemental resistances', eq.pctToAllElementalResFromGear)
+  dmgPushIf(fireResLines, 'Gear: to all resistances', eq.pctToAllResistancesFromGear)
+  dmgPushIf(fireResLines, 'Gear: fire resistance', eq.pctFireResFromGear)
+  const fireResBreak: StatBreakdownBlock = blk(fireResLines, `fire res total (before cap) = ${fireRes}`)
+
+  const coldResLines: StatContributionLine[] = []
+  dmgPushIf(coldResLines, 'Upgrades: all elemental resistances', u('increasedAllElementalResistances'))
+  if (fighterBonus !== 0) coldResLines.push({ label: 'Fighter: +15% to all elemental resistances', value: fighterBonus })
+  dmgPushIf(coldResLines, 'Gear: all elemental resistances', eq.pctToAllElementalResFromGear)
+  dmgPushIf(coldResLines, 'Gear: to all resistances', eq.pctToAllResistancesFromGear)
+  dmgPushIf(coldResLines, 'Gear: cold resistance', eq.pctColdResFromGear)
+  const coldResBreak: StatBreakdownBlock = blk(coldResLines, `cold res total = ${coldRes}`)
+
+  const lightningResLines: StatContributionLine[] = []
+  dmgPushIf(lightningResLines, 'Upgrades: all elemental resistances', u('increasedAllElementalResistances'))
+  if (fighterBonus !== 0) lightningResLines.push({ label: 'Fighter: +15% to all elemental resistances', value: fighterBonus })
+  dmgPushIf(lightningResLines, 'Gear: all elemental resistances', eq.pctToAllElementalResFromGear)
+  dmgPushIf(lightningResLines, 'Gear: to all resistances', eq.pctToAllResistancesFromGear)
+  dmgPushIf(lightningResLines, 'Gear: lightning resistance', eq.pctLightningResFromGear)
+  const lightningResBreak: StatBreakdownBlock = blk(lightningResLines, `lightning res total = ${lightningRes}`)
+
+  const chaosResLines: StatContributionLine[] = []
+  dmgPushIf(chaosResLines, 'Upgrades: increased chaos resistance', u('increasedChaosResistance'))
+  dmgPushIf(chaosResLines, 'Gear: chaos resistance', eq.pctChaosResFromGear)
+  dmgPushIf(chaosResLines, 'Gear: to all resistances', eq.pctToAllResistancesFromGear)
+  if (fighterBonus !== 0) chaosResLines.push({ label: 'Fighter: +15% to chaos (same bonus as elemental)', value: fighterBonus })
+  const chaosResBreak: StatBreakdownBlock = blk(chaosResLines, `chaos res total = ${chaosRes}`)
+
+  const maxFireResLines: StatContributionLine[] = [
+    { label: 'Base elemental resistance cap', value: eleBase },
+  ]
+  if (bonus('chieftain')) maxFireResLines.push({ label: 'Chieftain: +5% max fire resistance', value: 5 })
+  dmgPushIf(maxFireResLines, 'Gear: max fire resistance', eq.maxFireResBonusFromGear)
+  dmgPushIf(maxFireResLines, 'Gear: max all elemental resistances', eq.maxAllElementalResBonusFromGear)
+  const maxFireResBreak: StatBreakdownBlock = blk(
+    maxFireResLines,
+    `min(hard cap ${hardCap}%, Σ) = ${maxFireRes}`
+  )
+
+  const maxColdResLines: StatContributionLine[] = [{ label: 'Base elemental resistance cap', value: eleBase }]
+  dmgPushIf(maxColdResLines, 'Gear: max cold resistance', eq.maxColdResBonusFromGear)
+  dmgPushIf(maxColdResLines, 'Gear: max all elemental resistances', eq.maxAllElementalResBonusFromGear)
+  const maxColdResBreak: StatBreakdownBlock = blk(
+    maxColdResLines,
+    `min(hard cap ${hardCap}%, Σ) = ${maxColdRes}`
+  )
+
+  const maxLightningResLines: StatContributionLine[] = [{ label: 'Base elemental resistance cap', value: eleBase }]
+  dmgPushIf(maxLightningResLines, 'Gear: max lightning resistance', eq.maxLightningResBonusFromGear)
+  dmgPushIf(maxLightningResLines, 'Gear: max all elemental resistances', eq.maxAllElementalResBonusFromGear)
+  const maxLightningResBreak: StatBreakdownBlock = blk(
+    maxLightningResLines,
+    `min(hard cap ${hardCap}%, Σ) = ${maxLightningRes}`
+  )
+
+  const maxChaosResLines: StatContributionLine[] = [{ label: 'Base chaos resistance cap', value: chaosBase }]
+  dmgPushIf(maxChaosResLines, 'Gear: max chaos resistance', eq.maxChaosResBonusFromGear)
+  const maxChaosResBreak: StatBreakdownBlock = blk(
+    maxChaosResLines,
+    `min(hard cap ${hardCap}%, Σ) = ${maxChaosRes}`
+  )
+
+  const hitByTypeLines: StatContributionLine[] = hitDamageByType.map((r) => ({
+    label: `${r.type} (avg of min–max)`,
+    value: (r.min + r.max) / 2,
+  }))
+  const hitDamageByTypeBreak: StatBreakdownBlock = blk(
+    hitByTypeLines,
+    hitDamageByType.length > 0 ? 'Per-type hit ranges after conversion and increased mods' : 'No per-type rows'
+  )
+
+  const critFlatLines: StatContributionLine[] = [
+    { label: 'Base crit chance % (weapon or game)', value: baseCritChance },
+  ]
+  if (critFromAssassin !== 0) critFlatLines.push({ label: 'Assassin: +8% attack crit chance', value: critFromAssassin })
+  dmgPushIf(critFlatLines, 'Gear: attack base crit chance', eq.attackBaseCritChanceBonusFromGear)
+  dmgPushIf(critFlatLines, 'Gear: global crit chance bonus', eq.critChanceBonus)
+  if (critFromDex !== 0) {
+    critFlatLines.push({
+      label: 'Dexterity: +2% increased crit chance per 10 Dex (× guardian)',
+      value: critFromDex,
+    })
+  }
+
+  const critChanceIncLines: StatContributionLine[] = []
+  dmgPushIf(critChanceIncLines, 'Upgrades: increased critical hit chance', u('increasedCriticalHitChance'))
+  dmgPushIf(critChanceIncLines, 'Upgrades: increased attack critical hit chance', u('increasedAttackCriticalHitChance'))
+  dmgPushIf(critChanceIncLines, 'Gear: increased critical hit chance', eq.pctIncreasedCriticalHitChanceFromGear)
+
+  const apsLines: StatContributionLine[] = [
+    { label: 'Weapon base APS (or unarmed base)', value: apsFlatBase },
+  ]
+  dmgPushIf(apsLines, 'Upgrades: increased attack speed', u('increasedAttackSpeed'))
+  dmgPushIf(apsLines, 'Upgrades: increased attack speed and cast speed', u('increasedAttackSpeedAndCastSpeed'))
+  if (mercenaryAspIncPct !== 0) {
+    apsLines.push({
+      label: 'Mercenary: 1% increased attack speed per 10 Str or Dex (lower)',
+      value: mercenaryAspIncPct,
+    })
+  }
+  dmgPushIf(apsLines, 'Gear: increased attack speed', eq.pctIncreasedAttackSpeedFromGear)
+  if (rogueMult !== 1) apsLines.push({ label: 'Rogue: 10% more attack speed (mult)', value: 10 })
+  if (eq.attackSpeedLessMultFromGear !== 1) {
+    apsLines.push({
+      label: 'Gear: attack speed less/more (mult)',
+      value: (eq.attackSpeedLessMultFromGear - 1) * 100,
+    })
+  }
+
+  const accuracyLines: StatContributionLine[] = [
+    { label: 'Base accuracy', value: BASE_GAME_STATS.baseAccuracy },
+  ]
+  if (bonus('rogue')) accuracyLines.push({ label: 'Rogue: +150 accuracy', value: 150 })
+  if (levelFlatAccuracy !== 0) {
+    accuracyLines.push({ label: 'Character level: +3 accuracy per level above 1', value: levelFlatAccuracy })
+  }
+  dmgPushIf(accuracyLines, 'Gear: flat accuracy', eq.flatAccuracy)
+  dmgPushIf(accuracyLines, 'Upgrades: increased accuracy', u('increasedAccuracyRating'))
+  dmgPushIf(accuracyLines, 'Gear: increased accuracy', eq.pctIncreasedAccuracyFromGear)
+  if (eq.accuracyLessMultFromGear !== 1) {
+    accuracyLines.push({
+      label: 'Gear: accuracy less (mult)',
+      value: (eq.accuracyLessMultFromGear - 1) * 100,
+    })
+  }
+
+  const critMultLines: StatContributionLine[] = [
+    { label: 'Base crit damage multiplier', value: baseCritMultiplier },
+  ]
+  dmgPushIf(critMultLines, 'Gear: flat crit multiplier bonus (added before increased)', eq.flatCriticalDamageMultiplierBonusFromGear / 100)
+  dmgPushIf(critMultLines, 'Gear: increased crit damage multiplier (÷100 added to mult)', eq.increasedCriticalDamageMultiplierFromGear / 100)
+  if (attunementIncreasedCritMultiplierPct !== 0) {
+    critMultLines.push({
+      label: 'Ability attunement: to critical damage multiplier (÷100)',
+      value: attunementIncreasedCritMultiplierPct / 100,
+    })
+  }
+  critMultLines.push({ label: 'Final crit multiplier (after all)', value: critMultiplier })
+
+  const manaCostLines: StatContributionLine[] = [
+    { label: 'Base mana per attack', value: BASE_GAME_STATS.baseManaPerAttack },
+  ]
+  if (bonus('sorcerer')) manaCostLines.push({ label: 'Sorcerer: 10% reduced mana cost', value: -10 })
+  dmgPushIf(manaCostLines, 'Gear: mana cost reduction', -eq.manaCostReductionFromGear)
+  if (eq.manaCostIncreasePercentFromGear !== 0) {
+    manaCostLines.push({ label: 'Gear: increased mana cost', value: eq.manaCostIncreasePercentFromGear })
+  }
+  if (eq.abilitiesNoCostFromGear) manaCostLines.push({ label: 'Gear: abilities cost no mana', value: 1 })
+
+  const manaRegenLines: StatContributionLine[] = [
+    { label: `Base: ${BASE_GAME_STATS.baseManaRegenPercent}% of max mana / s (flat regen)`, value: baseManaRegen },
+  ]
+  if (bonus('druid')) manaRegenLines.push({ label: 'Druid: +2% of max mana / s', value: druidRegenBonus })
+  dmgPushIf(manaRegenLines, 'Gear: % of max mana regen / s', maxMana * (eq.manaRegenPercentOfMaxManaPerSecondFromGear / 100))
+  dmgPushIf(manaRegenLines, 'Upgrades: increased mana regeneration', u('increasedManaRegeneration'))
+  dmgPushIf(manaRegenLines, 'Gear: increased mana regeneration', eq.pctIncreasedManaRegenFromGear)
+
+  const lifeRecLines: StatContributionLine[] = [
+    { label: 'Base post-encounter life recovery %', value: BASE_GAME_STATS.baseLifeRecoveryAfterEncounterPct },
+  ]
+  if (bonus('hunter')) lifeRecLines.push({ label: 'Hunter: 100% increased recovery (×2 on base)', value: 100 })
+  if (bonus('acolyte')) lifeRecLines.push({ label: 'Acolyte: 25% increased recovery', value: 25 })
+  dmgPushIf(lifeRecLines, 'Upgrades: increased life recovery', u('increasedLifeRecovery'))
+  dmgPushIf(lifeRecLines, 'Gear: increased life recovery', eq.pctIncreasedLifeRecoveryFromGear)
+
+  const esRecLines: StatContributionLine[] = [
+    { label: 'Base post-encounter ES recovery %', value: BASE_GAME_STATS.baseEsRecoveryAfterEncounterPct },
+  ]
+  if (bonus('arcanist')) esRecLines.push({ label: 'Arcanist: 50% increased ES recovery', value: 50 })
+
+  const classBonusLines: StatContributionLine[] = classBonusesActive.map((id) => {
+    const c = GAME_CLASSES_BY_ID[id]
+    return { label: `Active class bonus: ${c?.name ?? id}`, value: 1 }
+  })
+  const classLevelsLines: StatContributionLine[] = Object.entries(classLevelsActive).map(([id, lv]) => {
+    const c = GAME_CLASSES_BY_ID[id]
+    return { label: `${c?.name ?? id}: passive ranks`, value: lv }
+  })
+
+  const abilityLines: StatContributionLine[] = abilityContribution
+    ? [
+        { label: 'Ability selected', value: 1 },
+        { label: 'Scaled damage mult % (attacks)', value: abilityContribution.scaledDamageMultiplierPct ?? 0 },
+        { label: 'Attack speed mult % (attacks)', value: abilityContribution.attackSpeedMultiplierPct ?? 0 },
+      ]
+    : [{ label: 'No ability selected', value: 0 }]
+
+  const strikesBreakLines: StatContributionLine[] = []
+  if (!spellCombat) {
+    strikesBreakLines.push({ label: 'Base strikes per attack', value: 1 })
+    const aid = config.ability?.abilityId
+    const ab = aid ? EOC_ABILITY_BY_ID[aid] : undefined
+    const abStrikes =
+      ab && (ab.type === 'Melee' || ab.type === 'Ranged') ? extraStrikesFromAbilityLines(ab.lines) : 0
+    dmgPushIf(strikesBreakLines, 'Gear: additional strikes per attack', eq.flatStrikesPerAttack)
+    if (abStrikes !== 0) strikesBreakLines.push({ label: 'Ability lines: extra strikes per attack', value: abStrikes })
+    dmgPushIf(strikesBreakLines, 'Gear: increased strikes per attack', eq.increasedStrikesPerAttackFromGear)
+    if (eq.strikesIncPctPer10DexFromGear !== 0) {
+      strikesBreakLines.push({
+        label: 'Gear: increased strikes per attack per 10 dexterity',
+        value: eq.strikesIncPctPer10DexFromGear * (dex / 10),
+      })
+    }
+    if (attunementStrikesIncPct !== 0) {
+      strikesBreakLines.push({
+        label: 'Ability attunement: increased strikes per attack',
+        value: attunementStrikesIncPct,
+      })
+    }
+    if (eq.strikesMoreMultFromGear !== 1) {
+      strikesBreakLines.push({
+        label: 'Gear: more strikes (mult)',
+        value: (eq.strikesMoreMultFromGear - 1) * 100,
+      })
+    }
+  }
+
+  const hitBreakMeta: StatBreakdownBlock = blk(
+    [{ label: 'Full hit pipeline available', value: hitDamageComputationBreakdown ? 1 : 0 }],
+    hitDamageComputationBreakdown
+      ? 'Expand “Damage multipliers (sources)” under hit damage for conversion, increased pools, crit, APS, DPS.'
+      : 'Spell hit or no attack breakdown.'
+  )
+
+  const boolLine = (label: string, on: boolean): StatContributionLine => ({
+    label,
+    value: on ? 1 : 0,
+  })
+
+  const statBreakdowns: StatBreakdowns = {
+    str: strBreak,
+    dex: dexBreak,
+    int: intBreak,
+    maxLife: maxLifeBreak,
+    maxMana: maxManaBreak,
+    maxEnergyShield: maxEsBreak,
+    armour: armourBreak,
+    evasionRating: evasionBreak,
+    blockChance: blockBreak,
+    dodgeChance: dodgeBreak,
+    fireRes: fireResBreak,
+    coldRes: coldResBreak,
+    lightningRes: lightningResBreak,
+    chaosRes: chaosResBreak,
+    maxFireRes: maxFireResBreak,
+    maxColdRes: maxColdResBreak,
+    maxLightningRes: maxLightningResBreak,
+    maxChaosRes: maxChaosResBreak,
+    hitDamageMin: blk([{ label: 'Minimum hit (planner)', value: hitDamageMin }]),
+    hitDamageMax: blk([{ label: 'Maximum hit (planner)', value: hitDamageMax }]),
+    hitDamageByType: hitDamageByTypeBreak,
+    aps: blk(apsLines, `base × (1 + Σ inc%/100) × more = ${aps.toFixed(2)}`),
+    manaCostPerAttack: blk(manaCostLines, `final = ${manaCostPerAttack.toFixed(1)}`),
+    accuracy: blk(accuracyLines, `round(flat × (1 + inc%) × less) = ${accuracy}`),
+    critChance: blk(
+      [...critFlatLines, ...critChanceIncLines],
+      `min(100, Σ flat × (1 + Σ inc%/100)) = ${critChance.toFixed(1)}%`
+    ),
+    critMultiplier: blk(critMultLines, `final multiplier = ${critMultiplier.toFixed(2)}`),
+    avgHit: blk([{ label: '(hit min + hit max) / 2', value: avgHit }]),
+    avgEffectiveDamage: blk(
+      [{ label: 'Avg hit × crit expectation', value: avgEffectiveDamage }],
+      `(avg hit) × (1 + p×(M−1)) = ${avgEffectiveDamage.toFixed(1)}`
+    ),
+    dps: blk(
+      [
+        { label: 'Avg effective damage', value: avgEffectiveDamage },
+        { label: 'APS', value: aps },
+        { label: 'Strikes per attack', value: strikesPerAttack },
+      ],
+      `avg × APS × strikes = ${dps.toFixed(1)}`
+    ),
+    strikesPerAttack: blk(
+      strikesBreakLines.length > 0 ? strikesBreakLines : [{ label: 'Spells / default', value: strikesPerAttack }],
+      `final strikes per attack = ${strikesPerAttack}`
+    ),
+    manaRegenPerSecond: blk(
+      manaRegenLines,
+      `flat regen × (1 + Σ inc%/100) = ${manaRegenPerSecond.toFixed(2)}/s`
+    ),
+    lifeRecoveryPct: blk(lifeRecLines, `product of hunter/acolyte/upgrades/gear = ${lifeRecoveryPct.toFixed(2)}%`),
+    esRecoveryPct: blk(esRecLines, `base × arcanist = ${esRecoveryPct.toFixed(2)}%`),
+    bleedChance: blk([{ label: 'Σ upgrades + gear + ability lines', value: bleedChance }]),
+    poisonChance: blk([{ label: 'Σ upgrades + gear + ability lines', value: poisonChance }]),
+    elementalAilmentChance: blk([{ label: 'Σ upgrades + gear + ability lines', value: elementalAilmentChance }]),
+    ailmentDurationBonus: blk([{ label: 'Σ upgrades + gear (increased / reduced)', value: ailmentDurationBonus }]),
+    ailmentDurationMultiplier: blk(
+      [
+        { label: 'From increased/reduced % (1 + Σ/100)', value: 1 + ailmentDurationBonus / 100 },
+        {
+          label: 'Gear: product of (1 − less%/100) for less ailment/bleed/poison/chill/shock duration',
+          value: eq.ailmentDurationLessMultFromGear,
+        },
+      ],
+      `(1 + Σ%/100) × less mult = ${ailmentDurationMultiplier.toFixed(4)}`
+    ),
+    igniteAilmentDurationMultiplier: blk(
+      [
+        { label: 'Global ailment duration mult', value: ailmentDurationMultiplier },
+        { label: 'Gear: less ignite duration mult', value: eq.igniteDurationLessMultFromGear },
+      ],
+      `ignite × less ignite = ${igniteAilmentDurationMultiplier.toFixed(4)}`
+    ),
+    igniteInflictChanceBonus: blk([{ label: 'Gear + ability lines', value: igniteInflictChanceBonus }]),
+    shockInflictChanceBonus: blk([{ label: 'Gear + ability lines', value: shockInflictChanceBonus }]),
+    chillInflictChanceBonus: blk([{ label: 'Gear + ability lines', value: chillInflictChanceBonus }]),
+    increasedMeleeDamage: blk([
+      { label: 'Upgrades', value: u('increasedMeleeDamage') },
+      { label: 'Strength: +1% per 10 Str', value: meleeDmgFromStr },
+      { label: 'Gear', value: eq.increasedMeleeDamageFromGear },
+    ]),
+    increasedAttackDamage: blk([
+      { label: 'Upgrades', value: u('increasedAttackDamage') },
+      { label: 'Gear', value: eq.increasedAttackDamageFromGear },
+      { label: 'Ranged per-10-str (if bow/xbow)', value: rangedAttackDmgFromGear },
+    ]),
+    increasedSpellDamage: blk([
+      { label: 'Upgrades', value: u('increasedSpellDamage') },
+      { label: 'Intelligence: +1% per 10 Int', value: spellDmgFromInt },
+      { label: 'Gear', value: eq.increasedSpellDamageFromGear },
+    ]),
+    increasedElementalDamage: blk([
+      { label: 'Upgrades (elemental)', value: u('increasedElementalDamage') },
+      { label: 'Upgrades (elemental with attacks)', value: u('increasedElementalDamageWithAttacks') },
+      { label: 'Gear', value: eq.increasedElementalDamageFromGear },
+    ]),
+    increasedDamage: blk([
+      { label: 'Upgrades', value: u('increasedDamage') },
+      { label: 'Occultist (per 100 ES)', value: bonus('occultist') ? maxEnergyShield / 100 : 0 },
+      { label: 'Gear', value: eq.increasedDamageFromGear },
+      { label: 'Per level above 1', value: levelPctIncreasedDamage },
+      { label: 'Gear: per 10 combined attributes', value: damageIncFromCombinedAttrsGear },
+    ]),
+    damageOverTimeMultiplier: blk(
+      [
+        { label: 'Upgrades: increased DoT multiplier', value: u('increasedDamageOverTimeMultiplier') },
+        { label: 'Gear: increased DoT', value: eq.pctIncreasedDamageOverTimeFromGear },
+        { label: 'Gear: increased bleed', value: eq.pctIncreasedBleedDamageFromGear },
+      ],
+      `Final Σ% (ability attunement added in-computation) = ${damageOverTimeMultiplier}`
+    ),
+    doubleDamageChance: blk([
+      { label: 'Barbarian', value: bonus('barbarian') ? 10 : 0 },
+      { label: 'Destroyer', value: bonus('destroyer') ? 25 : 0 },
+      { label: 'Gear (attacks)', value: eq.doubleDamageChanceFromGear },
+      { label: 'Attunement', value: attunementFlatDoubleChance },
+      { label: 'Gear (spells, if spell)', value: spellCombat ? eq.doubleDamageChanceFromSpellsFromGear : 0 },
+    ], `min(100, Σ) = ${doubleDamageChance}`),
+    tripleDamageChance: blk([{ label: 'Gear', value: tripleDamageChance }]),
+    armourIgnorePercent: blk([
+      { label: 'Barbarian', value: bonus('barbarian') ? 50 : 0 },
+      { label: 'Gear', value: eq.armourIgnoreFromGear },
+    ], `min(100, Σ) = ${armourIgnorePercent}`),
+    dotDamageMoreMultiplier: blk([{ label: 'Gear more mult', value: dotDamageMoreMultiplier }]),
+    lightningPenetrationPercent: blk([{ label: 'Gear', value: lightningPenetrationPercent }]),
+    firePenetrationPercent: blk([{ label: 'Gear', value: firePenetrationPercent }]),
+    coldPenetrationPercent: blk([{ label: 'Gear', value: coldPenetrationPercent }]),
+    chaosPenetrationPercent: blk([{ label: 'Gear', value: chaosPenetrationPercent }]),
+    elementalPenetrationPercent: blk([{ label: 'Gear', value: elementalPenetrationPercent }]),
+    lifeOnHit: blk([{ label: 'Gear', value: lifeOnHit }]),
+    lifeLeechFromHitDamagePercent: blk([{ label: 'Gear', value: lifeLeechFromHitDamagePercent }]),
+    lifeLeechFromPhysicalHitPercent: blk([{ label: 'Gear', value: lifeLeechFromPhysicalHitPercent }]),
+    hitsCannotBeEvaded: blk([boolLine('Gear: hits cannot be evaded', hitsCannotBeEvaded)]),
+    blockDamageTakenMult: blk([
+      { label: 'From block power % (gear)', value: blockDamageTakenMult },
+    ]),
+    lifeRegenPercentOfMaxPerSecond: blk([{ label: 'Gear', value: lifeRegenPercentOfMaxPerSecond }]),
+    esRegenPercentOfMaxPerSecond: blk([{ label: 'Gear', value: esRegenPercentOfMaxPerSecond }]),
+    enemiesTakeIncreasedDamagePercent: blk([
+      { label: 'Gear', value: eq.enemyDamageTakenIncreasedFromGear },
+      { label: 'Trickster', value: enemyDamageTakenIncreasedFromTricksterPct },
+    ], `Σ = ${enemiesTakeIncreasedDamagePercent}%`),
+    damageTakenMultiplierFromGear: blk([
+      { label: 'Less damage taken (mult)', value: eq.damageTakenLessMultFromGear },
+      { label: 'More damage taken (mult)', value: eq.damageTakenMoreMultFromGear },
+    ], `product = ${damageTakenMultiplierFromGear.toFixed(4)}`),
+    cannotInflictElementalAilments: blk([boolLine('Gear', cannotInflictElementalAilments)]),
+    hitsTakenCannotBeCritical: blk([boolLine('Gear', hitsTakenCannotBeCritical)]),
+    damageDealtLessMult: blk([{ label: 'Gear: less damage dealt', value: damageDealtLessMult }]),
+    lifeRecoveryRateMult: blk([{ label: 'From gear increased life recovery', value: lifeRecoveryRateMult }]),
+    physicalDamageTakenAsChaosPercent: blk([{ label: 'Gear', value: physicalDamageTakenAsChaosPercent }]),
+    physicalDamageTakenAsFirePercent: blk([{ label: 'Gear', value: physicalDamageTakenAsFirePercent }]),
+    physicalDamageTakenAsColdPercent: blk([{ label: 'Gear', value: physicalDamageTakenAsColdPercent }]),
+    physicalDamageTakenAsLightningPercent: blk([{ label: 'Gear', value: physicalDamageTakenAsLightningPercent }]),
+    elementalDamageTakenAsChaosPercent: blk([{ label: 'Gear', value: elementalDamageTakenAsChaosPercent }]),
+    reducedPhysicalDamageTaken: blk([
+      { label: 'Gear', value: eq.reducedPhysicalDamageTakenFromGear },
+      { label: 'Arcanist (with ES)', value: bonus('arcanist') ? 15 : 0 },
+    ], `Σ = ${reducedPhysicalDamageTaken}`),
+    nonDamagingAilmentEffectIncreasedPercent: blk([{ label: 'Gear', value: nonDamagingAilmentEffectIncreasedPercent }]),
+    chillInflictEffectMult: blk([{ label: 'Gear', value: chillInflictEffectMult }]),
+    dealNoDamageExceptCrit: blk([boolLine('Gear', dealNoDamageExceptCrit)]),
+    damageTakenToManaFirstPercent: blk([{ label: 'Gear', value: damageTakenToManaFirstPercent }]),
+    lifeRecoveredOnKillPercent: blk([{ label: 'Gear', value: lifeRecoveredOnKillPercent }]),
+    flatLifeOnKill: blk([{ label: 'Gear', value: flatLifeOnKill }]),
+    flatManaOnKill: blk([{ label: 'Gear', value: flatManaOnKill }]),
+    lifeRecoveredOnBlockPercent: blk([{ label: 'Gear', value: lifeRecoveredOnBlockPercent }]),
+    flatLifeOnBlock: blk([{ label: 'Gear', value: flatLifeOnBlock }]),
+    manaRecoveredOnBlockPercent: blk([{ label: 'Gear', value: manaRecoveredOnBlockPercent }]),
+    esRecoveredOnBlockPercent: blk([{ label: 'Gear', value: esRecoveredOnBlockPercent }]),
+    flatManaOnBlock: blk([{ label: 'Gear', value: flatManaOnBlock }]),
+    flatEsOnBlock: blk([{ label: 'Gear', value: flatEsOnBlock }]),
+    energyShieldOnHit: blk([{ label: 'Gear', value: energyShieldOnHit }]),
+    manaCostPaidWithLife: blk([boolLine('Gear: mana cost paid with life', manaCostPaidWithLife)]),
+    manaShieldActive: blk([boolLine('Druid class bonus', manaShieldActive)]),
+    chaosNotBypassES: blk([boolLine('Arcanist class bonus', chaosNotBypassES)]),
+    armourVsElementalMultiplier: blk([
+      { label: 'Base + Juggernaut elemental effectiveness', value: armourVsElementalMultiplier },
+    ]),
+    armourVsChaosMultiplier: blk([
+      { label: 'Base + Juggernaut/Templar/Chieftain + gear', value: armourVsChaosMultiplier },
+    ]),
+    classBonusesActive: blk(classBonusLines, classBonusesActive.join(', ') || 'none'),
+    classLevelsActive: blk(classLevelsLines, 'passive ranks per class'),
+    abilityContribution: blk(abilityLines, abilityContribution ? abilityContribution.name : '—'),
+    hitDamageComputationBreakdown: hitBreakMeta,
+  }
+
   return {
     // Attributes
     str,
@@ -2400,6 +3254,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     poisonChance,
     elementalAilmentChance,
     ailmentDurationBonus,
+    ailmentDurationMultiplier,
+    igniteAilmentDurationMultiplier,
     igniteInflictChanceBonus,
     shockInflictChanceBonus,
     chillInflictChanceBonus,
@@ -2467,5 +3323,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
     abilityContribution,
     hitDamageComputationBreakdown,
+
+    statBreakdowns,
   }
 }

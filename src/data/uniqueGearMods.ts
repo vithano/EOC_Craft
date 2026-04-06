@@ -123,6 +123,10 @@ export interface UniqueGearStatPatch {
   pctIncreasedDamageOverTimeFromGear?: number;
   pctIncreasedBleedDamageFromGear?: number;
   ailmentDurationBonusFromGear?: number;
+  /** Product of (1 − p/100) per “% less … duration” line (ailment/bleed/poison/chill/shock). */
+  ailmentDurationLessMultFromGear?: number;
+  /** Product of (1 − p/100) per “% less ignite duration” (applied after global ailment mult for ignite). */
+  igniteDurationLessMultFromGear?: number;
 
   pctIncreasedAllAttributesFromGear?: number;
   pctIncreasedStrengthFromGear?: number;
@@ -258,6 +262,64 @@ function normalizeUniqueRollText(raw: string): string {
 }
 
 /**
+ * Mods like Titansblood: "While you have at least N strength/dexterity/intelligence, gain …".
+ * Applied in {@link computeBuildStats} after final attributes are known (not during static gear aggregation).
+ */
+export function attributeThresholdConditionalPatchFromTexts(
+  texts: string[],
+  str: number,
+  dex: number,
+  int_: number
+): UniqueGearStatPatch {
+  const patch: UniqueGearStatPatch = {}
+  const add = (p: UniqueGearStatPatch) => {
+    for (const [k, v] of Object.entries(p)) {
+      if (v === undefined) continue
+      const key = k as keyof UniqueGearStatPatch
+      const cur = patch[key]
+      if (typeof v === "number" && typeof cur === "number") {
+        ;(patch as Record<string, number>)[key as string] = cur + v
+      } else if (typeof v === "number") {
+        ;(patch as Record<string, number>)[key as string] = v
+      }
+    }
+  }
+
+  for (const raw of texts) {
+    const l = normalizeUniqueRollText(raw)
+    if (!l) continue
+    let m = l.match(
+      /while you have at least (\d+) strength,?\s+gain\s+\+?(\d+)%\s+chance\s+to\s+deal\s+double\s+damage/i
+    )
+    if (m) {
+      const threshold = Number(m[1])
+      const val = Number(m[2])
+      if (str >= threshold) add({ doubleDamageChanceFromGear: val })
+      continue
+    }
+    m = l.match(/while you have at least (\d+) dexterity,?\s+gain\s+(\d+)%\s+increased\s+speed/i)
+    if (m) {
+      const threshold = Number(m[1])
+      const val = Number(m[2])
+      if (dex >= threshold) {
+        add({ pctIncreasedAttackSpeedFromGear: val, pctIncreasedCastSpeedFromGear: val })
+      }
+      continue
+    }
+    m = l.match(
+      /while you have at least (\d+) intelligence\s+gain\s+\+?(\d+)%\s+to\s+critical\s+damage\s+multiplier/i
+    )
+    if (m) {
+      const threshold = Number(m[1])
+      const val = Number(m[2])
+      if (int_ >= threshold) add({ increasedCriticalDamageMultiplierFromGear: val })
+      continue
+    }
+  }
+  return patch
+}
+
+/**
  * Best-effort mapping of resolved unique mod text (innate + rolled lines) into planner stats.
  * Many conditional or build-specific mods are intentionally ignored.
  */
@@ -279,6 +341,8 @@ export function equipmentModifiersFromUniqueTexts(
   let lifeMoreMult = 1;
   let defencesLessMult = 1;
   let chillInflictEffectMult = 1;
+  let ailmentDurLessMult = 1;
+  let igniteDurLessMult = 1;
 
   const add = (patch: UniqueGearStatPatch) => {
     for (const [k, v] of Object.entries(patch)) {
@@ -505,7 +569,31 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/^(\d+)\s+increased\s+ailment\s+duration\b/i);
     if (m) add({ ailmentDurationBonusFromGear: num(m)! });
 
-    m = l.match(/(\d+)%\s+less\s+ailment\s+duration\b/i);
+    m = l.match(
+      /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+less\s+ailment\s+duration\b/i
+    );
+    if (m) {
+      const p = Math.abs(pctFromParenOrSingle(m));
+      ailmentDurLessMult *= Math.max(0.05, 1 - p / 100);
+    }
+
+    m = l.match(
+      /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+less\s+(?:bleed|poison|chill|shock)\s+duration\b/i
+    );
+    if (m) {
+      const p = Math.abs(pctFromParenOrSingle(m));
+      ailmentDurLessMult *= Math.max(0.05, 1 - p / 100);
+    }
+
+    m = l.match(
+      /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+less\s+ignite\s+duration\b/i
+    );
+    if (m) {
+      const p = Math.abs(pctFromParenOrSingle(m));
+      igniteDurLessMult *= Math.max(0.05, 1 - p / 100);
+    }
+
+    m = l.match(/([\d.]+)%\s+reduced\s+ailment\s+duration\b/i);
     if (m) add({ ailmentDurationBonusFromGear: -num(m)! });
 
     m = l.match(/([\d.]+)%\s+increased\s+attributes\b/i);
@@ -1103,6 +1191,8 @@ export function equipmentModifiersFromUniqueTexts(
   if (lifeMoreMult !== 1) acc.lifeMoreMultFromGear = lifeMoreMult;
   if (defencesLessMult !== 1) acc.defencesLessMultFromGear = defencesLessMult;
   if (chillInflictEffectMult !== 1) acc.chillInflictEffectMultFromGear = chillInflictEffectMult;
+  if (ailmentDurLessMult !== 1) acc.ailmentDurationLessMultFromGear = ailmentDurLessMult;
+  if (igniteDurLessMult !== 1) acc.igniteDurationLessMultFromGear = igniteDurLessMult;
 
   return acc;
 }

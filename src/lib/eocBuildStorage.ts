@@ -254,6 +254,14 @@ function normalizeEquipment(
     pctIncreasedDamageOverTimeFromGear: Number(z.pctIncreasedDamageOverTimeFromGear) || 0,
     pctIncreasedBleedDamageFromGear: Number(z.pctIncreasedBleedDamageFromGear) || 0,
     ailmentDurationBonusFromGear: Number(z.ailmentDurationBonusFromGear) || 0,
+    ailmentDurationLessMultFromGear:
+      Number(z.ailmentDurationLessMultFromGear) > 0
+        ? Number(z.ailmentDurationLessMultFromGear)
+        : d.ailmentDurationLessMultFromGear,
+    igniteDurationLessMultFromGear:
+      Number(z.igniteDurationLessMultFromGear) > 0
+        ? Number(z.igniteDurationLessMultFromGear)
+        : d.igniteDurationLessMultFromGear,
     pctIncreasedAllAttributesFromGear: Number(z.pctIncreasedAllAttributesFromGear) || 0,
     pctIncreasedStrengthFromGear: Number(z.pctIncreasedStrengthFromGear) || 0,
     pctIncreasedDexterityFromGear: Number(z.pctIncreasedDexterityFromGear) || 0,

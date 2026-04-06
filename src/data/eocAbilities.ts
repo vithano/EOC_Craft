@@ -247,9 +247,10 @@ export function interpolateAttunementModifier(
   const raw100 = def.attunement100.trim() ? def.attunement100 : def.attunement0
   const p1 = parseAttunementLine(raw100)
   if (!p0 || !p1 || p0.key !== p1.key) return null
-  const t = Math.min(1, Math.max(0, attunementPct / 100))
+  const attPct = Math.min(100, Math.max(0, Math.floor(attunementPct)))
+  const t = Math.min(1, Math.max(0, attPct / 100))
   const v = p0.value + (p1.value - p0.value) * t * effectivenessMult
-  return { key: p0.key, value: v }
+  return { key: p0.key, value: Math.round(v) }
 }
 
 /** Sums "+N% chance to inflict …" lines from ability CSV text (demo combat / sheet). */

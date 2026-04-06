@@ -75,6 +75,7 @@ export default function BattleDemoPage() {
         equipmentModifiers: plannerSnapshot.equipmentModifiers,
         equippedWeaponItemId: weaponItemId,
         ability: plannerSnapshot.ability ?? null,
+        equipped: equippedMap,
       };
     }
     const preset = DEMO_BUILD_PRESETS.find((p) => p.id === presetId) ?? DEMO_BUILD_PRESETS[0];
@@ -356,7 +357,8 @@ export default function BattleDemoPage() {
               {stats.poisonChance.toFixed(0)}% · elemental {stats.elementalAilmentChance.toFixed(0)}% (adds to fire/cold/lightning
               rolls) · shock +{stats.shockInflictChanceBonus.toFixed(0)}% · chill +{stats.chillInflictChanceBonus.toFixed(0)}% ·
               ignite +{stats.igniteInflictChanceBonus.toFixed(0)}% · DoT mult {stats.damageOverTimeMultiplier.toFixed(0)}% ·
-              duration +{stats.ailmentDurationBonus.toFixed(0)}%
+              dur ×{stats.ailmentDurationMultiplier.toFixed(2)} (ignite ×{stats.igniteAilmentDurationMultiplier.toFixed(2)}) · Σ%{" "}
+              {stats.ailmentDurationBonus.toFixed(0)}
             </div>
             {stats.classBonusesActive.length > 0 && (
               <div className="text-zinc-500 text-xs pt-2">

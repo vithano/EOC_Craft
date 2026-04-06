@@ -405,7 +405,7 @@ function applyPlayerAilmentsOnHit(
   if (mitigatedDamage <= 0) return
 
   const { bleedInherentMult, igniteInherentMult, poisonInherentMult } = FORMULA_CONSTANTS
-  const durMult = 1 + stats.ailmentDurationBonus / 100
+  const durMult = stats.ailmentDurationMultiplier
   const dotMult =
     (1 + stats.damageOverTimeMultiplier / 100) * (stats.dotDamageMoreMultiplier ?? 1)
   const portions = damagePortionsFromHit(stats, mitigatedDamage)
@@ -443,13 +443,14 @@ function applyPlayerAilmentsOnHit(
     const pIgn = Math.min(100, gen + stats.igniteInflictChanceBonus)
     if (Math.random() * 100 < pIgn) {
       const dps = ((portions.fire * igniteInherentMult) / BASE_IGNITE_SEC) * dotMult
+      const ignDur = stats.igniteAilmentDurationMultiplier
       state.dots.push({
         kind: 'ignite',
         dps,
-        expiresAt: t + BASE_IGNITE_SEC * durMult,
+        expiresAt: t + BASE_IGNITE_SEC * ignDur,
       })
       tryLogAilment(
-        `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${(BASE_IGNITE_SEC * durMult).toFixed(1)}s`
+        `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${(BASE_IGNITE_SEC * ignDur).toFixed(1)}s`
       )
     }
   }

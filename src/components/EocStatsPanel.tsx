@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComputedBuildStats } from "../data/gameStats";
+import type { ComputedBuildStats, StatBreakdownBlock, StatBreakdowns } from "../data/gameStats";
 import {
   BASE_SHOCK_CHILL_DURATION_SEC,
   computeEvasionChancePercent,
@@ -345,6 +345,60 @@ function StatRow({ label, value, sub }: { label: string; value: string | number;
   );
 }
 
+function formatBreakdownValue(v: number): string {
+  if (Number.isInteger(v)) return String(v);
+  return Math.abs(v) >= 100 ? v.toFixed(1) : v.toFixed(2);
+}
+
+function BreakdownStatRow({
+  label,
+  value,
+  sub,
+  breakdown,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  breakdown: StatBreakdownBlock;
+}) {
+  const hasDetail = Boolean(breakdown.formula?.length) || breakdown.lines.length > 0;
+  if (!hasDetail) {
+    return <StatRow label={label} value={value} sub={sub} />;
+  }
+  return (
+    <details className="py-0.5 rounded open:bg-zinc-800/30">
+      <summary className="flex cursor-pointer list-none items-baseline justify-between gap-2 text-xs [&::-webkit-details-marker]:hidden">
+        <span className="text-zinc-400">{label}</span>
+        <span className="shrink-0 text-right font-mono text-zinc-100">
+          {value}
+          {sub && <span className="ml-1 text-zinc-500">{sub}</span>}
+          <span className="ml-1 text-[9px] text-zinc-600">▾</span>
+        </span>
+      </summary>
+      {breakdown.formula && (
+        <p className="mt-1 border-l border-zinc-700 pl-2 text-[10px] italic leading-snug text-zinc-500">
+          {breakdown.formula}
+        </p>
+      )}
+      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[10px] leading-relaxed text-zinc-400">
+        {breakdown.lines.map((l, i) => (
+          <li key={i}>
+            <span className="text-zinc-500">{l.label}: </span>
+            <span className="font-mono text-zinc-300">{formatBreakdownValue(l.value)}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+function prettyStatKey(key: string): string {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (c) => c.toUpperCase())
+    .trim();
+}
+
 function SectionHeader({ label }: { label: string }) {
   return (
     <div className="text-zinc-500 text-[10px] uppercase tracking-widest mt-3 mb-1 border-b border-zinc-800 pb-0.5">
@@ -382,7 +436,7 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
   // Shock stats
   const shockChance = Math.min(100, stats.elementalAilmentChance + stats.shockInflictChanceBonus);
   const shockEffectInc = stats.nonDamagingAilmentEffectIncreasedPercent;
-  const shockDuration = BASE_SHOCK_CHILL_DURATION_SEC * (1 + stats.ailmentDurationBonus / 100);
+  const shockDuration = BASE_SHOCK_CHILL_DURATION_SEC * stats.ailmentDurationMultiplier;
 
   // Ailment effect preview (post-mit)
   const damageReductionForPreview = drPhys;
@@ -407,6 +461,32 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
   const ac = stats.abilityContribution;
   const hitLabel = ac ? (ac.type === "Spells" ? "Spell hit" : "Ability hit") : "Hit damage";
   const byType = stats.hitDamageByType;
+
+  const sb = stats.statBreakdowns;
+
+  const shockChanceBreak: StatBreakdownBlock = {
+    formula: `min(100, elemental ailment chance + shock inflict bonus) = ${shockChance.toFixed(0)}%`,
+    lines: [
+      ...stats.statBreakdowns.elementalAilmentChance.lines.map((l) => ({
+        ...l,
+        label: `Elemental ailment: ${l.label}`,
+      })),
+      ...stats.statBreakdowns.shockInflictChanceBonus.lines.map((l) => ({
+        ...l,
+        label: `Shock bonus: ${l.label}`,
+      })),
+    ],
+  };
+
+  const lifeOnKillBreak: StatBreakdownBlock = {
+    formula: `flat on kill + max life × (recovered % / 100) = ${lifeOnKill}`,
+    lines: [
+      ...sb.flatLifeOnKill.lines.map((l) => ({ ...l, label: `Flat: ${l.label}` })),
+      ...sb.lifeRecoveredOnKillPercent.lines.map((l) => ({ ...l, label: `% of max life: ${l.label}` })),
+    ],
+  };
+
+  const allStatKeys = Object.keys(sb).sort() as (keyof StatBreakdowns)[];
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
@@ -452,107 +532,189 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
         {/* ── Left column ── */}
         <div>
           <SectionHeader label="Offensive" />
-          <StatRow
+          <BreakdownStatRow
             label="Attacks per second"
             value={`${stats.aps.toFixed(2)}`}
             sub={`(${stats.strikesPerAttack} hits/atk)`}
+            breakdown={sb.aps}
           />
-          <StatRow
+          <BreakdownStatRow
             label="DPS"
             value={stats.dps.toFixed(1)}
             sub={`avg hit ${stats.avgEffectiveDamage.toFixed(1)}`}
+            breakdown={sb.dps}
           />
-          <StatRow label="Mana cost" value={stats.manaCostPerAttack.toFixed(0)} />
-          <StatRow
+          <BreakdownStatRow
+            label="Mana cost"
+            value={stats.manaCostPerAttack.toFixed(0)}
+            breakdown={sb.manaCostPerAttack}
+          />
+          <BreakdownStatRow
             label="Accuracy rating"
             value={stats.accuracy}
             sub={`(${hitChanceVsEnemy.toFixed(0)}% hit)`}
+            breakdown={sb.accuracy}
           />
-          <StatRow label="Critical hit chance" value={`${stats.critChance.toFixed(1)}%`} />
-          <StatRow label="Critical damage multiplier" value={`+${critBonusPct}%`} />
+          <BreakdownStatRow
+            label="Critical hit chance"
+            value={`${stats.critChance.toFixed(1)}%`}
+            breakdown={sb.critChance}
+          />
+          <BreakdownStatRow
+            label="Critical damage multiplier"
+            value={`+${critBonusPct}%`}
+            breakdown={sb.critMultiplier}
+          />
 
           {shockChance > 0 && (
             <>
               <SectionHeader label="Shock" />
-              <StatRow label="Chance to inflict shock" value={`${shockChance.toFixed(0)}%`} />
+              <BreakdownStatRow
+                label="Chance to inflict shock"
+                value={`${shockChance.toFixed(0)}%`}
+                breakdown={shockChanceBreak}
+              />
               {shockEffectInc > 0 && (
-                <StatRow label="Increased effect" value={`${shockEffectInc.toFixed(0)}%`} />
+                <BreakdownStatRow
+                  label="Increased effect"
+                  value={`${shockEffectInc.toFixed(0)}%`}
+                  breakdown={sb.nonDamagingAilmentEffectIncreasedPercent}
+                />
               )}
-              <StatRow label="Duration" value={`${shockDuration.toFixed(2)}s`} />
-              <StatRow label="Effect preview" value={`${Math.min(50, shockEffectPreview).toFixed(1)}%`} sub="inc dmg taken" />
+              <BreakdownStatRow
+                label="Duration"
+                value={`${shockDuration.toFixed(2)}s`}
+                breakdown={sb.ailmentDurationBonus}
+              />
+              <StatRow
+                label="Effect preview"
+                value={`${Math.min(50, shockEffectPreview).toFixed(1)}%`}
+                sub="inc dmg taken"
+              />
             </>
           )}
 
           <SectionHeader label="Attributes" />
-          <StatRow label="Strength" value={stats.str} />
-          <StatRow label="Dexterity" value={stats.dex} />
-          <StatRow label="Intelligence" value={stats.int} />
+          <BreakdownStatRow label="Strength" value={stats.str} breakdown={sb.str} />
+          <BreakdownStatRow label="Dexterity" value={stats.dex} breakdown={sb.dex} />
+          <BreakdownStatRow label="Intelligence" value={stats.int} breakdown={sb.int} />
         </div>
 
         {/* ── Right column ── */}
         <div>
           <SectionHeader label="Defensive" />
-          <StatRow
+          <BreakdownStatRow
             label="Armour"
             value={stats.armour}
             sub={`(${drPhys.toFixed(0)}% phys, ${drEle.toFixed(0)}% ele, ${drChaos.toFixed(0)}% chaos)`}
+            breakdown={sb.armour}
           />
-          <StatRow
+          <BreakdownStatRow
             label="Evasion rating"
             value={stats.evasionRating}
             sub={`(${evasionVsAttacks.toFixed(0)}% atk, ${evasionVsSpells.toFixed(0)}% spell)`}
+            breakdown={sb.evasionRating}
           />
-          <StatRow label="Energy shield" value={stats.maxEnergyShield} />
-          <StatRow label="Life" value={stats.maxLife} />
-          <StatRow label="Mana" value={stats.maxMana} />
-          <StatRow label="Chance to dodge" value={`${stats.dodgeChance.toFixed(0)}%`} />
+          <BreakdownStatRow label="Energy shield" value={stats.maxEnergyShield} breakdown={sb.maxEnergyShield} />
+          <BreakdownStatRow label="Life" value={stats.maxLife} breakdown={sb.maxLife} />
+          <BreakdownStatRow label="Mana" value={stats.maxMana} breakdown={sb.maxMana} />
+          <BreakdownStatRow label="Chance to dodge" value={`${stats.dodgeChance.toFixed(0)}%`} breakdown={sb.dodgeChance} />
           {stats.blockChance > 0 && (
-            <StatRow label="Chance to block" value={`${stats.blockChance.toFixed(0)}%`} />
+            <BreakdownStatRow
+              label="Chance to block"
+              value={`${stats.blockChance.toFixed(0)}%`}
+              breakdown={sb.blockChance}
+            />
           )}
           {(stats.reducedPhysicalDamageTaken ?? 0) > 0 && (
-            <StatRow label="Reduced physical damage taken" value={(stats.reducedPhysicalDamageTaken ?? 0).toFixed(0)} />
+            <BreakdownStatRow
+              label="Reduced physical damage taken"
+              value={(stats.reducedPhysicalDamageTaken ?? 0).toFixed(0)}
+              breakdown={sb.reducedPhysicalDamageTaken}
+            />
           )}
 
           <SectionHeader label="Resistances" />
-          <StatRow
+          <BreakdownStatRow
             label="Fire resistance"
             value={`${stats.fireRes > stats.maxFireRes ? stats.maxFireRes : stats.fireRes}%`}
             sub={stats.fireRes > stats.maxFireRes ? `(${stats.fireRes}%)` : undefined}
+            breakdown={sb.fireRes}
           />
-          <StatRow
+          <BreakdownStatRow
             label="Cold resistance"
             value={`${stats.coldRes > stats.maxColdRes ? stats.maxColdRes : stats.coldRes}%`}
             sub={stats.coldRes > stats.maxColdRes ? `(${stats.coldRes}%)` : undefined}
+            breakdown={sb.coldRes}
           />
-          <StatRow
+          <BreakdownStatRow
             label="Lightning resistance"
             value={`${stats.lightningRes > stats.maxLightningRes ? stats.maxLightningRes : stats.lightningRes}%`}
             sub={stats.lightningRes > stats.maxLightningRes ? `(${stats.lightningRes}%)` : undefined}
+            breakdown={sb.lightningRes}
           />
-          <StatRow
+          <BreakdownStatRow
             label="Chaos resistance"
             value={`${stats.chaosRes > stats.maxChaosRes ? stats.maxChaosRes : stats.chaosRes}%`}
             sub={stats.chaosRes > stats.maxChaosRes ? `(${stats.chaosRes}%)` : undefined}
+            breakdown={sb.chaosRes}
           />
 
           <SectionHeader label="Recovery" />
-          <StatRow label="Mana regeneration" value={`${stats.manaRegenPerSecond.toFixed(1)}/s`} />
+          <BreakdownStatRow
+            label="Mana regeneration"
+            value={`${stats.manaRegenPerSecond.toFixed(1)}/s`}
+            breakdown={sb.manaRegenPerSecond}
+          />
           {lifeOnKill > 0 && (
-            <StatRow label="Life recovery on kill" value={lifeOnKill} />
+            <BreakdownStatRow label="Life recovery on kill" value={lifeOnKill} breakdown={lifeOnKillBreak} />
           )}
           {(stats.energyShieldOnHit ?? 0) > 0 && (
-            <StatRow label="Energy shield on hit" value={stats.energyShieldOnHit ?? 0} />
+            <BreakdownStatRow
+              label="Energy shield on hit"
+              value={stats.energyShieldOnHit ?? 0}
+              breakdown={sb.energyShieldOnHit}
+            />
           )}
-          <StatRow
+          <BreakdownStatRow
             label="Post-encounter life"
             value={`+${stats.lifeRecoveryPct.toFixed(1)}%`}
+            breakdown={sb.lifeRecoveryPct}
           />
-          <StatRow
+          <BreakdownStatRow
             label="Post-encounter ES"
             value={`+${stats.esRecoveryPct.toFixed(1)}%`}
+            breakdown={sb.esRecoveryPct}
           />
         </div>
       </div>
+
+      <details className="mt-4 border border-zinc-800 rounded-lg p-3">
+        <summary className="cursor-pointer text-zinc-400 text-[10px] uppercase tracking-wider select-none hover:text-zinc-300">
+          Every stat — full source list ({allStatKeys.length})
+        </summary>
+        <div className="mt-3 max-h-[min(70vh,560px)] overflow-y-auto space-y-3 pr-1">
+          {allStatKeys.map((key) => {
+            const b = sb[key];
+            return (
+              <div key={key} className="border-b border-zinc-800/80 pb-2 last:border-0">
+                <div className="text-zinc-300 text-xs font-medium mb-1">{prettyStatKey(key)}</div>
+                {b.formula && (
+                  <p className="text-[10px] text-zinc-500 italic mb-1">{b.formula}</p>
+                )}
+                <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-zinc-400">
+                  {b.lines.map((l, i) => (
+                    <li key={i}>
+                      <span className="text-zinc-500">{l.label}: </span>
+                      <span className="font-mono text-zinc-300">{formatBreakdownValue(l.value)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </details>
     </div>
   );
 }
