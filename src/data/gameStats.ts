@@ -1430,8 +1430,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const coldR = localFlatDamageDisplayRange(eq.flatColdMin, eq.flatColdMax)
   const lightningR = localFlatDamageDisplayRange(eq.flatLightningMin, eq.flatLightningMax)
   const chaosR = localFlatDamageDisplayRange(eq.flatChaosMin, eq.flatChaosMax)
-  const basePhysMin = Math.round(BASE_GAME_STATS.baseHitDamageMin + eq.flatDamageMin)
-  const basePhysMax = Math.round(BASE_GAME_STATS.baseHitDamageMax + eq.flatDamageMax)
+  const basePhysMin = Math.round(eq.flatDamageMin)
+  const basePhysMax = Math.round(eq.flatDamageMax)
   const baseWeaponDamageForBreakdown: HitDamageComputationBreakdown['baseWeaponDamage'] = {
     physicalMin: basePhysMin,
     physicalMax: basePhysMax,
