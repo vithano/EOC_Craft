@@ -31,6 +31,7 @@ import {
   buildProvHitDamageByType,
   collapseProvRowsToHitDamage,
   increasedPctForProvHitRow,
+  scaleHitDamageByType,
   localFlatDamageDisplayRange,
   mergePerInstanceBeforeIncreasedRows,
   normalizePhysicalConversionPcts,
@@ -1425,13 +1426,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const maxColdRes      = Math.min(hardCap, eleBase  + eq.maxColdResBonusFromGear + allEleCap)
   const maxLightningRes = Math.min(hardCap, eleBase  + eq.maxLightningResBonusFromGear + allEleCap)
   const maxChaosRes     = Math.min(hardCap, chaosBase + eq.maxChaosResBonusFromGear)
-  const fireRes = Math.min(maxFireRes, resistAllFlat + eq.pctFireResFromGear)
-  const coldRes = Math.min(maxColdRes, resistAllFlat + eq.pctColdResFromGear)
-  const lightningRes = Math.min(maxLightningRes, resistAllFlat + eq.pctLightningResFromGear)
-  const chaosRes = Math.min(
-    maxChaosRes,
-    u('increasedChaosResistance') + eq.pctChaosResFromGear + fighterBonus
-  )
+  const fireRes =  resistAllFlat + eq.pctFireResFromGear;
+  const coldRes = resistAllFlat + eq.pctColdResFromGear;
+  const lightningRes = resistAllFlat + eq.pctLightningResFromGear;
+  const chaosRes = u('increasedChaosResistance') + eq.pctChaosResFromGear + fighterBonus;
 
   // -------------------------------------------------------------------------
   // 14. Offense — accuracy
@@ -1861,10 +1859,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     })
   )
   hitProvRows = applyIncreasedToProvHitRows(hitProvRows, provIncCtx)
-  if (enemyDamageTakenIncreasedMult !== 1) {
-    hitProvRows = scaleProvHitDamageRows(hitProvRows, enemyDamageTakenIncreasedMult)
-  }
+  // Sum by damage type first, then apply "enemies take increased damage" once per type. Per-fragment
+  // rounding of that multiplier shifts totals (e.g. two lightning lines vs one combined line).
   hitDamageByType = collapseProvRowsToHitDamage(hitProvRows)
+  if (enemyDamageTakenIncreasedMult !== 1) {
+    hitDamageByType = scaleHitDamageByType(hitDamageByType, enemyDamageTakenIncreasedMult)
+  }
   hitSum = sumHitDamageRange(hitDamageByType)
   hitDamageMin = hitSum.min
   hitDamageMax = hitSum.max

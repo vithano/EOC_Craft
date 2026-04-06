@@ -516,23 +516,23 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
           <SectionHeader label="Resistances" />
           <StatRow
             label="Fire resistance"
-            value={`${stats.fireRes}%`}
-            sub={`(${stats.maxFireRes}% max)`}
+            value={`${stats.fireRes > stats.maxFireRes ? stats.maxFireRes : stats.fireRes}%`}
+            sub={stats.fireRes > stats.maxFireRes ? `(${stats.fireRes}%)` : undefined}
           />
           <StatRow
             label="Cold resistance"
-            value={`${stats.coldRes}%`}
-            sub={`(${stats.maxColdRes}% max)`}
+            value={`${stats.coldRes > stats.maxColdRes ? stats.maxColdRes : stats.coldRes}%`}
+            sub={stats.coldRes > stats.maxColdRes ? `(${stats.coldRes}%)` : undefined}
           />
           <StatRow
             label="Lightning resistance"
-            value={`${stats.lightningRes}%`}
-            sub={`(${stats.maxLightningRes}% max)`}
+            value={`${stats.lightningRes > stats.maxLightningRes ? stats.maxLightningRes : stats.lightningRes}%`}
+            sub={stats.lightningRes > stats.maxLightningRes ? `(${stats.lightningRes}%)` : undefined}
           />
           <StatRow
             label="Chaos resistance"
-            value={`${stats.chaosRes}%`}
-            sub={`(${stats.maxChaosRes}% max)`}
+            value={`${stats.chaosRes > stats.maxChaosRes ? stats.maxChaosRes : stats.chaosRes}%`}
+            sub={stats.chaosRes > stats.maxChaosRes ? `(${stats.chaosRes}%)` : undefined}
           />
 
           <SectionHeader label="Recovery" />

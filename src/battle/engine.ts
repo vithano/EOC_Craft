@@ -200,11 +200,11 @@ function mitigatedPhysicalDamageAfterConversion(
   const l = d * (pLight / 100)
   const physRem = Math.max(0, d - c - f - co - l)
 
-  const resCap = (r: number) => Math.max(0, Math.min(0.9, r / 100))
-  const chaosMitigated = c * (1 - resCap(stats.chaosRes))
-  const fireMitigated = f * (1 - resCap(stats.fireRes))
-  const coldMitigated = co * (1 - resCap(stats.coldRes))
-  const lightMitigated = l * (1 - resCap(stats.lightningRes))
+  const resCap = (r: number,max:number) => Math.max(-0.9, Math.min(0.9, Math.min(r / 100, max / 100)))
+  const chaosMitigated = c * (1 - resCap(stats.chaosRes, stats.maxChaosRes))
+  const fireMitigated = f * (1 - resCap(stats.fireRes, stats.maxFireRes))
+  const coldMitigated = co * (1 - resCap(stats.coldRes, stats.maxColdRes))
+  const lightMitigated = l * (1 - resCap(stats.lightningRes, stats.maxLightningRes))
   return physRem + chaosMitigated + fireMitigated + coldMitigated + lightMitigated
 }
 

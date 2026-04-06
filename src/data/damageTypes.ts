@@ -707,16 +707,123 @@ export function sumHitDamageRange(parts: HitDamageTypeRow[]): { min: number; max
   return { min, max };
 }
 
+const HIT_TYPE_ORDER: HitDamageType[] = ["physical", "fire", "cold", "lightning", "chaos"];
+
+/** Prefer shaving “enemies take increased” rounding on phys / fire / lightning before cold (weapon + conversion). */
+const ENEMY_RECONCILE_PHYSICAL_FIRE_LIGHTNING: ReadonlySet<HitDamageType> = new Set([
+  "physical",
+  "fire",
+  "lightning",
+]);
+
+/**
+ * Per-type rounding of (min × mult) can overshoot round(sum(mins) × mult) by 1 (or more).
+ * Adjust integer mins/maxes so Σ mins = round(Σ min_before × mult) (same for max).
+ */
+function reconcileEnemyScaledAxis(
+  before: HitDamageTypeRow[],
+  scaled: HitDamageTypeRow[],
+  axis: "min" | "max",
+  factor: number,
+  target: number
+): void {
+  const getB = axis === "min" ? (r: HitDamageTypeRow) => r.min : (r: HitDamageTypeRow) => r.max;
+  const getS = getB;
+  const setS = axis === "min"
+    ? (r: HitDamageTypeRow, v: number) => {
+        r.min = v;
+      }
+    : (r: HitDamageTypeRow, v: number) => {
+        r.max = v;
+      };
+
+  let sum = scaled.reduce((s, r) => s + getS(r), 0);
+  let diff = sum - target;
+
+  while (diff > 0) {
+    // Prefer removing 1 from the line that rounded *up* the most (largest rounded−exact) among
+    // physical / fire / lightning first — not the smallest bump. Smallest bump wrongly picked
+    // lightning (0.4) over fire (0.5) when both round up.
+    let bestIdx = -1;
+    let bestExcess = -Infinity;
+    let bestOrder = 99;
+    for (let i = 0; i < scaled.length; i++) {
+      if (!ENEMY_RECONCILE_PHYSICAL_FIRE_LIGHTNING.has(scaled[i]!.type)) continue;
+      const exact = getB(before[i]!) * factor;
+      const rounded = roundDamageNearest(exact);
+      const ex = rounded - exact;
+      if (ex <= 0) continue;
+      const ord = HIT_TYPE_ORDER.indexOf(scaled[i]!.type);
+      if (ex > bestExcess || (ex === bestExcess && ord < bestOrder)) {
+        bestExcess = ex;
+        bestOrder = ord;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx < 0) {
+      bestExcess = Infinity;
+      bestOrder = 99;
+      for (let i = 0; i < scaled.length; i++) {
+        const exact = getB(before[i]!) * factor;
+        const rounded = roundDamageNearest(exact);
+        const ex = rounded - exact;
+        if (ex <= 0) continue;
+        const ord = HIT_TYPE_ORDER.indexOf(scaled[i]!.type);
+        if (ex < bestExcess || (ex === bestExcess && ord < bestOrder)) {
+          bestExcess = ex;
+          bestOrder = ord;
+          bestIdx = i;
+        }
+      }
+    }
+    if (bestIdx < 0) break;
+    const cur = getS(scaled[bestIdx]!);
+    if (cur <= 0) break;
+    setS(scaled[bestIdx]!, cur - 1);
+    diff--;
+  }
+
+  while (diff < 0) {
+    let bestIdx = -1;
+    let bestShortfall = -Infinity;
+    let bestOrder = -1;
+    for (let i = 0; i < scaled.length; i++) {
+      const exact = getB(before[i]!) * factor;
+      const rounded = roundDamageNearest(exact);
+      const sh = exact - rounded;
+      if (sh <= 0) continue;
+      const ord = HIT_TYPE_ORDER.indexOf(scaled[i]!.type);
+      if (sh > bestShortfall || (sh === bestShortfall && ord > bestOrder)) {
+        bestShortfall = sh;
+        bestOrder = ord;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx < 0) break;
+    setS(scaled[bestIdx]!, getS(scaled[bestIdx]!) + 1);
+    diff++;
+  }
+}
+
 export function scaleHitDamageByType(
   parts: HitDamageTypeRow[],
   damageMultiplierFactor: number
 ): HitDamageTypeRow[] {
   if (damageMultiplierFactor === 1) return parts.map((p) => ({ ...p }));
-  return parts.map((p) => ({
+  const totalBefore = sumHitDamageRange(parts);
+  const targetMin = roundDamageNearest(totalBefore.min * damageMultiplierFactor);
+  const targetMax = roundDamageNearest(totalBefore.max * damageMultiplierFactor);
+
+  const scaled = parts.map((p) => ({
     ...p,
     min: roundDamageNearest(p.min * damageMultiplierFactor),
     max: roundDamageNearest(p.max * damageMultiplierFactor),
   }));
+
+  reconcileEnemyScaledAxis(parts, scaled, "min", damageMultiplierFactor, targetMin);
+  reconcileEnemyScaledAxis(parts, scaled, "max", damageMultiplierFactor, targetMax);
+
+  return scaled;
 }
 
 /** Map spell CSV / ability `element` string to a hit row type. */
