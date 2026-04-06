@@ -32,7 +32,9 @@ import {
   collapseProvRowsToHitDamage,
   increasedPctForProvHitRow,
   localFlatDamageDisplayRange,
+  mergePerInstanceBeforeIncreasedRows,
   normalizePhysicalConversionPcts,
+  roundDamageNearest,
   scaleProvHitDamageRows,
   spellElementToHitDamageType,
   sumHitDamageRange,
@@ -110,10 +112,20 @@ export interface StatContributionLine {
 /** Full attack hit pipeline: bases, conversion, per-instance scaling, crit, APS, DPS (planner). */
 export interface HitDamageComputationBreakdown {
   baseWeaponDamage: {
-    physicalMin: number
-    physicalMax: number
+    /** True when unarmed: physical includes character base hit damage + gear flat. False when a weapon is equipped (weapon replaces unarmed min/max). */
     includesCharacterBasePhysical: boolean
-    elemental: Array<{ type: HitDamageTypeRow['type']; min: number; max: number }>
+    /** Raw weapon / unarmed bases before melee-ranged ability damage multiplier (same inputs as initial hit rows). */
+    beforeAbilityDamageMult: {
+      physicalMin: number
+      physicalMax: number
+      elemental: Array<{ type: HitDamageTypeRow['type']; min: number; max: number }>
+    }
+    /** After ability mult (scaledPct/100), same as post-`scaleProvHitDamageRows` bases; rounded per component. Before conversion. */
+    afterAbilityDamageMult: {
+      physicalMin: number
+      physicalMax: number
+      elemental: Array<{ type: HitDamageTypeRow['type']; min: number; max: number }>
+    }
   }
   abilityDamageMultiplier: null | {
     abilityId: string
@@ -136,12 +148,16 @@ export interface HitDamageComputationBreakdown {
   laterConversions: Array<{ name: string; percent?: number }>
   increased: {
     attackIncSum: { total: number; lines: StatContributionLine[] }
-    physIncTotal: { total: number; lines: StatContributionLine[] }
+    /** Global + attack + melee stack + phys attunement (not elemental Σ); same sum as `physStyleIncTotal` in prov ctx. */
+    physStyleIncTotal: { total: number; lines: StatContributionLine[] }
     elemental: { total: number; lines: StatContributionLine[] }
     typeSpecificGear: { fire: number; cold: number; lightning: number; chaos: number }
     attunementFire: number
   }
-  /** Each fragment after conversion, before “increased” modifiers; multiplier is 1 + increased%/100. */
+  /**
+   * After conversion, before “increased” modifiers; multiplier is 1 + increased%/100.
+   * Rows with the same type and same increased multiplier are summed; min/max rounded again for display (see `mergePerInstanceBeforeIncreasedRows`).
+   */
   perInstanceBeforeIncreased: Array<{
     type: HitDamageTypeRow['type']
     scaling: HitDamageScaling
@@ -149,6 +165,8 @@ export interface HitDamageComputationBreakdown {
     max: number
     increasedDamagePercent: number
     damageMultiplier: number
+    mergedFrom: number
+    mergedScalings: HitDamageScaling[]
   }>
   collapsedAfterIncreased: HitDamageTypeRow[]
   avgHit: number
@@ -169,9 +187,15 @@ export interface HitDamageComputationBreakdown {
     /** Short notes on how APS / DPS relate to weapon base and what is excluded. */
     notes: string[]
   }
-  /** These exist on the sheet but are not multiplied into planner hit range / DPS here (combat / enemy). */
+  /** Gear + class (Trickster bonus) “enemies take increased damage” — multiplied onto hit after increased-damage mods. */
+  enemiesTakeIncreasedDamage: {
+    gearPercent: number
+    tricksterPercent: number
+    totalPercent: number
+    multiplier: number
+  }
+  /** Not multiplied into planner hit / DPS (applied in combat only). */
   combatOnlyNotInPlannerHitOrDps: {
-    enemiesTakeIncreasedDamagePercent: number
     damageDealtLessMult: number
   }
 }
@@ -468,7 +492,7 @@ export interface ComputedBuildStats {
   lifeRegenPercentOfMaxPerSecond: number
   /** % of max energy shield regenerated per second (demo combat). */
   esRegenPercentOfMaxPerSecond: number
-  /** Enemies take this % increased damage from your hits (after other multipliers). */
+  /** Σ increased damage enemies take from your hits: gear mods + Trickster class bonus (10%) when active; baked into planner hit/DPS. */
   enemiesTakeIncreasedDamagePercent: number
   /** Multiplier on damage taken from enemy hits (less/more from gear). */
   damageTakenMultiplierFromGear: number
@@ -1194,6 +1218,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   const bonus = (id: string) => classBonusesActive.includes(id)
 
+  /** Trickster class bonus: enemies take 10% increased damage (see gameClasses trickster). Baked into hit/DPS like gear. */
+  const TRICKSTER_ENEMIES_TAKE_INCREASED_DAMAGE_PCT = 10
+  const enemyDamageTakenIncreasedFromTricksterPct = bonus('trickster') ? TRICKSTER_ENEMIES_TAKE_INCREASED_DAMAGE_PCT : 0
+  const enemyDamageTakenIncreasedTotalPct =
+    eq.enemyDamageTakenIncreasedFromGear + enemyDamageTakenIncreasedFromTricksterPct
+  /** Baked into hit min/max and DPS; battle engine does not apply gear/trickster again (Windrunner / Dragoon still in combat). */
+  const enemyDamageTakenIncreasedMult = 1 + enemyDamageTakenIncreasedTotalPct / 100
+
   // -------------------------------------------------------------------------
   // 2. Aggregate upgrade modifier totals
   // -------------------------------------------------------------------------
@@ -1423,28 +1455,22 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   let abilityHitDmBreak: HitDamageComputationBreakdown['abilityDamageMultiplier'] = null
   let hitDamageBreakdownPartial: Omit<
     HitDamageComputationBreakdown,
-    'avgHit' | 'critical' | 'dps' | 'combatOnlyNotInPlannerHitOrDps'
+    'avgHit' | 'critical' | 'dps' | 'combatOnlyNotInPlannerHitOrDps' | 'enemiesTakeIncreasedDamage'
   > | null = null
 
   const fireR = localFlatDamageDisplayRange(eq.flatFireMin, eq.flatFireMax)
   const coldR = localFlatDamageDisplayRange(eq.flatColdMin, eq.flatColdMax)
   const lightningR = localFlatDamageDisplayRange(eq.flatLightningMin, eq.flatLightningMax)
   const chaosR = localFlatDamageDisplayRange(eq.flatChaosMin, eq.flatChaosMax)
-  const basePhysMin = Math.round(eq.flatDamageMin)
-  const basePhysMax = Math.round(eq.flatDamageMax)
-  const baseWeaponDamageForBreakdown: HitDamageComputationBreakdown['baseWeaponDamage'] = {
-    physicalMin: basePhysMin,
-    physicalMax: basePhysMax,
-    includesCharacterBasePhysical: true,
-    elemental: (
-      [
-        { type: 'fire' as const, min: fireR.min, max: fireR.max },
-        { type: 'cold' as const, min: coldR.min, max: coldR.max },
-        { type: 'lightning' as const, min: lightningR.min, max: lightningR.max },
-        { type: 'chaos' as const, min: chaosR.min, max: chaosR.max },
-      ] satisfies Array<{ type: HitDamageTypeRow['type']; min: number; max: number }>
-    ).filter((x) => x.min > 0 || x.max > 0),
-  }
+  // Physical min/max: with a weapon equipped, aggregated `eq.flatDamage*` is the weapon (replaces unarmed base).
+  // Unarmed: character base hit damage + any flat physical from gear.
+  const hasEquippedWeapon = weaponItemId !== 'none'
+  const basePhysMin = roundDamageNearest(
+    hasEquippedWeapon ? eq.flatDamageMin : BASE_GAME_STATS.baseHitDamageMin + eq.flatDamageMin
+  )
+  const basePhysMax = roundDamageNearest(
+    hasEquippedWeapon ? eq.flatDamageMax : BASE_GAME_STATS.baseHitDamageMax + eq.flatDamageMax
+  )
 
   let hitProvRows = buildProvHitDamageByType([
     {
@@ -1453,9 +1479,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       max: basePhysMax,
       scaling: 'physical_style',
     },
-    { type: 'fire', min: fireR.min, max: fireR.max, scaling: 'physical_and_elemental' },
-    { type: 'cold', min: coldR.min, max: coldR.max, scaling: 'physical_and_elemental' },
-    { type: 'lightning', min: lightningR.min, max: lightningR.max, scaling: 'physical_and_elemental' },
+    { type: 'fire', min: fireR.min, max: fireR.max, scaling: 'native_elemental' },
+    { type: 'cold', min: coldR.min, max: coldR.max, scaling: 'native_elemental' },
+    { type: 'lightning', min: lightningR.min, max: lightningR.max, scaling: 'native_elemental' },
     { type: 'chaos', min: chaosR.min, max: chaosR.max, scaling: 'chaos_style' },
   ])
 
@@ -1487,6 +1513,35 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       hitProvRows = scaleProvHitDamageRows(hitProvRows, scaledDm / 100)
     }
   }
+
+  /** Same factor applied to hit rows as `scaleProvHitDamageRows` (before conversion / increased). */
+  const abilityBaseDamageFactor = abilityHitDmBreak?.factor ?? 1
+  const elementalBaseRows = (
+    [
+      { type: 'fire' as const, min: fireR.min, max: fireR.max },
+      { type: 'cold' as const, min: coldR.min, max: coldR.max },
+      { type: 'lightning' as const, min: lightningR.min, max: lightningR.max },
+      { type: 'chaos' as const, min: chaosR.min, max: chaosR.max },
+    ] satisfies Array<{ type: HitDamageTypeRow['type']; min: number; max: number }>
+  ).filter((x) => x.min > 0 || x.max > 0)
+  const baseWeaponDamageForBreakdown: HitDamageComputationBreakdown['baseWeaponDamage'] = {
+    includesCharacterBasePhysical: !hasEquippedWeapon,
+    beforeAbilityDamageMult: {
+      physicalMin: basePhysMin,
+      physicalMax: basePhysMax,
+      elemental: elementalBaseRows.map((x) => ({ ...x })),
+    },
+    afterAbilityDamageMult: {
+      physicalMin: roundDamageNearest(basePhysMin * abilityBaseDamageFactor),
+      physicalMax: roundDamageNearest(basePhysMax * abilityBaseDamageFactor),
+      elemental: elementalBaseRows.map((x) => ({
+        ...x,
+        min: roundDamageNearest(x.min * abilityBaseDamageFactor),
+        max: roundDamageNearest(x.max * abilityBaseDamageFactor),
+      })),
+    },
+  }
+
   const convFromAbilityLines =
     selForHit?.abilityId
       ? (() => {
@@ -1576,10 +1631,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       eq.elementalToChaosConversionPctFromGear
     )
   }
-  let hitDamageByType = collapseProvRowsToHitDamage(hitProvRows)
-  let hitSum = sumHitDamageRange(hitDamageByType)
-  let hitDamageMin = hitSum.min
-  let hitDamageMax = hitSum.max
+  let hitDamageByType: HitDamageTypeRow[]
+  let hitSum: { min: number; max: number }
+  let hitDamageMin: number
+  let hitDamageMax: number
 
   // -------------------------------------------------------------------------
   // 16. Critical hit chance
@@ -1658,10 +1713,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   // -------------------------------------------------------------------------
   // 20. Damage modifiers — per hit instance (after §15 conversion lineage):
-  // - physical_style: physical-style pool only (weapon flat lightning, remaining phys).
-  // - physical_and_elemental: that pool + elemental + type gear (phys→element; cold from that lightning).
-  // - elemental_style_only: elemental + type gear (cold from physical_style lightning).
-  // - chaos_style: attack + chaos-specific (no elemental increased).
+  // - physical_style: remaining physical — phys-style pool (global + attack + melee + phys attunement; not elemental Σ).
+  // - native_elemental: weapon flat fire/cold/lightning — global + attack + Σ elemental + type-specific (+ fire attune).
+  // - physical_and_elemental: was physical — phys-style + elemental + type-specific (same for fire/cold/lightning).
+  // - chaos_style: attack + chaos-specific (no generic elemental increased).
   // -------------------------------------------------------------------------
   const meleeDmgFromStr    = Math.floor(str / 10)                        // 1% increased melee damage per 10 str
   const spellDmgFromInt    = Math.floor(int_ / 10)                       // 1% increased spell damage per 10 int
@@ -1721,7 +1776,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   const attackIncSum = increasedDamage + increasedAttackDamage + attIncDamage + meleePortionForHit
   const incEle = increasedElementalDamage
-  const physIncTotal = attackIncSum + attIncPhysical
+  /** Same as `physStyleIncTotal` in ProvHitIncreasedContext — not physical-type-only; includes global + attack. */
+  const physStyleIncTotal = attackIncSum + attIncPhysical
 
   const attackIncLines: StatContributionLine[] = []
   dmgPushIf(attackIncLines, 'Upgrades: increased damage', u('increasedDamage'))
@@ -1766,9 +1822,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     dmgPushIf(attackIncLines, 'Gear: increased melee damage', eq.increasedMeleeDamageFromGear)
   }
 
-  const physIncLines: StatContributionLine[] = [...attackIncLines]
+  const physStyleIncLines: StatContributionLine[] = [...attackIncLines]
   if (attIncPhysical !== 0) {
-    physIncLines.push({ label: 'Ability attunement: increased physical damage', value: attIncPhysical })
+    physStyleIncLines.push({ label: 'Ability attunement: increased physical damage', value: attIncPhysical })
   }
 
   const elementalLines: StatContributionLine[] = []
@@ -1781,7 +1837,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   dmgPushIf(elementalLines, 'Gear: increased elemental damage', eq.increasedElementalDamageFromGear)
 
   const provIncCtx = {
-    physIncTotal,
+    physStyleIncTotal,
     attackIncSum,
     incEle,
     attIncFire,
@@ -1791,19 +1847,23 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     chaosGear: eq.increasedChaosDamageFromGear,
   }
   const hitProvRowsBeforeInc = hitProvRows.map((r) => ({ ...r }))
-  const perInstanceBeforeIncreased = hitProvRowsBeforeInc.map((row) => {
-    const increasedDamagePercent = increasedPctForProvHitRow(row, provIncCtx)
-    return {
-      type: row.type,
-      scaling: row.scaling,
-      min: row.min,
-      max: row.max,
-      increasedDamagePercent,
-      damageMultiplier: 1 + increasedDamagePercent / 100,
-    }
-  })
-
+  const perInstanceBeforeIncreased = mergePerInstanceBeforeIncreasedRows(
+    hitProvRowsBeforeInc.map((row) => {
+      const increasedDamagePercent = increasedPctForProvHitRow(row, provIncCtx)
+      return {
+        type: row.type,
+        scaling: row.scaling,
+        min: row.min,
+        max: row.max,
+        increasedDamagePercent,
+        damageMultiplier: 1 + increasedDamagePercent / 100,
+      }
+    })
+  )
   hitProvRows = applyIncreasedToProvHitRows(hitProvRows, provIncCtx)
+  if (enemyDamageTakenIncreasedMult !== 1) {
+    hitProvRows = scaleProvHitDamageRows(hitProvRows, enemyDamageTakenIncreasedMult)
+  }
   hitDamageByType = collapseProvRowsToHitDamage(hitProvRows)
   hitSum = sumHitDamageRange(hitDamageByType)
   hitDamageMin = hitSum.min
@@ -1816,7 +1876,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     laterConversions,
     increased: {
       attackIncSum: { total: attackIncSum, lines: attackIncLines },
-      physIncTotal: { total: physIncTotal, lines: physIncLines },
+      physStyleIncTotal: { total: physStyleIncTotal, lines: physStyleIncLines },
       elemental: { total: incEle, lines: elementalLines },
       typeSpecificGear: {
         fire: eq.increasedFireDamageFromGear,
@@ -1959,10 +2019,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             100,
             spellCritFlatBase * (1 + (critFromUpgrades + spellAttCritInc) / 100)
           )
-          const smin = Math.round(scaledHit.min * added * (1 + incFrac))
-          const smax = Math.round(scaledHit.max * added * (1 + incFrac))
           hitDamageByType = buildHitDamageByType([
-            { type: spellElementToHitDamageType(scaledHit.element), min: smin, max: smax },
+            {
+              type: spellElementToHitDamageType(scaledHit.element),
+              min: roundDamageNearest(
+                scaledHit.min * added * (1 + incFrac) * enemyDamageTakenIncreasedMult
+              ),
+              max: roundDamageNearest(
+                scaledHit.max * added * (1 + incFrac) * enemyDamageTakenIncreasedMult
+              ),
+            },
           ])
           hitSum = sumHitDamageRange(hitDamageByType)
           hitDamageMin = hitSum.min
@@ -2211,11 +2277,19 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         notes: [
           `Weapon base APS: ${apsFlatBaseBr.toFixed(2)} (before increased attack speed; total increased ${totalIncreasedAtkBr.toFixed(1)}%)`,
           `Multiplicative APS: ×${rogueMultBr.toFixed(2)} Rogue (if inactive ×1), ×${eq.attackSpeedLessMultFromGear.toFixed(3)} gear, ability speed mult if any`,
-          'Planner hit range and DPS omit gear “% less damage dealt” and “enemies take increased damage” (see combat-only below).',
+          enemyDamageTakenIncreasedTotalPct !== 0
+            ? `Enemies take +${enemyDamageTakenIncreasedTotalPct.toFixed(1)}% increased damage (gear + Trickster): ×${enemyDamageTakenIncreasedMult.toFixed(4)} on hit (included in range and DPS).`
+            : 'No “enemies take increased damage” from gear or Trickster.',
+          'Planner hit range and DPS omit gear “% less damage dealt” (see combat-only below).',
         ],
       },
+      enemiesTakeIncreasedDamage: {
+        gearPercent: eq.enemyDamageTakenIncreasedFromGear,
+        tricksterPercent: enemyDamageTakenIncreasedFromTricksterPct,
+        totalPercent: enemyDamageTakenIncreasedTotalPct,
+        multiplier: enemyDamageTakenIncreasedMult,
+      },
       combatOnlyNotInPlannerHitOrDps: {
-        enemiesTakeIncreasedDamagePercent: eq.enemyDamageTakenIncreasedFromGear,
         damageDealtLessMult: eq.damageDealtLessMultFromGear,
       },
     }
@@ -2233,7 +2307,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   )
   const lifeRegenPercentOfMaxPerSecond = eq.lifeRegenPercentOfMaxLifePerSecondFromGear
   const esRegenPercentOfMaxPerSecond = eq.esRegenPercentOfMaxPerSecondFromGear
-  const enemiesTakeIncreasedDamagePercent = eq.enemyDamageTakenIncreasedFromGear
+  const enemiesTakeIncreasedDamagePercent = enemyDamageTakenIncreasedTotalPct
   const damageTakenMultiplierFromGear =
     eq.damageTakenLessMultFromGear * eq.damageTakenMoreMultFromGear
   const firePenetrationPercent = eq.firePenetrationFromGear

@@ -21,16 +21,32 @@ import type { HitDamageComputationBreakdown } from "../data/gameStats";
 function scalingRuleLabel(s: HitDamageScaling): string {
   switch (s) {
     case "physical_style":
-      return "physical-style pool (+ type gear on lightning)";
+      return "remaining physical: global + attack + melee stack + phys attunement (not elemental Σ)";
+    case "native_elemental":
+      return "weapon flat element: global + attack + Σ elemental + type-specific (+ fire attune on fire)";
     case "physical_and_elemental":
-      return "physical-style + elemental + type gear (+ fire attunement on fire)";
-    case "elemental_style_only":
-      return "elemental + type gear only";
+      return "from physical: phys-style + Σ elemental + type-specific (+ fire attune on fire)";
     case "chaos_style":
-      return "attack + chaos-specific (no elemental increased)";
+      return "attack + chaos-specific (no generic elemental increased)";
     default:
       return s;
   }
+}
+
+/** Merged fragments share one rounded range, then the × increased column applies to that range. */
+function perFragmentScalingRuleLabel(row: {
+  scaling: HitDamageScaling;
+  mergedFrom: number;
+  mergedScalings: HitDamageScaling[];
+}): string {
+  const scales = row.mergedScalings.length > 0 ? row.mergedScalings : [row.scaling];
+  if (row.mergedFrom > 1) {
+    if (scales.length > 1) {
+      return scales.map((s) => scalingRuleLabel(s)).join(" · ");
+    }
+    return `${scalingRuleLabel(row.scaling)} (${row.mergedFrom} summed)`;
+  }
+  return scalingRuleLabel(row.scaling);
 }
 
 function MultiplierBreakdownPanel({ b }: { b: HitDamageComputationBreakdown }) {
@@ -42,16 +58,50 @@ function MultiplierBreakdownPanel({ b }: { b: HitDamageComputationBreakdown }) {
       </summary>
       <div className="mt-2 space-y-3 text-[10px] text-zinc-400 leading-relaxed">
         <div>
-          <div className="text-zinc-500 font-semibold mb-0.5">Base weapon (before ability / conversion)</div>
-          <div className="font-mono text-zinc-300">
-            Physical {b.baseWeaponDamage.physicalMin}–{b.baseWeaponDamage.physicalMax}
-            {b.baseWeaponDamage.includesCharacterBasePhysical ? " (includes character base)" : ""}
+          <div className="text-zinc-500 font-semibold mb-0.5">Base weapon (before conversion)</div>
+          <div className="text-zinc-600 text-[9px] mb-1">
+            {b.baseWeaponDamage.includesCharacterBasePhysical
+              ? "Physical line: unarmed base + flat."
+              : "Physical line: weapon replaces unarmed base."}
           </div>
-          {b.baseWeaponDamage.elemental.map((e) => (
-            <div key={e.type} className={`font-mono ${HIT_DAMAGE_TYPE_COLOR_CLASS[e.type]}`}>
-              {HIT_DAMAGE_TYPE_LABEL[e.type]} {e.min}–{e.max}
-            </div>
-          ))}
+          {b.abilityDamageMultiplier ? (
+            <>
+              <div className="text-zinc-500 mb-0.5">Before ability damage mult</div>
+              <div className="font-mono text-zinc-300">
+                Physical {b.baseWeaponDamage.beforeAbilityDamageMult.physicalMin}–
+                {b.baseWeaponDamage.beforeAbilityDamageMult.physicalMax}
+              </div>
+              {b.baseWeaponDamage.beforeAbilityDamageMult.elemental.map((e) => (
+                <div key={`b-${e.type}`} className={`font-mono ${HIT_DAMAGE_TYPE_COLOR_CLASS[e.type]}`}>
+                  {HIT_DAMAGE_TYPE_LABEL[e.type]} {e.min}–{e.max}
+                </div>
+              ))}
+              <div className="text-zinc-500 mt-1.5 mb-0.5">
+                After ability damage mult (×{b.abilityDamageMultiplier.factor.toFixed(3)})
+              </div>
+              <div className="font-mono text-zinc-300">
+                Physical {b.baseWeaponDamage.afterAbilityDamageMult.physicalMin}–
+                {b.baseWeaponDamage.afterAbilityDamageMult.physicalMax}
+              </div>
+              {b.baseWeaponDamage.afterAbilityDamageMult.elemental.map((e) => (
+                <div key={`a-${e.type}`} className={`font-mono ${HIT_DAMAGE_TYPE_COLOR_CLASS[e.type]}`}>
+                  {HIT_DAMAGE_TYPE_LABEL[e.type]} {e.min}–{e.max}
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              <div className="font-mono text-zinc-300">
+                Physical {b.baseWeaponDamage.afterAbilityDamageMult.physicalMin}–
+                {b.baseWeaponDamage.afterAbilityDamageMult.physicalMax}
+              </div>
+              {b.baseWeaponDamage.afterAbilityDamageMult.elemental.map((e) => (
+                <div key={e.type} className={`font-mono ${HIT_DAMAGE_TYPE_COLOR_CLASS[e.type]}`}>
+                  {HIT_DAMAGE_TYPE_LABEL[e.type]} {e.min}–{e.max}
+                </div>
+              ))}
+            </>
+          )}
         </div>
 
         {b.abilityDamageMultiplier && (
@@ -112,11 +162,11 @@ function MultiplierBreakdownPanel({ b }: { b: HitDamageComputationBreakdown }) {
             ))}
           </ul>
           <div className="text-zinc-500 mt-1 mb-0.5">
-            Physical-style total (Σ = {b.increased.physIncTotal.total.toFixed(1)}%) — used for physical + physical-style
-            lightning
+            Phys-style total (Σ = {b.increased.physStyleIncTotal.total.toFixed(1)}%) — attack + generic stack + phys
+            attunement; used for remaining physical (not elemental Σ alone)
           </div>
           <ul className="list-disc pl-4 space-y-0.5">
-            {b.increased.physIncTotal.lines.map((l, i) => (
+            {b.increased.physStyleIncTotal.lines.map((l, i) => (
               <li key={i} className="font-mono">
                 {l.label}: {l.value >= 0 ? "+" : ""}
                 {l.value.toFixed(1)}%
@@ -154,7 +204,8 @@ function MultiplierBreakdownPanel({ b }: { b: HitDamageComputationBreakdown }) {
                   <th className="py-0.5 pr-1">Rule</th>
                   <th className="py-0.5 pr-1">Range before</th>
                   <th className="py-0.5 pr-1">Σ increased</th>
-                  <th className="py-0.5">×</th>
+                  <th className="py-0.5 pr-1">×</th>
+                  <th className="py-0.5">After Σ increased</th>
                 </tr>
               </thead>
               <tbody>
@@ -163,12 +214,16 @@ function MultiplierBreakdownPanel({ b }: { b: HitDamageComputationBreakdown }) {
                     <td className={`py-0.5 pr-1 ${HIT_DAMAGE_TYPE_COLOR_CLASS[row.type]}`}>
                       {HIT_DAMAGE_TYPE_LABEL[row.type]}
                     </td>
-                    <td className="py-0.5 pr-1 text-zinc-500 max-w-[140px]">{scalingRuleLabel(row.scaling)}</td>
+                    <td className="py-0.5 pr-1 text-zinc-500 max-w-[180px]">{perFragmentScalingRuleLabel(row)}</td>
                     <td className="py-0.5 pr-1 font-mono text-zinc-300">
-                      {row.min}–{row.max}
+                      {Math.round(row.min)}–{Math.round(row.max)}
                     </td>
                     <td className="py-0.5 pr-1 font-mono">+{row.increasedDamagePercent.toFixed(1)}%</td>
-                    <td className="py-0.5 font-mono">×{row.damageMultiplier.toFixed(3)}</td>
+                    <td className="py-0.5 pr-1 font-mono">×{row.damageMultiplier.toFixed(3)}</td>
+                    <td className="py-0.5 font-mono text-zinc-300">
+                      {Math.round(row.min * row.damageMultiplier)}–
+                      {Math.round(row.max * row.damageMultiplier)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -243,12 +298,26 @@ function MultiplierBreakdownPanel({ b }: { b: HitDamageComputationBreakdown }) {
           ))}
         </div>
 
+        {b.enemiesTakeIncreasedDamage.totalPercent !== 0 && (
+          <div>
+            <div className="text-zinc-500 font-semibold mb-0.5">Enemies take increased damage</div>
+            <div className="font-mono text-zinc-300 space-y-0.5">
+              {b.enemiesTakeIncreasedDamage.gearPercent !== 0 && (
+                <div>Gear: +{b.enemiesTakeIncreasedDamage.gearPercent.toFixed(1)}%</div>
+              )}
+              {b.enemiesTakeIncreasedDamage.tricksterPercent !== 0 && (
+                <div>Trickster (class bonus): +{b.enemiesTakeIncreasedDamage.tricksterPercent.toFixed(1)}%</div>
+              )}
+              <div>
+                Total +{b.enemiesTakeIncreasedDamage.totalPercent.toFixed(1)}% → ×
+                {b.enemiesTakeIncreasedDamage.multiplier.toFixed(4)} on hit range and DPS (after increased mods)
+              </div>
+            </div>
+          </div>
+        )}
+
         <div>
           <div className="text-zinc-500 font-semibold mb-0.5">Combat-only (not in planner hit / DPS above)</div>
-          <div className="font-mono">
-            Enemies take +{b.combatOnlyNotInPlannerHitOrDps.enemiesTakeIncreasedDamagePercent.toFixed(1)}% increased
-            damage
-          </div>
           <div className="font-mono">
             Gear less damage dealt: ×{b.combatOnlyNotInPlannerHitOrDps.damageDealtLessMult.toFixed(3)}
           </div>
@@ -338,7 +407,6 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
   const ac = stats.abilityContribution;
   const hitLabel = ac ? (ac.type === "Spells" ? "Spell hit" : "Ability hit") : "Hit damage";
   const byType = stats.hitDamageByType;
-  const multiDamageTypes = byType.length > 1;
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
@@ -354,7 +422,7 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
       {/* ── Hit damage block ── */}
       <div className="bg-zinc-800/60 border border-zinc-700 rounded-lg p-3 mb-3">
         <div className="text-zinc-500 text-[10px] uppercase tracking-widest mb-1">{hitLabel}</div>
-        {multiDamageTypes ? (
+        {byType.length > 0 ? (
           <div className="flex flex-col gap-0.5">
             {byType.map((row) => (
               <div
@@ -364,17 +432,15 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
                 {HIT_DAMAGE_TYPE_LABEL[row.type]} {row.min}–{row.max}
               </div>
             ))}
-            <div className="text-zinc-400 text-xs font-mono border-t border-zinc-700/60 pt-0.5 mt-0.5">
-              Total {stats.hitDamageMin}–{stats.hitDamageMax}
-            </div>
+            {byType.length > 1 && (
+              <div className="text-zinc-400 text-xs font-mono border-t border-zinc-700/60 pt-0.5 mt-0.5">
+                Total {stats.hitDamageMin}–{stats.hitDamageMax}
+              </div>
+            )}
           </div>
         ) : (
-          <span
-            className={`text-lg font-bold font-mono ${
-              HIT_DAMAGE_TYPE_COLOR_CLASS[byType[0]?.type ?? "physical"]
-            }`}
-          >
-            {byType[0] ? `${byType[0].min}–${byType[0].max}` : `${stats.hitDamageMin}–${stats.hitDamageMax}`}
+          <span className="text-lg font-bold font-mono text-stone-300">
+            {stats.hitDamageMin}–{stats.hitDamageMax}
           </span>
         )}
         {stats.hitDamageComputationBreakdown && (

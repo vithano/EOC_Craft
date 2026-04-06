@@ -150,13 +150,11 @@ function enemyApsMultiplier(stats: ComputedBuildStats): number {
 function enemyDamageTakenMultiplier(stats: ComputedBuildStats, enemyLifeFrac: number): number {
   let m = 1
   if (stats.classBonusesActive.includes('windrunner')) m *= 1 + 0.15
-  if (stats.classBonusesActive.includes('trickster')) m *= 1 + 0.1
+  // Trickster (+10%) and gear “enemies take increased damage” are baked into hitDamageMin/Max in computeBuildStats.
   if (stats.classBonusesActive.includes('dragoon')) {
     const missing = 1 - enemyLifeFrac
     m *= 1 + missing
   }
-  const inc = stats.enemiesTakeIncreasedDamagePercent ?? 0
-  if (inc !== 0) m *= 1 + inc / 100
   return m
 }
 

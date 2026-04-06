@@ -326,7 +326,7 @@ export default function BattleDemoPage() {
                   key={row.type}
                   className={`font-mono font-medium ${HIT_DAMAGE_TYPE_COLOR_CLASS[row.type]}`}
                 >
-                  {stats.hitDamageByType.length > 1 ? `${HIT_DAMAGE_TYPE_LABEL[row.type]} ` : ""}
+                  {HIT_DAMAGE_TYPE_LABEL[row.type]}{" "}
                   {row.min}–{row.max}
                 </span>
               ))}

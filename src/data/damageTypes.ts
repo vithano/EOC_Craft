@@ -7,17 +7,120 @@ export interface HitDamageTypeRow {
   max: number;
 }
 
+/** Nearest integer (standard `Math.round`). Used throughout the hit pipeline at each step. */
+export function roundDamageNearest(x: number): number {
+  if (!Number.isFinite(x)) return x;
+  return Math.round(x);
+}
+
+/**
+ * Partition `orig` into integer buckets with given non-negative weights (normalized internally).
+ * Starts from `Math.round` of each exact quota, then fixes the sum to `orig` by distributing
+ * surplus or deficit using largest-remainder tie-breaks.
+ */
+function splitIntByProportionsN(orig: number, weights: number[]): number[] {
+  const wSum = weights.reduce((a, b) => a + Math.max(0, b), 0);
+  if (wSum <= 0) return weights.map(() => 0);
+  if (orig <= 0) return weights.map(() => 0);
+  const exact = weights.map((wi) => (orig * Math.max(0, wi)) / wSum);
+  const rounded = exact.map((x) => Math.round(x));
+  let sumR = rounded.reduce((a, b) => a + b, 0);
+  let diff = orig - sumR;
+  const out = [...rounded];
+  if (diff === 0) return out;
+
+  const n = exact.length;
+  if (diff > 0) {
+    const fracs = exact.map((x, i) => ({ i, f: x - Math.floor(x) }));
+    fracs.sort((a, b) => b.f - a.f || b.i - a.i);
+    for (let k = 0; k < diff; k++) {
+      out[fracs[k % n]!.i]++;
+    }
+  } else {
+    let need = -diff;
+    const order = exact
+      .map((x, i) => ({ i, over: out[i]! - x }))
+      .sort((a, b) => b.over - a.over || a.i - b.i);
+    while (need > 0) {
+      let progressed = false;
+      for (const { i } of order) {
+        if (need <= 0) break;
+        if (out[i]! > 0) {
+          out[i]!--;
+          need--;
+          progressed = true;
+        }
+      }
+      if (!progressed) break;
+    }
+  }
+  return out;
+}
+
+/**
+ * Sum hit fragments that share the same damage type and the same increased-damage multiplier,
+ * then snap float noise and round min/max. Used for the “per fragment (before → after increased)” table:
+ * base ranges are integer-rounded before the × column (increased mult) is applied in the real pipeline.
+ */
+export function mergePerInstanceBeforeIncreasedRows<
+  T extends {
+    type: HitDamageType;
+    scaling: HitDamageScaling;
+    min: number;
+    max: number;
+    increasedDamagePercent: number;
+    damageMultiplier: number;
+  },
+>(
+  rows: T[]
+): Array<
+  T & {
+    mergedFrom: number;
+    mergedScalings: HitDamageScaling[];
+  }
+> {
+  const key = (r: T) => `${r.type}\0${r.damageMultiplier.toFixed(6)}`;
+  const groups = new Map<string, T[]>();
+  for (const row of rows) {
+    const k = key(row);
+    const g = groups.get(k) ?? [];
+    g.push(row);
+    groups.set(k, g);
+  }
+  const order: HitDamageType[] = ["physical", "fire", "cold", "lightning", "chaos"];
+  const out: Array<T & { mergedFrom: number; mergedScalings: HitDamageScaling[] }> = [];
+  for (const group of groups.values()) {
+    const first = group[0]!;
+    let sumMin = 0;
+    let sumMax = 0;
+    for (const r of group) {
+      sumMin += r.min;
+      sumMax += r.max;
+    }
+    const mergedScalings = [...new Set(group.map((r) => r.scaling))];
+    out.push({
+      ...first,
+      min: roundDamageNearest(sumMin),
+      max: roundDamageNearest(sumMax),
+      mergedFrom: group.length,
+      mergedScalings,
+    });
+  }
+  out.sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
+  return out;
+}
+
 /**
  * How global “increased damage” buckets apply to a hit fragment (conversion lineage).
- * - physical_style: physical-style increased only (no generic elemental); native weapon lightning uses this.
- * - physical_and_elemental: physical-style + elemental increased; phys→element and cold from that lightning.
- * - elemental_style_only: elemental increased only; cold from lightning that was physical_style (e.g. native weapon lightning → cold).
- * - chaos_style: attack increased + chaos-specific (no elemental increased).
+ * - physical_style: remaining physical — phys-style pool (global + attack + melee stack + phys attunement; not elemental Σ).
+ * - native_elemental: weapon flat fire / cold / lightning — global + attack stack + Σ elemental + type-specific (+ fire attunement on fire).
+ * - physical_and_elemental: from physical conversion (or extra lightning from phys): phys-style + elemental + type-specific.
+ * - chaos_style: attack increased + chaos-specific (no generic elemental increased).
  */
 export type HitDamageScaling =
   | "physical_style"
+  | "native_elemental"
   | "physical_and_elemental"
-  | "elemental_style_only"
   | "chaos_style";
 
 export interface ProvHitDamageRow {
@@ -28,12 +131,18 @@ export interface ProvHitDamageRow {
 }
 
 export function buildProvHitDamageByType(rows: ProvHitDamageRow[]): ProvHitDamageRow[] {
-  return rows.filter((r) => r.max > 0 || r.min > 0);
+  const filtered = rows.filter((r) => r.max > 0 || r.min > 0);
+  const physZero = rows.find((r) => r.type === "physical" && r.min === 0 && r.max === 0);
+  if (physZero && !filtered.some((r) => r.type === "physical")) {
+    return [physZero, ...filtered];
+  }
+  return filtered;
 }
 
 /** Merge provenance rows for UI / stored hit breakdown (same type summed). */
 export function collapseProvRowsToHitDamage(rows: ProvHitDamageRow[]): HitDamageTypeRow[] {
   const order: HitDamageType[] = ["physical", "fire", "cold", "lightning", "chaos"];
+  const physicalRowExisted = rows.some((r) => r.type === "physical");
   const map = new Map<HitDamageType, { min: number; max: number }>();
   for (const r of rows) {
     if (r.max <= 0 && r.min <= 0) continue;
@@ -44,14 +153,43 @@ export function collapseProvRowsToHitDamage(rows: ProvHitDamageRow[]): HitDamage
   }
   const out: HitDamageTypeRow[] = [];
   for (const t of order) {
+    if (t === "physical" && physicalRowExisted) {
+      const v = map.get("physical");
+      if (v && (v.min > 0 || v.max > 0)) {
+        out.push({
+          type: "physical",
+          min: roundDamageNearest(v.min),
+          max: roundDamageNearest(v.max),
+        });
+      } else {
+        out.push({
+          type: "physical",
+          min: roundDamageNearest(v?.min ?? 0),
+          max: roundDamageNearest(v?.max ?? 0),
+        });
+      }
+      continue;
+    }
     const v = map.get(t);
-    if (v && (v.min > 0 || v.max > 0)) out.push({ type: t, min: v.min, max: v.max });
+    if (v && (v.min > 0 || v.max > 0)) {
+      out.push({
+        type: t,
+        min: roundDamageNearest(v.min),
+        max: roundDamageNearest(v.max),
+      });
+    }
   }
   return out;
 }
 
 export interface ProvHitIncreasedContext {
-  physIncTotal: number;
+  /**
+   * “Physical-style” pool for remaining physical hits: `attackIncSum` + ability attunement
+   * “increased physical damage” only. `attackIncSum` already includes global increased damage,
+   * increased attack damage, melee stack when applicable, etc. — not physical-damage-type-only.
+   */
+  physStyleIncTotal: number;
+  /** Global + attack + conditional melee: increased damage, attack damage, attunement “increased damage”, … */
   attackIncSum: number;
   incEle: number;
   attIncFire: number;
@@ -72,12 +210,11 @@ export function increasedPctForProvHitRow(row: ProvHitDamageRow, ctx: ProvHitInc
           : 0;
   switch (row.scaling) {
     case "physical_style":
-      if (row.type === "physical") return ctx.physIncTotal;
-      return ctx.physIncTotal + typeGear;
+      return ctx.physStyleIncTotal;
+    case "native_elemental":
+      return ctx.attackIncSum + ctx.incEle + typeGear + (row.type === "fire" ? ctx.attIncFire : 0);
     case "physical_and_elemental":
-      return ctx.physIncTotal + ctx.incEle + typeGear + (row.type === "fire" ? ctx.attIncFire : 0);
-    case "elemental_style_only":
-      return ctx.incEle + typeGear + (row.type === "fire" ? ctx.attIncFire : 0);
+      return ctx.physStyleIncTotal + ctx.incEle + typeGear + (row.type === "fire" ? ctx.attIncFire : 0);
     case "chaos_style":
       return ctx.attackIncSum + ctx.chaosGear;
     default: {
@@ -96,8 +233,8 @@ export function applyIncreasedToProvHitRows(
     const m = 1 + pct / 100;
     return {
       ...r,
-      min: Math.round(r.min * m),
-      max: Math.round(r.max * m),
+      min: roundDamageNearest(r.min * m),
+      max: roundDamageNearest(r.max * m),
     };
   });
 }
@@ -128,13 +265,34 @@ export function localFlatDamageDisplayRange(flatMinStored: number, flatMaxStored
   max: number;
 } {
   return {
-    min: Math.round(flatMinStored * 2),
-    max: Math.round(flatMaxStored),
+    min: roundDamageNearest(flatMinStored * 2),
+    max: roundDamageNearest(flatMaxStored),
   };
 }
 
 export function buildHitDamageByType(rows: HitDamageTypeRow[]): HitDamageTypeRow[] {
-  return rows.filter((r) => r.max > 0 || r.min > 0);
+  const filtered = rows.filter((r) => r.max > 0 || r.min > 0);
+  const physZero = rows.find((r) => r.type === "physical" && r.min === 0 && r.max === 0);
+  let out: HitDamageTypeRow[];
+  if (physZero && !filtered.some((r) => r.type === "physical")) {
+    out = [physZero, ...filtered];
+  } else {
+    out = filtered;
+  }
+  const rounded = out.map((r) => ({
+    ...r,
+    min: roundDamageNearest(r.min),
+    max: roundDamageNearest(r.max),
+  }));
+  const keepPhysicalZero =
+    physZero &&
+    rounded.some((r) => r.type === "physical" && r.min === 0 && r.max === 0);
+  return rounded.filter(
+    (r) =>
+      r.max > 0 ||
+      r.min > 0 ||
+      (r.type === "physical" && r.min === 0 && r.max === 0 && keepPhysicalZero)
+  );
 }
 
 /** Phys→fire/cold/lightning cannot exceed 100% of the same roll; scale all sources down proportionally. */
@@ -161,6 +319,87 @@ export function normalizePhysicalConversionPcts(
 }
 
 /**
+ * Split one physical roll into fire / cold / lightning / remaining physical.
+ * Each elemental line is % of original physical (caller passes normalized percents, tf+tc+tl ≤ 100).
+ * Fire / cold / lightning are rounded independently; remainder stays on physical; if elementals round high,
+ * trim from the buckets that overshot the most (vs exact share) until the sum matches `orig`.
+ */
+function allocatePhysicalConversionSplit(
+  orig: number,
+  toFirePct: number,
+  toColdPct: number,
+  toLightningPct: number
+): { fire: number; cold: number; lightning: number; physRem: number } {
+  const tf = Math.max(0, toFirePct);
+  const tc = Math.max(0, toColdPct);
+  const tl = Math.max(0, toLightningPct);
+  const w = tf + tc + tl;
+  if (w <= 0 || orig <= 0) {
+    return { fire: 0, cold: 0, lightning: 0, physRem: orig };
+  }
+  const exactF = (orig * tf) / 100;
+  const exactC = (orig * tc) / 100;
+  const exactL = (orig * tl) / 100;
+  let fire = roundDamageNearest(exactF);
+  let cold = roundDamageNearest(exactC);
+  let lightning = roundDamageNearest(exactL);
+  let physRem = orig - fire - cold - lightning;
+  if (physRem < 0) {
+    let need = -physRem;
+    const vals = [fire, cold, lightning];
+    const exacts = [exactF, exactC, exactL];
+    const order = [0, 1, 2]
+      .map((i) => ({ i, over: vals[i]! - exacts[i]! }))
+      .sort((a, b) => b.over - a.over || a.i - b.i);
+    while (need > 0) {
+      let progressed = false;
+      for (const { i } of order) {
+        if (need <= 0) break;
+        if (vals[i]! > 0) {
+          vals[i]!--;
+          need--;
+          progressed = true;
+        }
+      }
+      if (!progressed) break;
+    }
+    fire = vals[0]!;
+    cold = vals[1]!;
+    lightning = vals[2]!;
+    physRem = orig - fire - cold - lightning;
+  }
+  return { fire, cold, lightning, physRem };
+}
+
+/** If min-roll physical > max-roll physical, move damage from physical into elementals on the min roll. */
+function clampPhysicalConversionMinMax(
+  minA: { fire: number; cold: number; lightning: number; physRem: number },
+  maxA: { fire: number; cold: number; lightning: number; physRem: number },
+  toFire: number,
+  toCold: number,
+  toLightning: number
+): void {
+  if (minA.physRem <= maxA.physRem) return;
+  const d = minA.physRem - maxA.physRem;
+  minA.physRem -= d;
+  const ew = toFire + toCold + toLightning;
+  if (ew <= 0) return;
+  if (toFire === toCold && toCold === toLightning && toFire > 0) {
+    const addParts = splitIntByProportionsN(d, [1, 1, 1]);
+    minA.fire += addParts[0]!;
+    minA.cold += addParts[1]!;
+    minA.lightning += addParts[2]!;
+    return;
+  }
+  const addF = roundDamageNearest((d * toFire) / ew);
+  const addC = roundDamageNearest((d * toCold) / ew);
+  const addL = d - addF - addC;
+  minA.fire += addF;
+  minA.cold += addC;
+  minA.lightning += addL;
+}
+
+/**
  * Moves a percentage of the physical row into fire/cold/lightning (each % of original physical).
  * Multiple uniques stack additive percentages (e.g. three 33% lines ≈ 99% converted total).
  */
@@ -180,17 +419,13 @@ export function applyGearPhysicalConversion(
   const origMax = p.max;
   if (origMin <= 0 && origMax <= 0) return rows;
 
-  const take = (pct: number, lo: number, hi: number) => ({
-    min: lo * (pct / 100),
-    max: hi * (pct / 100),
-  });
-  const f = take(toFire, origMin, origMax);
-  const c = take(toCold, origMin, origMax);
-  const l = take(toLightning, origMin, origMax);
+  const minAlloc = allocatePhysicalConversionSplit(origMin, toFire, toCold, toLightning);
+  const maxAlloc = allocatePhysicalConversionSplit(origMax, toFire, toCold, toLightning);
+  clampPhysicalConversionMinMax(minAlloc, maxAlloc, toFire, toCold, toLightning);
   out[pi] = {
     ...p,
-    min: Math.round(origMin - f.min - c.min - l.min),
-    max: Math.round(origMax - f.max - c.max - l.max),
+    min: minAlloc.physRem,
+    max: maxAlloc.physRem,
   };
 
   const bump = (type: HitDamageType, dm: number, dM: number) => {
@@ -199,16 +434,16 @@ export function applyGearPhysicalConversion(
       const cur = out[i]!;
       out[i] = {
         ...cur,
-        min: cur.min + Math.round(dm),
-        max: cur.max + Math.round(dM),
+        min: cur.min + dm,
+        max: cur.max + dM,
       };
     } else {
-      out.push({ type, min: Math.round(dm), max: Math.round(dM) });
+      out.push({ type, min: dm, max: dM });
     }
   };
-  bump("fire", f.min, f.max);
-  bump("cold", c.min, c.max);
-  bump("lightning", l.min, l.max);
+  bump("fire", minAlloc.fire, maxAlloc.fire);
+  bump("cold", minAlloc.cold, maxAlloc.cold);
+  bump("lightning", minAlloc.lightning, maxAlloc.lightning);
 
   return buildHitDamageByType(out);
 }
@@ -229,8 +464,8 @@ export function applyElementalToChaosConversion(rows: HitDamageTypeRow[], pct: n
     const takeMax = row.max * f;
     out[i] = {
       ...row,
-      min: Math.round(row.min - takeMin),
-      max: Math.round(row.max - takeMax),
+      min: roundDamageNearest(row.min - takeMin),
+      max: roundDamageNearest(row.max - takeMax),
     };
     chaosAddMin += takeMin;
     chaosAddMax += takeMax;
@@ -240,11 +475,15 @@ export function applyElementalToChaosConversion(rows: HitDamageTypeRow[], pct: n
     const c = out[ci]!;
     out[ci] = {
       ...c,
-      min: c.min + Math.round(chaosAddMin),
-      max: c.max + Math.round(chaosAddMax),
+      min: c.min + roundDamageNearest(chaosAddMin),
+      max: c.max + roundDamageNearest(chaosAddMax),
     };
   } else if (chaosAddMax > 0) {
-    out.push({ type: "chaos", min: Math.round(chaosAddMin), max: Math.round(chaosAddMax) });
+    out.push({
+      type: "chaos",
+      min: roundDamageNearest(chaosAddMin),
+      max: roundDamageNearest(chaosAddMax),
+    });
   }
   return buildHitDamageByType(out);
 }
@@ -261,19 +500,19 @@ export function applyLightningToColdConversion(rows: HitDamageTypeRow[], pct: nu
   const takeMax = L.max * f;
   out[li] = {
     ...L,
-    min: Math.round(L.min - takeMin),
-    max: Math.round(L.max - takeMax),
+    min: roundDamageNearest(L.min - takeMin),
+    max: roundDamageNearest(L.max - takeMax),
   };
   const ci = out.findIndex((r) => r.type === "cold");
   if (ci >= 0) {
     const c = out[ci]!;
     out[ci] = {
       ...c,
-      min: c.min + Math.round(takeMin),
-      max: c.max + Math.round(takeMax),
+      min: c.min + roundDamageNearest(takeMin),
+      max: c.max + roundDamageNearest(takeMax),
     };
   } else {
-    out.push({ type: "cold", min: Math.round(takeMin), max: Math.round(takeMax) });
+    out.push({ type: "cold", min: roundDamageNearest(takeMin), max: roundDamageNearest(takeMax) });
   }
   return buildHitDamageByType(out);
 }
@@ -300,11 +539,11 @@ export function applyGainPhysicalAsExtraLightning(rows: HitDamageTypeRow[], pct:
     const L = out[li]!;
     out[li] = {
       ...L,
-      min: L.min + Math.round(addMin),
-      max: L.max + Math.round(addMax),
+      min: L.min + roundDamageNearest(addMin),
+      max: L.max + roundDamageNearest(addMax),
     };
   } else {
-    out.push({ type: "lightning", min: Math.round(addMin), max: Math.round(addMax) });
+    out.push({ type: "lightning", min: roundDamageNearest(addMin), max: roundDamageNearest(addMax) });
   }
   return buildHitDamageByType(out);
 }
@@ -322,7 +561,6 @@ export function applyGearPhysicalConversionProv(
 ): ProvHitDamageRow[] {
   if (pctToFire <= 0 && pctToCold <= 0 && pctToLightning <= 0) return rows;
   const { toFire, toCold, toLightning } = normalizePhysicalConversionPcts(pctToFire, pctToCold, pctToLightning);
-
   const out = rows.map((r) => ({ ...r }));
   const pi = out.findIndex((r) => r.type === "physical");
   if (pi < 0) return rows;
@@ -330,33 +568,28 @@ export function applyGearPhysicalConversionProv(
   const origMin = p.min;
   const origMax = p.max;
   if (origMin <= 0 && origMax <= 0) return rows;
-
-  const take = (pct: number, lo: number, hi: number) => ({
-    min: lo * (pct / 100),
-    max: hi * (pct / 100),
-  });
-  const f = take(toFire, origMin, origMax);
-  const c = take(toCold, origMin, origMax);
-  const l = take(toLightning, origMin, origMax);
+  const minAlloc = allocatePhysicalConversionSplit(origMin, toFire, toCold, toLightning);
+  const maxAlloc = allocatePhysicalConversionSplit(origMax, toFire, toCold, toLightning);
+  clampPhysicalConversionMinMax(minAlloc, maxAlloc, toFire, toCold, toLightning);
 
   out[pi] = {
     ...p,
-    min: Math.round(origMin - f.min - c.min - l.min),
-    max: Math.round(origMax - f.max - c.max - l.max),
+    min: minAlloc.physRem,
+    max: maxAlloc.physRem,
   };
 
   const pushEle = (type: HitDamageType, dm: number, dM: number) => {
     if (dm <= 0 && dM <= 0) return;
     out.push({
       type,
-      min: Math.round(dm),
-      max: Math.round(dM),
+      min: dm,
+      max: dM,
       scaling: "physical_and_elemental",
     });
   };
-  pushEle("fire", f.min, f.max);
-  pushEle("cold", c.min, c.max);
-  pushEle("lightning", l.min, l.max);
+  pushEle("fire", minAlloc.fire, maxAlloc.fire);
+  pushEle("cold", minAlloc.cold, maxAlloc.cold);
+  pushEle("lightning", minAlloc.lightning, maxAlloc.lightning);
 
   return buildProvHitDamageByType(out);
 }
@@ -375,19 +608,17 @@ export function applyLightningToColdConversionProv(rows: ProvHitDamageRow[], pct
     const takeMin = r.min * f;
     const takeMax = r.max * f;
     const coldScaling: HitDamageScaling =
-      r.scaling === "physical_style" || r.scaling === "elemental_style_only"
-        ? "elemental_style_only"
-        : "physical_and_elemental";
+      r.scaling === "physical_and_elemental" ? "physical_and_elemental" : "native_elemental";
     out.push({
       ...r,
-      min: Math.round(r.min - takeMin),
-      max: Math.round(r.max - takeMax),
+      min: roundDamageNearest(r.min - takeMin),
+      max: roundDamageNearest(r.max - takeMax),
     });
     if (takeMin > 0 || takeMax > 0) {
       newCold.push({
         type: "cold",
-        min: Math.round(takeMin),
-        max: Math.round(takeMax),
+        min: roundDamageNearest(takeMin),
+        max: roundDamageNearest(takeMax),
         scaling: coldScaling,
       });
     }
@@ -407,8 +638,8 @@ export function applyGainPhysicalAsExtraLightningProv(rows: ProvHitDamageRow[], 
   if (addMin <= 0 && addMax <= 0) return buildProvHitDamageByType(out);
   out.push({
     type: "lightning",
-    min: Math.round(addMin),
-    max: Math.round(addMax),
+    min: roundDamageNearest(addMin),
+    max: roundDamageNearest(addMax),
     scaling: "physical_and_elemental",
   });
   return buildProvHitDamageByType(out);
@@ -440,14 +671,14 @@ export function applyElementalToChaosConversionProv(rows: ProvHitDamageRow[], pc
     const remMin = r.min - takeMin;
     const remMax = r.max - takeMax;
     if (remMin > 0 || remMax > 0) {
-      out.push({ ...r, min: Math.round(remMin), max: Math.round(remMax) });
+      out.push({ ...r, min: roundDamageNearest(remMin), max: roundDamageNearest(remMax) });
     }
   }
   if (chaosMax > 0) {
     out.push({
       type: "chaos",
-      min: Math.round(chaosMin),
-      max: Math.round(chaosMax),
+      min: roundDamageNearest(chaosMin),
+      max: roundDamageNearest(chaosMax),
       scaling: "chaos_style",
     });
   }
@@ -461,8 +692,8 @@ export function scaleProvHitDamageRows(
   if (damageMultiplierFactor === 1) return parts.map((p) => ({ ...p }));
   return parts.map((p) => ({
     ...p,
-    min: Math.round(p.min * damageMultiplierFactor),
-    max: Math.round(p.max * damageMultiplierFactor),
+    min: roundDamageNearest(p.min * damageMultiplierFactor),
+    max: roundDamageNearest(p.max * damageMultiplierFactor),
   }));
 }
 
@@ -483,8 +714,8 @@ export function scaleHitDamageByType(
   if (damageMultiplierFactor === 1) return parts.map((p) => ({ ...p }));
   return parts.map((p) => ({
     ...p,
-    min: Math.round(p.min * damageMultiplierFactor),
-    max: Math.round(p.max * damageMultiplierFactor),
+    min: roundDamageNearest(p.min * damageMultiplierFactor),
+    max: roundDamageNearest(p.max * damageMultiplierFactor),
   }));
 }
 
