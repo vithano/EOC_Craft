@@ -3,13 +3,13 @@ import { ENEMY_MODIFIERS } from '../data/enemyModifiers';
 
 export default function FormulaViewer() {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-      <div className="flex items-center gap-2 text-zinc-100 font-semibold text-sm uppercase tracking-wider mb-4">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 sm:p-3.5">
+      <div className="flex items-center gap-2 text-zinc-100 font-semibold text-xs uppercase tracking-wider mb-3 sm:text-sm">
         <span>🧮</span> Formula Engine
         <span className="ml-auto text-emerald-400/90 text-xs font-bold tracking-widest">EOC CSV</span>
       </div>
       <div>
-        <p className="text-zinc-400 text-sm mb-4">
+        <p className="text-zinc-400 text-xs sm:text-sm mb-3 leading-relaxed">
           Core combat formulas match the exported Google Sheets under <code className="text-zinc-500">formulas/</code>.
           The main planner uses <code className="text-blue-400">computeBuildStats</code> in{" "}
           <code className="text-zinc-500">src/data/gameStats.ts</code> (Echoes class data + equipment).{" "}
@@ -17,7 +17,7 @@ export default function FormulaViewer() {
           <code className="text-zinc-500">computeDamageReductionPercentFromArmour</code> (shared DR);{" "}
           <code className="text-zinc-500">computeStats</code> there is an unused legacy stub, not the planner engine.
         </p>
-        <div className="grid grid-cols-2 gap-2 mb-6">
+        <div className="grid grid-cols-2 gap-2 mb-4">
           {Object.entries(FORMULA_DESCRIPTIONS).map(([name, formula]) => (
             <div key={name} className="bg-zinc-800 border border-zinc-700 rounded-lg p-3">
               <div className="text-blue-400 text-xs font-semibold mb-1">{name}</div>
@@ -25,8 +25,8 @@ export default function FormulaViewer() {
             </div>
           ))}
         </div>
-        <div className="mb-6">
-          <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Enemy modifiers (list only)</div>
+        <div className="mb-4">
+          <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1.5">Enemy modifiers (list only)</div>
           <div className="flex flex-wrap gap-1.5">
             {ENEMY_MODIFIERS.map((m) => (
               <span
@@ -39,7 +39,7 @@ export default function FormulaViewer() {
             ))}
           </div>
         </div>
-        <div className="flex gap-3 bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+        <div className="flex gap-2 bg-zinc-800/50 border border-zinc-700 rounded-lg p-3">
           <span className="text-2xl">🔌</span>
           <div>
             <h3 className="text-zinc-100 font-semibold text-sm mb-1">Implementation</h3>

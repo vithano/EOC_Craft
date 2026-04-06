@@ -489,8 +489,8 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
   const allStatKeys = Object.keys(sb).sort() as (keyof StatBreakdowns)[];
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-      <div className="flex items-center gap-2 text-zinc-100 font-semibold text-sm uppercase tracking-wider mb-3">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 sm:p-3.5">
+      <div className="flex items-center gap-2 text-zinc-100 font-semibold text-xs uppercase tracking-wider mb-2 sm:text-sm">
         <span>📊</span> EOC build stats
         {ac && (
           <span className="ml-auto text-zinc-500 text-xs font-normal normal-case">

@@ -35,29 +35,23 @@ export default function AbilitiesPanel({ weaponItemId, ability, onChangeAbility 
   const selected = ability.abilityId ? EOC_ABILITY_BY_ID[ability.abilityId] : undefined;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between mb-3">
-        <div>
-          <div className="text-zinc-100 font-semibold text-sm uppercase tracking-wider">Ability</div>
-          <p className="text-zinc-500 text-xs mt-0.5">
-            From <code className="text-zinc-400">abilities(1.3.2).csv</code> — filtered by equipped weapon
-            {weaponTag ? (
-              <span className="text-zinc-600">
-                {" "}
-                (tag <span className="text-amber-500/90 font-mono">{weaponTag}</span>)
-              </span>
-            ) : (
-              <span className="text-zinc-600"> (no weapon: melee/ranged disabled)</span>
-            )}
-          </p>
-        </div>
+    <div className="bg-[#0f0d16] border border-amber-900/30 rounded-lg p-2.5 sm:p-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="font-cinzel text-amber-200/80 text-[10px] uppercase tracking-widest font-bold">Ability</div>
+        {weaponTag ? (
+          <span className="text-zinc-600 text-[10px]">
+            Weapon tag: <span className="text-amber-500/70 font-mono">{weaponTag}</span>
+          </span>
+        ) : (
+          <span className="text-zinc-700 text-[10px]">No weapon equipped</span>
+        )}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <label className="flex-1 min-w-0">
-          <span className="text-zinc-500 text-xs uppercase tracking-wider block mb-1">Skill</span>
+          <span className="text-zinc-600 text-[10px] uppercase tracking-wider block mb-1">Skill</span>
           <select
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-amber-600/80"
+            className="w-full bg-[#1a1624] border border-amber-900/25 text-zinc-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-amber-600/60"
             value={ability.abilityId ?? ""}
             onChange={(e) => {
               const id = e.target.value || null;
@@ -81,13 +75,13 @@ export default function AbilitiesPanel({ weaponItemId, ability, onChangeAbility 
           </select>
         </label>
 
-        <label className="w-full sm:w-36">
-          <span className="text-zinc-500 text-xs uppercase tracking-wider block mb-1">Level</span>
+        <label className="w-full sm:w-32">
+          <span className="text-zinc-600 text-[10px] uppercase tracking-wider block mb-1">Level</span>
           <input
             type="number"
             min={0}
             max={20}
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-amber-600/80"
+            className="w-full bg-[#1a1624] border border-amber-900/25 text-zinc-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-amber-600/60"
             value={ability.abilityLevel}
             onChange={(e) =>
               onChangeAbility({
@@ -98,12 +92,12 @@ export default function AbilitiesPanel({ weaponItemId, ability, onChangeAbility 
           />
         </label>
 
-        <label className="flex-1 min-w-0 sm:min-w-[200px]">
-          <span className="text-zinc-500 text-xs uppercase tracking-wider block mb-1">
+        <label className="flex-1 min-w-0 sm:min-w-[180px]">
+          <span className="text-zinc-600 text-[10px] uppercase tracking-wider block mb-1">
             Attunement {ability.attunementPct}%
           </span>
           <input
-            className="w-full accent-amber-500"
+            className="w-full accent-amber-500 mt-1"
             type="range"
             min={0}
             max={100}
@@ -117,7 +111,7 @@ export default function AbilitiesPanel({ weaponItemId, ability, onChangeAbility 
       </div>
 
       {selected && (
-        <div className="mt-4 text-xs text-zinc-500 space-y-2 border-t border-zinc-800 pt-3">
+        <div className="mt-2.5 text-[11px] text-zinc-500 space-y-1.5 border-t border-amber-900/20 pt-2.5">
           <div className="text-zinc-400 font-medium">{selected.name}</div>
           {selected.lines.length > 0 && (
             <ul className="list-disc pl-4 space-y-0.5 text-zinc-600">

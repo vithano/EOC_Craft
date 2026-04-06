@@ -221,14 +221,14 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
   );
 
   return (
-    <div className="rounded-xl border border-amber-950/80 bg-[#141019] text-zinc-100 shadow-[0_0_40px_rgba(88,28,135,0.12)] overflow-hidden">
+    <div className="flex max-h-[min(66vh,500px)] flex-col overflow-hidden rounded-2xl border border-amber-900/50 bg-[#141019] text-zinc-100 shadow-[0_0_48px_rgba(88,28,135,0.15),inset_0_1px_0_rgba(255,255,255,0.04)]">
       {/* Top bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 border-b border-amber-950/50 bg-[#1a1518]">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 sm:px-4 sm:py-2 border-b border-amber-950/50 bg-gradient-to-r from-[#1a1518] via-[#1c1619] to-[#1a1518]">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setSelectedId(null)}
-            className="rounded border border-amber-900/60 bg-[#2a221c] px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-200/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:bg-[#352a24] active:translate-y-px"
+            className="rounded-md border border-amber-800/70 bg-[#2a221c] px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:bg-[#352a24] hover:border-amber-600/60 active:translate-y-px transition-colors sm:text-xs"
           >
             Return
           </button>
@@ -236,17 +236,19 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
             type="button"
             aria-label="Help"
             onClick={() => setHelpOpen(true)}
-            className="flex h-8 w-8 items-center justify-center rounded border border-zinc-600 bg-zinc-800/80 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-600 bg-zinc-800/90 text-sm font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white hover:border-zinc-500 transition-colors sm:h-9 sm:w-9"
           >
             ?
           </button>
         </div>
-        <div className="flex flex-wrap items-center gap-4 text-[11px] font-bold uppercase tracking-widest">
-          <span className="text-zinc-400" title={`Level: passive ranks used / max ${MAX_PLANNER_LEVEL}`}>
-            Level{" "}
-            <span className="text-cyan-200/95 tabular-nums">
-              {totalAllocated}/{MAX_PLANNER_LEVEL}
-            </span>
+        <div
+          className="flex items-center gap-2 rounded-lg border border-cyan-900/40 bg-[#0f1729]/80 px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] shrink-0 sm:gap-2.5 sm:px-3 sm:py-1.5"
+          title={`Passive ranks spent / max ${MAX_PLANNER_LEVEL}`}
+        >
+          <span className="font-cinzel text-[9px] font-bold uppercase tracking-widest text-zinc-500">Level</span>
+          <span className="font-cinzel text-sm font-bold tabular-nums text-amber-200 sm:text-base">
+            {totalAllocated}
+            <span className="text-xs font-semibold text-zinc-600">/{MAX_PLANNER_LEVEL}</span>
           </span>
         </div>
       </div>
@@ -285,12 +287,12 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
         </div>
       )}
 
-      {/* Radial spiderweb + upgrade panel: stacked on small screens, side-by-side from lg */}
-      <div className="flex min-h-0 flex-col gap-0 lg:flex-row lg:items-stretch">
-        <div className="flex w-full items-center justify-center border-b border-amber-950/40 px-1 py-2 pb-3 sm:px-2 sm:py-2.5 sm:pb-4 lg:w-auto lg:shrink-0 lg:px-2.5 lg:py-2 lg:pb-2 lg:min-h-0 lg:flex-none lg:border-b-0 lg:border-r lg:border-amber-950/40">
+      {/* Radial spiderweb + upgrade panel: stacked on small screens, side-by-side from lg (tops aligned) */}
+      <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden lg:flex-row lg:items-stretch">
+        <div className="flex w-full items-center justify-center border-b border-amber-950/40 px-1.5 py-2 sm:px-2 sm:py-3 lg:w-auto lg:shrink-0 lg:px-3 lg:py-4 lg:min-h-0 lg:flex-none lg:border-b-0 lg:border-r lg:border-amber-950/40">
           <div
             ref={treeRef}
-            className="relative aspect-square mx-auto w-full shrink-0 overflow-visible select-none max-w-[min(calc(100vw-1rem),340px)] sm:max-w-[min(calc(100vw-2rem),380px)] lg:w-[400px] lg:max-w-[min(400px,calc(100vw-24rem))] xl:w-[420px] xl:max-w-[min(420px,calc(100vw-26rem))]"
+            className="relative mx-auto aspect-square w-full max-h-[min(450px,calc(66vh-3.5rem))] shrink-0 overflow-visible select-none max-w-[min(calc(100vw-1rem),450px)] sm:max-w-[min(calc(100vw-2rem),450px)] md:max-w-[min(calc(100vw-2rem),450px)] lg:w-[min(450px,calc(100vw-20rem))] lg:max-w-[min(450px,calc(100vw-20rem))] xl:w-[min(460px,calc(100vw-24rem))] xl:max-w-[min(460px,calc(100vw-24rem))]"
           >
             <div
               className="absolute inset-0 overflow-hidden rounded-lg border border-amber-950/30"
@@ -335,10 +337,10 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
             <button
               type="button"
               onClick={() => onChangeUpgradeLevels({})}
-              className="absolute right-2 top-2 z-[4] flex flex-col items-end gap-0.5 rounded border border-amber-900/60 bg-[#2a221c]/95 px-2.5 py-1.5 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-[#352a24] sm:right-3 sm:top-3"
+              className="absolute right-1.5 top-1.5 z-[4] flex flex-col items-end gap-0 rounded-md border border-amber-900/60 bg-[#2a221c]/95 px-2 py-1 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-[#352a24] sm:right-2 sm:top-2"
             >
-              <span className="text-[9px] font-bold uppercase tracking-widest text-amber-200/90 sm:text-[10px]">Reset</span>
-              <span className="text-[8px] text-zinc-500">All points</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-amber-100 sm:text-[10px]">Reset</span>
+              <span className="text-[8px] text-zinc-500 sm:text-[9px]">All points</span>
             </button>
 
             <div className="absolute inset-0 z-[2]">
@@ -371,20 +373,20 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
                         <span
                           ref={setNodeRef(cls.id)}
                           className={`
-                            relative inline-flex h-9 w-9 items-center justify-center sm:h-10 sm:w-10
+                            relative inline-flex h-9 w-9 items-center justify-center sm:h-10 sm:w-10 lg:h-11 lg:w-11
                             border-2 bg-gradient-to-b from-zinc-800/95 to-zinc-950/95 text-base sm:text-lg
-                            shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_12px_rgba(0,0,0,0.45)]
+                            shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_3px_10px_rgba(0,0,0,0.45)]
                             transition-[box-shadow,transform,border-color] duration-200
                             ${
                               selectedNode
-                                ? "border-violet-400 shadow-[0_0_18px_rgba(167,139,250,0.5),inset_0_0_10px_rgba(167,139,250,0.12)] scale-[1.03]"
+                                ? "border-violet-400 shadow-[0_0_16px_rgba(167,139,250,0.5),inset_0_0_8px_rgba(167,139,250,0.12)] scale-[1.03]"
                                 : bonusOn
-                                  ? "border-emerald-500/80 ring-1 ring-emerald-400/40"
+                                  ? "border-emerald-500/80 ring-1 ring-emerald-400/35"
                                   : level > 0
-                                    ? "border-amber-600/80 ring-1 ring-amber-500/30"
+                                    ? "border-amber-600/80 ring-1 ring-amber-500/25"
                                     : "border-zinc-600/80"
                             }
-                            ${unlocked ? "hover:border-zinc-400" : ""}
+                            ${unlocked ? "hover:border-zinc-400 hover:scale-[1.02]" : ""}
                           `}
                           style={{
                             clipPath:
@@ -393,13 +395,13 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
                         >
                           {icon}
                           <span
-                            className="pointer-events-none absolute -left-0.5 -top-0.5 z-[1] flex h-[14px] min-w-[14px] items-center justify-center rounded-br bg-black/85 px-0.5 text-[7px] font-bold tabular-nums text-zinc-200 border border-zinc-600/90 sm:h-[15px] sm:text-[8px]"
+                            className="pointer-events-none absolute -left-0.5 -top-0.5 z-[1] flex h-[14px] min-w-[14px] items-center justify-center rounded-br bg-black/90 px-0.5 text-[7px] font-bold tabular-nums text-zinc-100 border border-zinc-600/90 sm:h-[15px] sm:text-[8px]"
                             aria-label={`Points in ${cls.name}`}
                           >
                             {level}
                           </span>
                         </span>
-                        <span className="pointer-events-none absolute left-1/2 top-full z-[1] mt-0.5 w-max max-w-[4.5rem] -translate-x-1/2 text-center text-[6px] font-medium uppercase leading-tight text-zinc-500 group-hover:text-zinc-400 sm:max-w-[5rem] sm:mt-1 sm:text-[7px]">
+                        <span className="pointer-events-none absolute left-1/2 top-full z-[1] mt-0.5 w-max max-w-[4.5rem] -translate-x-1/2 text-center text-[6px] font-semibold uppercase leading-tight tracking-wide text-zinc-400 group-hover:text-zinc-300 sm:max-w-[5rem] sm:mt-1 sm:text-[7px]">
                           {cls.name}
                         </span>
                       </button>
@@ -411,65 +413,67 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
           </div>
         </div>
 
-        <div className="flex min-h-0 w-full flex-col bg-[#18131a] border-t border-amber-950/30 lg:min-h-0 lg:w-[320px] xl:w-[340px] lg:shrink-0 lg:border-t-0 lg:border-l lg:border-amber-950/30">
+        <div className="flex min-h-0 min-w-0 w-full flex-col bg-[#18131a] border-t border-amber-950/30 lg:min-h-0 lg:min-w-[280px] lg:w-[min(100%,320px)] xl:min-w-[300px] xl:w-[min(100%,340px)] lg:shrink-0 lg:border-t-0 lg:border-l lg:border-amber-950/30">
           {!selected ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-zinc-500 text-sm lg:min-h-[12rem]">
-              <p className="text-zinc-400 font-medium uppercase tracking-wider text-xs">No class selected</p>
-              <p className="text-xs max-w-[220px] leading-relaxed">
-                Choose a node on the tree or press Return, then click a class.
-              </p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 sm:p-8 text-center lg:min-h-[10rem]">
+              <div className="rounded-xl border border-dashed border-zinc-700/80 bg-zinc-900/40 px-5 py-6 max-w-sm">
+                <p className="text-zinc-300 font-semibold uppercase tracking-wider text-xs">No class selected</p>
+                <p className="mt-2 text-xs text-zinc-500 leading-relaxed">
+                  Tap a node on the tree, or use <span className="text-amber-400/90">Return</span> then pick a class.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="flex min-h-0 flex-1 flex-col lg:min-h-0">
-              <div className="shrink-0 border-b border-amber-950/50 bg-[#1c1619] px-2.5 py-2">
-                <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-amber-200/90 mb-1">
+              <div className="shrink-0 border-b border-amber-950/50 bg-[#1c1619] px-3 py-2 sm:px-4">
+                <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-amber-200/90 mb-1 sm:text-[9px]">
                   Class bonus
                 </div>
-                <p className="text-[9px] font-medium leading-snug text-cyan-100/80">
+                <p className="text-xs font-medium leading-snug text-cyan-100/90 sm:text-[13px]">
                   {selected.classBonusDescription}
                 </p>
               </div>
 
-              <div className="shrink-0 border-b border-amber-950/40 bg-gradient-to-r from-[#241e22] to-[#1a1518] px-2.5 py-2.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-amber-100/95 truncate sm:text-base">
+              <div className="shrink-0 border-b border-amber-950/40 bg-gradient-to-r from-[#241e22] via-[#1e181c] to-[#1a1518] px-3 py-2.5 sm:px-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-cinzel text-sm font-bold uppercase tracking-[0.12em] text-amber-100 truncate sm:text-base">
                       {selected.name}
                     </h2>
-                    <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-cyan-200/75">
+                    <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-200/80 sm:text-xs">
                       {formatPerLevel(selected.perLevel)}
                     </p>
                   </div>
                   <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rotate-45 border border-amber-800/70 bg-[#2a221c] text-[10px] font-bold text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rotate-45 border border-amber-700/80 bg-[#2a221c] text-[10px] font-bold text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:h-10 sm:w-10 sm:text-xs"
                     title="Class points"
                   >
                     <span className="-rotate-45">{getClassLevel(selected.id, upgradeLevels)}</span>
                   </div>
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-1">
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   <span
-                    className={`text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-px ${
+                    className={`text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-px sm:text-[10px] ${
                       isClassUnlocked(selected.id, upgradeLevels)
-                        ? "bg-zinc-800/90 text-zinc-300"
-                        : "bg-red-950/60 text-red-300"
+                        ? "bg-zinc-800/90 text-zinc-200 border border-zinc-700/80"
+                        : "bg-red-950/60 text-red-200 border border-red-900/50"
                     }`}
                   >
                     {isClassUnlocked(selected.id, upgradeLevels) ? "Unlocked" : "Locked"}
                   </span>
                   {isClassBonusActive(selected.id, upgradeLevels) && (
-                    <span className="text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-px bg-emerald-950/70 text-emerald-300">
+                    <span className="text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-px bg-emerald-950/80 text-emerald-200 border border-emerald-800/50 sm:text-[10px]">
                       Bonus active
                     </span>
                   )}
-                  <span className="text-[9px] text-zinc-500 leading-tight">
+                  <span className="text-[9px] text-zinc-500 leading-tight sm:text-[10px]">
                     Max {selected.maxLevel} · bonus @ {selected.classBonusRequiredPoints}
                   </span>
                 </div>
                 <div className="mt-2 space-y-0.5">
-                  <div className="flex justify-between items-baseline gap-2 text-[8px] font-bold uppercase tracking-wide text-zinc-500">
+                  <div className="flex justify-between items-baseline gap-2 text-[8px] font-bold uppercase tracking-wide text-zinc-500 sm:text-[9px]">
                     <span>Class points</span>
-                    <span className="tabular-nums text-amber-200/95 shrink-0">
+                    <span className="tabular-nums text-amber-100 shrink-0 text-[10px] sm:text-xs">
                       {selectedClassLevel} / {selected.maxLevel}
                     </span>
                   </div>
@@ -484,23 +488,29 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
                         title={`Point ${i + 1}${i < selectedClassLevel ? " (allocated)" : ""}`}
                         className={`min-w-0 flex-1 transition-[background-color,box-shadow] duration-300 ease-out ${
                           i < selectedClassLevel
-                            ? "bg-gradient-to-b from-amber-400 to-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+                            ? "bg-gradient-to-b from-amber-400 to-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
                             : "bg-zinc-800/95"
                         }`}
                       />
                     ))}
                   </div>
                 </div>
-                <p className="mt-1.5 text-[9px] text-zinc-500 leading-snug">{formatRequirement(selected)}</p>
+                <p className="mt-1.5 text-[9px] text-zinc-500 leading-snug sm:text-[10px]">{formatRequirement(selected)}</p>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 space-y-1.5">
+              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 space-y-2 sm:px-4 sm:py-3">
                 {selected.tier === "major" &&
                   majorClassIdsWithPoints(upgradeLevels).length >= 1 &&
                   !majorClassIdsWithPoints(upgradeLevels).includes(selected.id) &&
                   getClassLevel(selected.id, upgradeLevels) === 0 && (
-                    <p className="text-amber-400/90 text-[10px] leading-snug">{majorLockMessage}</p>
+                    <p className="rounded-md border border-amber-800/40 bg-amber-950/30 px-2 py-1.5 text-amber-200/95 text-[10px] leading-snug sm:text-xs">
+                      {majorLockMessage}
+                    </p>
                   )}
+
+                <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-zinc-500 sm:text-[9px]">
+                  Passives
+                </div>
 
                 {selected.upgrades.map((u) => {
                   const key = `${selected.id}/${u.id}`;
@@ -521,33 +531,29 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
                   return (
                     <div
                       key={u.id}
-                      className="rounded-md border border-zinc-800/90 bg-[#141018]/90 py-1 pl-1 pr-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-                    >
-                      <div className="flex items-center gap-0.5">
-                        <div className="flex w-8 shrink-0 flex-col items-center gap-px">
-                          <button
-                            type="button"
-                            aria-label="Decrease rank"
-                            onClick={() => tryRemove(selected, u.id)}
-                            disabled={pts <= 0}
-                            className="flex h-8 w-full items-center justify-center rounded border border-zinc-700 bg-zinc-800/90 text-base leading-none text-zinc-200 hover:bg-zinc-700 disabled:opacity-25"
-                          >
-                            −
-                          </button>
-  
-                        </div>
+                      className="rounded-lg border border-zinc-700/70 bg-[#121016]/95 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_1px_4px_rgba(0,0,0,0.3)] sm:px-2">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          aria-label="Decrease rank"
+                          onClick={() => tryRemove(selected, u.id)}
+                          disabled={pts <= 0}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-600 bg-zinc-800/95 text-base font-bold leading-none text-zinc-100 hover:bg-zinc-700 hover:border-zinc-500 disabled:opacity-25 disabled:hover:bg-zinc-800 transition-colors sm:h-9 sm:w-9"
+                        >
+                          −
+                        </button>
                         <div
-                          className="relative h-8 min-w-0 flex-1 overflow-hidden rounded border border-zinc-700/85 bg-zinc-900/90 shadow-[inset_0_1px_0_rgba(0,0,0,0.25)]"
+                          className="relative h-8 min-w-0 flex-1 overflow-hidden rounded-md border border-zinc-600/90 bg-zinc-950/90 shadow-[inset_0_1px_4px_rgba(0,0,0,0.35)] sm:h-9"
                           role="group"
                           aria-label={`${line}. ${pts} of ${MAX_RANKS_PER_UPGRADE} ranks.`}
                           title={line}
                         >
                           <div
-                            className="absolute inset-y-0 left-0 rounded-sm bg-gradient-to-b from-amber-500 to-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-[width] duration-300 ease-out"
+                            className="absolute inset-y-0 left-0 rounded-sm bg-gradient-to-b from-amber-500 to-amber-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-[width] duration-300 ease-out"
                             style={{ width: `${(pts / MAX_RANKS_PER_UPGRADE) * 100}%` }}
                           />
-                          <div className="absolute inset-0 flex items-center justify-center px-1 pointer-events-none">
-                            <span className="max-w-full truncate text-center text-[7px] font-bold uppercase leading-tight text-zinc-100 drop-shadow-[0_0_3px_rgba(0,0,0,0.95),0_1px_2px_rgba(0,0,0,1)] sm:text-[8px]">
+                          <div className="absolute inset-0 flex items-center justify-center px-1.5 sm:px-2 pointer-events-none">
+                            <span className="w-full text-center text-[7px] font-bold uppercase leading-tight text-zinc-50 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] sm:text-[8px]">
                               {line}
                             </span>
                           </div>
@@ -557,7 +563,7 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
                           aria-label="Increase rank"
                           onClick={() => tryAdd(selected, u.id)}
                           disabled={cannotAdd}
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-800/90 text-base leading-none text-zinc-200 hover:bg-zinc-700 disabled:opacity-25"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-600 bg-zinc-800/95 text-base font-bold leading-none text-zinc-100 hover:bg-zinc-700 hover:border-zinc-500 disabled:opacity-25 transition-colors sm:h-9 sm:w-9"
                         >
                           +
                         </button>
@@ -569,7 +575,7 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
                 {getClassLevel(selected.id, upgradeLevels) > 0 && (
                   <button
                     type="button"
-                    className="mt-1 w-full rounded-md border border-red-900/45 bg-red-950/25 py-1.5 text-[9px] font-bold uppercase tracking-wide text-red-400 hover:bg-red-950/45"
+                    className="mt-1 w-full rounded-lg border border-red-900/50 bg-red-950/30 py-1.5 text-[9px] font-bold uppercase tracking-wide text-red-300 hover:bg-red-950/50 sm:py-2 sm:text-[10px]"
                     onClick={() => clearClass(selected)}
                   >
                     Clear {selected.name}

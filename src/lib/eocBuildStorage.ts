@@ -86,6 +86,97 @@ export function saveStoredBuild(config: BuildConfig): void {
   saveStoredPlanner(config);
 }
 
+// ---------------------------------------------------------------------------
+// Multi-build support
+// ---------------------------------------------------------------------------
+
+export const EOC_BUILDS_STORAGE_KEY = "eocCraftBuilds";
+
+export type StoredBuild = {
+  id: string;
+  name: string;
+  updatedAt: number;
+  payload: StoredPlannerPayload;
+};
+
+export type StoredBuildsState = {
+  builds: StoredBuild[];
+  activeBuildId: string;
+};
+
+function generateBuildId(): string {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? `build-${crypto.randomUUID().slice(0, 8)}`
+    : `build-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+export function createEmptyBuild(name: string): StoredBuild {
+  return {
+    id: generateBuildId(),
+    name,
+    updatedAt: Date.now(),
+    payload: {
+      upgradeLevels: {},
+      equipmentModifiers: emptyEquipmentModifiers(),
+    },
+  };
+}
+
+export function loadBuildsState(): StoredBuildsState {
+  if (typeof window === "undefined") {
+    const b = createEmptyBuild("Build 1");
+    return { builds: [b], activeBuildId: b.id };
+  }
+
+  const raw = localStorage.getItem(EOC_BUILDS_STORAGE_KEY);
+  if (raw) {
+    try {
+      const data = JSON.parse(raw) as unknown;
+      if (data && typeof data === "object") {
+        const d = data as Record<string, unknown>;
+        if (Array.isArray(d.builds) && d.builds.length > 0 && typeof d.activeBuildId === "string") {
+          const builds: StoredBuild[] = [];
+          for (const entry of d.builds as unknown[]) {
+            if (!entry || typeof entry !== "object") continue;
+            const r = entry as Record<string, unknown>;
+            const id = typeof r.id === "string" ? r.id : generateBuildId();
+            const name = typeof r.name === "string" ? r.name : "Build";
+            const updatedAt = typeof r.updatedAt === "number" ? r.updatedAt : Date.now();
+            const payload = normalizePlannerPayload(r.payload) ?? {
+              upgradeLevels: {},
+              equipmentModifiers: emptyEquipmentModifiers(),
+            };
+            builds.push({ id, name, updatedAt, payload });
+          }
+          if (builds.length > 0) {
+            const activeBuildId = builds.some((b) => b.id === d.activeBuildId)
+              ? (d.activeBuildId as string)
+              : builds[0].id;
+            return { builds, activeBuildId };
+          }
+        }
+      }
+    } catch {
+      /* ignore malformed JSON */
+    }
+  }
+
+  // Migrate from old single-build format
+  const oldPayload = loadStoredPlanner();
+  const first = createEmptyBuild("Build 1");
+  if (oldPayload) first.payload = oldPayload;
+  return { builds: [first], activeBuildId: first.id };
+}
+
+export function saveBuildsState(state: StoredBuildsState): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(EOC_BUILDS_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
 function normalizeInventory(raw: unknown): InventoryStack[] {
   if (!Array.isArray(raw)) return [];
   const out: InventoryStack[] = [];

@@ -1,7 +1,33 @@
 @import "tailwindcss";
 
 body {
-  background-color: #09090b;
+  background-color: #07060c;
   color: #f4f4f5;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.font-cinzel {
+  font-family: var(--font-cinzel), 'Palatino Linotype', Palatino, 'Book Antiqua', serif;
+  letter-spacing: 0.08em;
+}
+
+/* Accent range/slider styling */
+input[type="range"] {
+  cursor: pointer;
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0e0c14;
+}
+::-webkit-scrollbar-thumb {
+  background: #3a3248;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #5a4e70;
 }

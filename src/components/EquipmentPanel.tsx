@@ -507,8 +507,8 @@ export default function EquipmentPanel({
   };
 
   return (
-    <div className={`relative isolate z-0 min-w-0 overflow-x-auto ${panelFrame} p-3 sm:p-4`}>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+    <div className={`relative isolate z-0 min-w-0 overflow-x-auto ${panelFrame} p-2.5 sm:p-3`}>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
         {/* Left: paper doll */}
         <div className="flex w-full shrink-0 flex-col lg:w-[min(100%,280px)] lg:max-w-[280px]">
           <div className={`${panelFrame} overflow-hidden p-3`}>

@@ -25,7 +25,14 @@ import {
   type AbilitySelectionState,
 } from "../data/gameStats";
 import { abilityMatchesWeapon, EOC_ABILITY_BY_ID, weaponAbilityTagFromItemId } from "../data/eocAbilities";
-import { loadStoredPlanner, parseStoredPlannerJson, saveStoredPlanner } from "../lib/eocBuildStorage";
+import {
+  parseStoredPlannerJson,
+  createEmptyBuild,
+  loadBuildsState,
+  saveBuildsState,
+  type StoredBuild,
+  type StoredPlannerPayload,
+} from "../lib/eocBuildStorage";
 import { NEXUS_TIER_ROWS } from "../data/nexusEnemyScaling";
 import { useGameData } from "../contexts/GameDataContext";
 
@@ -67,6 +74,8 @@ function addOrMergeStack(
 
 export default function BuildPlanner() {
   const { loading: dataLoading, error: dataError, lastUpdated: sheetVersion } = useGameData();
+
+  // --- Per-build state ---
   const [upgradeLevels, setUpgradeLevels] = useState<Record<string, number>>({});
   const [equipped, setEquipped] = useState<Record<string, EquippedEntry>>({});
   const [inventory, setInventory] = useState<InventoryStack[]>([]);
@@ -75,30 +84,53 @@ export default function BuildPlanner() {
     abilityLevel: 0,
     attunementPct: 0,
   });
+
+  // --- Multi-build state ---
+  const [builds, setBuilds] = useState<StoredBuild[]>([]);
+  const [activeBuildId, setActiveBuildId] = useState<string>("");
+  const [editingBuildId, setEditingBuildId] = useState<string | null>(null);
+  const [editingBuildName, setEditingBuildName] = useState("");
+
   const [hydrated, setHydrated] = useState(false);
+
+  // Refs so effects can read current values without stale closures
   const equipStateRef = useRef({ equipped, inventory });
+  const buildsRef = useRef<StoredBuild[]>([]);
+  const activeBuildIdRef = useRef<string>("");
+
   useLayoutEffect(() => {
     equipStateRef.current = { equipped, inventory };
   }, [equipped, inventory]);
+  useLayoutEffect(() => {
+    buildsRef.current = builds;
+  }, [builds]);
+  useLayoutEffect(() => {
+    activeBuildIdRef.current = activeBuildId;
+  }, [activeBuildId]);
+
   const [incomingDamage, setIncomingDamage] = useState(100);
   const [nexusTier, setNexusTier] = useState(0);
   const [buildJsonImport, setBuildJsonImport] = useState("");
   const [buildJsonImportError, setBuildJsonImportError] = useState<string | null>(null);
 
+  // Hydrate from multi-build storage (migrates old single-build saves automatically)
   useEffect(() => {
     queueMicrotask(() => {
-      const saved = loadStoredPlanner();
+      const state = loadBuildsState();
+      setBuilds(state.builds);
+      setActiveBuildId(state.activeBuildId);
+
+      const active = state.builds.find((b) => b.id === state.activeBuildId);
+      const saved = active?.payload ?? null;
       if (saved) {
-        setUpgradeLevels(saved.upgradeLevels);
+        setUpgradeLevels(saved.upgradeLevels ?? {});
         if (saved.equipped) setEquipped(migrateEquippedFromSave(saved.equipped));
         if (Object.prototype.hasOwnProperty.call(saved, "inventory")) {
           setInventory(saved.inventory ?? []);
         } else {
           setInventory(DEFAULT_INVENTORY.map((s) => ({ ...s })));
         }
-        if (saved.ability) {
-          setAbility(normalizeAbilitySelection(saved.ability));
-        }
+        if (saved.ability) setAbility(normalizeAbilitySelection(saved.ability));
       } else {
         setInventory(DEFAULT_INVENTORY.map((s) => ({ ...s })));
       }
@@ -132,16 +164,88 @@ export default function BuildPlanner() {
 
   const stats = useMemo(() => computeBuildStats(buildConfig), [buildConfig]);
 
+  // Persist current build state without depending on builds/activeBuildId (uses refs to avoid loop)
   useEffect(() => {
     if (!hydrated) return;
-    saveStoredPlanner({
-      upgradeLevels,
-      equipmentModifiers,
-      ability,
-      equipped,
-      inventory,
-    });
+    const payload: StoredPlannerPayload = { upgradeLevels, equipmentModifiers, ability, equipped, inventory };
+    const currentBuilds = buildsRef.current;
+    const currentId = activeBuildIdRef.current;
+    if (!currentId || currentBuilds.length === 0) return;
+    const updatedBuilds = currentBuilds.map((b) =>
+      b.id === currentId ? { ...b, payload, updatedAt: Date.now() } : b
+    );
+    saveBuildsState({ builds: updatedBuilds, activeBuildId: currentId });
   }, [upgradeLevels, equipmentModifiers, ability, equipped, inventory, hydrated]);
+
+  // --- Build management helpers ---
+
+  const loadBuildPayload = useCallback((p: StoredPlannerPayload) => {
+    setUpgradeLevels(p.upgradeLevels ?? {});
+    setEquipped(p.equipped ? migrateEquippedFromSave(p.equipped) : {});
+    if (Object.prototype.hasOwnProperty.call(p, "inventory")) {
+      setInventory(p.inventory ?? []);
+    } else {
+      setInventory(DEFAULT_INVENTORY.map((s) => ({ ...s })));
+    }
+    setAbility(normalizeAbilitySelection(p.ability));
+  }, []);
+
+  const captureCurrentPayload = useCallback((): StoredPlannerPayload => ({
+    upgradeLevels,
+    equipmentModifiers,
+    ability,
+    equipped,
+    inventory,
+  }), [upgradeLevels, equipmentModifiers, ability, equipped, inventory]);
+
+  const switchBuild = useCallback((id: string) => {
+    if (id === activeBuildId) return;
+    const updated = builds.map((b) =>
+      b.id === activeBuildId ? { ...b, payload: captureCurrentPayload(), updatedAt: Date.now() } : b
+    );
+    const target = updated.find((b) => b.id === id);
+    if (!target) return;
+    setBuilds(updated);
+    setActiveBuildId(id);
+    loadBuildPayload(target.payload);
+  }, [activeBuildId, builds, captureCurrentPayload, loadBuildPayload]);
+
+  const createBuild = useCallback(() => {
+    const name = `Build ${builds.length + 1}`;
+    const newBuild = createEmptyBuild(name);
+    setBuilds((prev) => [
+      ...prev.map((b) =>
+        b.id === activeBuildId ? { ...b, payload: captureCurrentPayload(), updatedAt: Date.now() } : b
+      ),
+      newBuild,
+    ]);
+    setActiveBuildId(newBuild.id);
+    setUpgradeLevels({});
+    setEquipped({});
+    setInventory(DEFAULT_INVENTORY.map((s) => ({ ...s })));
+    setAbility({ abilityId: null, abilityLevel: 0, attunementPct: 0 });
+  }, [builds.length, activeBuildId, captureCurrentPayload]);
+
+  const deleteBuild = useCallback((id: string) => {
+    if (builds.length <= 1) return;
+    const target = builds.find((b) => b.id === id);
+    if (!window.confirm(`Delete "${target?.name ?? "this build"}"?`)) return;
+    const remaining = builds.filter((b) => b.id !== id);
+    if (id === activeBuildId) {
+      const idx = builds.findIndex((b) => b.id === id);
+      const next = remaining[Math.max(0, idx - 1)];
+      setActiveBuildId(next.id);
+      loadBuildPayload(next.payload);
+    }
+    setBuilds(remaining);
+  }, [builds, activeBuildId, loadBuildPayload]);
+
+  const commitRename = useCallback(() => {
+    if (!editingBuildId) return;
+    const trimmed = editingBuildName.trim();
+    if (trimmed) setBuilds((prev) => prev.map((b) => b.id === editingBuildId ? { ...b, name: trimmed } : b));
+    setEditingBuildId(null);
+  }, [editingBuildId, editingBuildName]);
 
   const updateInventoryStack = useCallback((stackId: string, rolls: number[], enhancement: number) => {
     setInventory((inv) =>
@@ -314,43 +418,42 @@ export default function BuildPlanner() {
 
   if (dataLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">
+      <div className="min-h-screen bg-[#07060c] text-zinc-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-zinc-400 text-sm mb-1">Loading game data from sheets...</div>
-          {dataError && <div className="text-red-400 text-xs">{dataError}</div>}
+          <div className="font-cinzel text-amber-200/60 text-xs uppercase tracking-widest mb-1">Loading...</div>
+          {dataError && <div className="text-red-400 text-xs mt-1">{dataError}</div>}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <header id="planner-top" className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-zinc-100">EOC Craft ⚙️</h1>
-            <p className="text-zinc-500 text-xs mt-0.5">
-              Echoes of Creation — class trees from <code className="text-zinc-400">gameClasses.ts</code>, stats from{" "}
-              <code className="text-zinc-400">computeBuildStats</code>
-            </p>
+    <div className="min-h-screen bg-[#07060c] text-zinc-100">
+      <header id="planner-top" className="border-b border-amber-900/30 bg-[#0c0a12]/95 backdrop-blur sticky top-0 z-10 shadow-[0_2px_20px_rgba(0,0,0,0.7)]">
+        <div className="max-w-7xl mx-auto px-3 py-2 sm:px-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="font-cinzel text-amber-200 text-sm sm:text-base font-bold tracking-widest uppercase shrink-0">
+              EOC Craft
+            </h1>
+            <span className="text-amber-900/60 hidden sm:block text-xs">⬥</span>
+            <span className="hidden sm:block text-zinc-600 text-[11px] tracking-wide truncate">Echoes of Creation</span>
           </div>
-          <div className="flex flex-col items-stretch sm:items-end gap-2 shrink-0 w-full sm:w-auto">
-            <Link href="/battle" className="text-sm text-blue-400 hover:text-blue-300">
-              Demo encounter →
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <Link href="/battle" className="text-[11px] text-amber-600/80 hover:text-amber-400 uppercase tracking-wider font-medium">
+              Demo →
             </Link>
-            <details className="text-sm border border-zinc-700 rounded-lg bg-zinc-900/90 min-w-[min(100%,280px)]">
-              <summary className="cursor-pointer select-none px-3 py-2 text-zinc-400 hover:text-zinc-200 list-inside">
-                Import / export build (localStorage JSON)
+            <details className="text-xs border border-amber-900/30 rounded bg-[#12101a]/95 min-w-[min(100%,240px)]">
+              <summary className="cursor-pointer select-none px-2.5 py-1.5 text-zinc-500 hover:text-zinc-300 list-inside text-[11px] tracking-wide">
+                Import / Export Build
               </summary>
-              <div className="px-3 pb-3 pt-1 border-t border-zinc-800 space-y-2">
-                <p className="text-xs text-zinc-500">
-                  Paste the same JSON stored under <code className="text-zinc-400">eocCraftBuild</code>. Applying
-                  replaces the planner and persists on the next save (same as editing the UI).
+              <div className="px-2.5 pb-2.5 pt-1 border-t border-amber-900/30 space-y-1.5">
+                <p className="text-[10px] text-zinc-600">
+                  Paste a saved build JSON to restore, or copy current build to clipboard.
                 </p>
                 {hydrated ? (
                   <>
                     <textarea
-                      className="w-full min-h-[120px] rounded-md border border-zinc-700 bg-zinc-950 text-zinc-200 text-xs font-mono p-2 resize-y"
+                      className="w-full min-h-[88px] rounded-md border border-zinc-700 bg-zinc-950 text-zinc-200 text-[11px] font-mono p-1.5 resize-y sm:text-xs"
                       placeholder='{"upgradeLevels":{…},"equipmentModifiers":{…},…}'
                       value={buildJsonImport}
                       onChange={(e) => {
@@ -383,7 +486,7 @@ export default function BuildPlanner() {
                   </>
                 ) : (
                   <div className="space-y-2" aria-busy="true" aria-label="Loading import controls">
-                    <div className="w-full min-h-[120px] rounded-md border border-zinc-700 bg-zinc-900/50 animate-pulse" />
+                    <div className="w-full min-h-[88px] rounded-md border border-zinc-700 bg-zinc-900/50 animate-pulse" />
                     <div className="flex flex-wrap gap-2">
                       <div className="h-7 w-24 rounded-md bg-zinc-800 animate-pulse" />
                       <div className="h-7 w-40 rounded-md bg-zinc-800 animate-pulse" />
@@ -395,20 +498,82 @@ export default function BuildPlanner() {
           </div>
         </div>
       </header>
-      <main className="py-6">
-        <div className="max-w-7xl mx-auto px-4 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-zinc-100 font-semibold text-sm uppercase tracking-wider">Incoming hit damage</div>
-                <div className="text-zinc-500 text-xs mt-1">
-                  Armour DR and non-damaging ailment preview use your EOC armour and life + ES pools.
+      <main className="py-2 sm:py-3">
+        {/* Build tabs */}
+        {hydrated && (
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 mb-2.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+              {builds.map((b) => (
+                <div
+                  key={b.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => switchBuild(b.id)}
+                  onKeyDown={(e) => e.key === "Enter" && switchBuild(b.id)}
+                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 rounded border text-[11px] flex-shrink-0 cursor-pointer select-none transition-colors ${
+                    b.id === activeBuildId
+                      ? "bg-amber-950/40 border-amber-700/50 text-amber-200 shadow-[0_0_10px_rgba(180,90,20,0.15)]"
+                      : "bg-[#0f0d16] border-amber-900/20 text-zinc-500 hover:text-zinc-300 hover:border-amber-900/40"
+                  }`}
+                >
+                  {editingBuildId === b.id ? (
+                    <input
+                      autoFocus
+                      value={editingBuildName}
+                      onChange={(e) => setEditingBuildName(e.target.value)}
+                      onBlur={commitRename}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitRename();
+                        if (e.key === "Escape") setEditingBuildId(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-transparent outline-none text-amber-200 w-24 min-w-0 font-cinzel font-bold"
+                    />
+                  ) : (
+                    <span
+                      className="font-cinzel font-bold tracking-wider"
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        if (b.id === activeBuildId) {
+                          setEditingBuildId(b.id);
+                          setEditingBuildName(b.name);
+                        }
+                      }}
+                    >
+                      {b.name}
+                    </span>
+                  )}
+                  {builds.length > 1 && editingBuildId !== b.id && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); deleteBuild(b.id); }}
+                      className="opacity-0 group-hover:opacity-50 hover:!opacity-100 text-zinc-500 hover:text-red-400 transition-opacity text-sm leading-none"
+                      aria-label={`Delete ${b.name}`}
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
-              </div>
-              <div className="text-zinc-100 font-mono text-sm">{incomingDamage}</div>
+              ))}
+              <button
+                type="button"
+                onClick={createBuild}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded border border-dashed border-amber-900/30 text-zinc-600 hover:text-amber-400/80 hover:border-amber-800/50 text-[11px] transition-colors"
+              >
+                <span className="text-base leading-none">+</span>
+                <span className="hidden sm:inline font-cinzel tracking-wider uppercase text-[10px]">New</span>
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 mb-2.5 grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <div className="bg-[#0f0d16] border border-amber-900/25 rounded-lg p-2.5 sm:p-3">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <div className="font-cinzel text-amber-200/80 text-[10px] uppercase tracking-widest font-bold">Incoming Hit Damage</div>
+              <div className="text-amber-100 font-mono text-xs tabular-nums font-bold">{incomingDamage}</div>
             </div>
             <input
-              className="mt-3 w-full accent-blue-500"
+              className="w-full accent-blue-500"
               type="range"
               min={1}
               max={5000}
@@ -416,20 +581,16 @@ export default function BuildPlanner() {
               value={incomingDamage}
               onChange={(e) => setIncomingDamage(Number(e.target.value))}
             />
-            <div className="mt-1 flex justify-between text-xs text-zinc-600">
+            <div className="mt-0.5 flex justify-between text-[10px] text-zinc-700">
               <span>1</span>
+              <span className="text-zinc-600 text-[9px]">Armour DR & ailment preview uses your pools</span>
               <span>5000</span>
             </div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-            <div className="flex items-center justify-between gap-4 mb-2">
-              <div>
-                <div className="text-zinc-100 font-semibold text-sm uppercase tracking-wider">Nexus tier (enemy ref.)</div>
-                <div className="text-zinc-500 text-xs mt-1">
-                  Hit chance / your evade vs table accuracy & evasion.
-                </div>
-              </div>
-              <div className="text-zinc-100 font-mono text-sm">{nexusTier}</div>
+          <div className="bg-[#0f0d16] border border-amber-900/25 rounded-lg p-2.5 sm:p-3">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <div className="font-cinzel text-amber-200/80 text-[10px] uppercase tracking-widest font-bold">Nexus Tier</div>
+              <div className="text-amber-100 font-mono text-xs tabular-nums font-bold">{nexusTier}</div>
             </div>
             <input
               className="w-full accent-amber-500"
@@ -440,25 +601,21 @@ export default function BuildPlanner() {
               value={nexusTier}
               onChange={(e) => setNexusTier(Number(e.target.value))}
             />
-            <div className="mt-2 text-xs text-zinc-500 space-y-0.5">
+            <div className="mt-1 text-[10px] text-zinc-600 flex flex-wrap items-center gap-x-3 gap-y-0.5">
               {(() => {
                 const row = NEXUS_TIER_ROWS[nexusTier];
                 if (!row) return null;
                 const avgPhys = Math.round((row.physMin + row.physMax) / 2);
                 return (
                   <>
-                    <div>
-                      Phys hit {row.physMin}–{row.physMax} · avg {avgPhys}
-                    </div>
-                    <div>
-                      Enemy HP {row.health.toLocaleString("en-US")} · acc {row.accuracy} / eva {row.evasion}
-                    </div>
+                    <span>Phys {row.physMin}–{row.physMax} · avg {avgPhys}</span>
+                    <span>HP {row.health.toLocaleString("en-US")} · acc {row.accuracy} / eva {row.evasion}</span>
                     <button
                       type="button"
-                      className="mt-2 text-amber-400/90 hover:text-amber-300 text-xs underline underline-offset-2"
+                      className="text-amber-500/80 hover:text-amber-400 underline underline-offset-2"
                       onClick={() => setIncomingDamage(avgPhys)}
                     >
-                      Set incoming damage to tier avg phys ({avgPhys})
+                      Set to tier avg phys ({avgPhys})
                     </button>
                   </>
                 );
@@ -466,18 +623,18 @@ export default function BuildPlanner() {
             </div>
           </div>
         </div>
-        <div className="w-full min-w-0 mb-4 px-2 sm:px-4 md:px-6 lg:px-10 xl:px-14">
+        <div className="w-full min-w-0 mb-2.5 px-3 sm:px-4 max-w-7xl mx-auto">
           {hydrated ? (
             <EocClassesPanel upgradeLevels={upgradeLevels} onChangeUpgradeLevels={setUpgradeLevels} />
           ) : (
             <div
-              className="rounded-xl border border-amber-950/80 bg-[#141019] h-[min(520px,70vh)] animate-pulse"
+              className="rounded-2xl border border-amber-950/80 bg-[#141019] h-[min(300px,46vh)] animate-pulse"
               aria-busy="true"
               aria-label="Loading class planner"
             />
           )}
         </div>
-        <div className="max-w-7xl mx-auto px-4 flex flex-col gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 flex flex-col gap-2.5">
           <div className="min-w-0 w-full">
             <AbilitiesPanel weaponItemId={weaponItemId} ability={abilityForStats} onChangeAbility={setAbility} />
           </div>
@@ -497,7 +654,7 @@ export default function BuildPlanner() {
               nexusTier={nexusTier}
             />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
             <div className="min-w-0 lg:col-span-2">
               <EocStatsPanel stats={stats} incomingDamage={incomingDamage} nexusTier={nexusTier} />
             </div>
@@ -511,7 +668,7 @@ export default function BuildPlanner() {
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 mt-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 mt-2.5 pb-4">
           <FormulaViewer />
         </div>
       </main>
