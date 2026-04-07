@@ -166,8 +166,8 @@ const UNIQUE_ITEM_TYPE_TO_TAG: Record<string, string> = {
   Bow: "bow",
   Dagger: "dagger",
   Wand: "wand",
-  Magestave: "magestave",
-  Battlestave: "battlestaff",
+  Magestaff: "magestaff",
+  Battlestaff: "battlestaff",
 };
 
 /** Non-unique weapon ids → ability weapon tag (best-effort for planner bases). */
@@ -175,7 +175,7 @@ const BASE_WEAPON_ITEM_TO_TAG: Record<string, string> = {
   iron_sword: "sword",
   steel_axe: "warhammer",
   shadow_dagger: "dagger",
-  staff_of_flames: "magestave",
+  staff_of_flames: "magestaff",
   longbow: "bow",
   sword_of_light: "sword",
 };

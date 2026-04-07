@@ -195,6 +195,33 @@ function normalizeInventory(raw: unknown): InventoryStack[] {
     const enhRaw = Math.floor(Number(o.enhancement));
     const enhancement =
       !Number.isNaN(enhRaw) && enhRaw > 0 ? Math.min(20, enhRaw) : undefined;
+    // Crafted modifier fields
+    let craftedPrefixes: import('../data/eocModifiers').AppliedModifier[] | undefined;
+    let craftedSuffixes: import('../data/eocModifiers').AppliedModifier[] | undefined;
+    if (Array.isArray(o.craftedPrefixes) && o.craftedPrefixes.length > 0) {
+      craftedPrefixes = (o.craftedPrefixes as unknown[]).flatMap((x) => {
+        if (!x || typeof x !== 'object') return [];
+        const a = x as Record<string, unknown>;
+        const modifierId = typeof a.modifierId === 'string' ? a.modifierId : '';
+        const roll1 = Number(a.roll1);
+        if (!modifierId || Number.isNaN(roll1)) return [];
+        const roll2Raw = Number(a.roll2);
+        return [{ modifierId, roll1, roll2: a.roll2 != null && !Number.isNaN(roll2Raw) ? roll2Raw : undefined }];
+      });
+      if (!craftedPrefixes.length) craftedPrefixes = undefined;
+    }
+    if (Array.isArray(o.craftedSuffixes) && o.craftedSuffixes.length > 0) {
+      craftedSuffixes = (o.craftedSuffixes as unknown[]).flatMap((x) => {
+        if (!x || typeof x !== 'object') return [];
+        const a = x as Record<string, unknown>;
+        const modifierId = typeof a.modifierId === 'string' ? a.modifierId : '';
+        const roll1 = Number(a.roll1);
+        if (!modifierId || Number.isNaN(roll1)) return [];
+        const roll2Raw = Number(a.roll2);
+        return [{ modifierId, roll1, roll2: a.roll2 != null && !Number.isNaN(roll2Raw) ? roll2Raw : undefined }];
+      });
+      if (!craftedSuffixes.length) craftedSuffixes = undefined;
+    }
     out.push({
       id,
       slot,
@@ -202,6 +229,8 @@ function normalizeInventory(raw: unknown): InventoryStack[] {
       qty,
       rolls: rolls?.length ? rolls : undefined,
       enhancement,
+      craftedPrefixes,
+      craftedSuffixes,
     });
   }
   return out;

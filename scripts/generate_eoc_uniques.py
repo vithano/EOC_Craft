@@ -64,7 +64,7 @@ def to_float_maybe(v: str) -> float | None:
 
 
 TWO_HANDED_TYPES = frozenset(
-    {"Warhammer", "Greatsword", "Bow", "Magestave", "Battlestave"}
+    {"Warhammer", "Greatsword", "Bow", "Magestaff", "Battlestaff"}
 )
 
 

@@ -1,4 +1,7 @@
 import { EOC_UNIQUE_BY_ID, EOC_UNIQUE_DEFINITIONS, isUniqueItemId } from './eocUniques';
+import { EOC_BASE_EQUIPMENT_BY_ID, isCraftedEquipItemId } from './eocBaseEquipment';
+export { isCraftedEquipItemId } from './eocBaseEquipment';
+export type { AppliedModifier } from './eocModifiers';
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'unique';
 
@@ -81,6 +84,7 @@ export function invalidateEquipmentItemsCache(): void {
 export function weaponUsesBothHands(itemId: string): boolean {
   if (!itemId || itemId === 'none') return false;
   if (isUniqueItemId(itemId)) return EOC_UNIQUE_BY_ID[itemId]?.twoHanded ?? false;
+  if (isCraftedEquipItemId(itemId)) return EOC_BASE_EQUIPMENT_BY_ID[itemId]?.twoHanded ?? false;
   const row = getEquipmentItemsMap().Weapon?.find((i) => i.id === itemId);
   return row?.twoHanded ?? false;
 }
@@ -95,6 +99,10 @@ export interface EquippedEntry {
   rolls?: number[];
   /** Unique enhancement +1…+max (each level adds Enhancement Bonus % to first % in innate). */
   enhancement?: number;
+  /** Applied prefixes for crafted base-equipment items (up to 2). */
+  craftedPrefixes?: import('./eocModifiers').AppliedModifier[];
+  /** Applied suffixes for crafted base-equipment items (up to 2). */
+  craftedSuffixes?: import('./eocModifiers').AppliedModifier[];
 }
 
 function clampEnhancement(n: unknown): number | undefined {
@@ -103,11 +111,27 @@ function clampEnhancement(n: unknown): number | undefined {
   return Math.min(20, v);
 }
 
+function normalizeAppliedModifiers(raw: unknown): import('./eocModifiers').AppliedModifier[] | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  const out: import('./eocModifiers').AppliedModifier[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const o = item as Record<string, unknown>;
+    const modifierId = typeof o.modifierId === 'string' ? o.modifierId : '';
+    if (!modifierId) continue;
+    const roll1 = Number(o.roll1);
+    if (Number.isNaN(roll1)) continue;
+    const roll2Raw = Number(o.roll2);
+    out.push({ modifierId, roll1, roll2: !Number.isNaN(roll2Raw) && o.roll2 != null ? roll2Raw : undefined });
+  }
+  return out.length ? out : undefined;
+}
+
 export function normalizeEquippedEntry(raw: unknown): EquippedEntry {
   if (raw == null) return { itemId: 'none' };
   if (typeof raw === 'string') return { itemId: raw };
   if (typeof raw === 'object' && raw !== null && 'itemId' in raw) {
-    const o = raw as { itemId: unknown; rolls?: unknown; enhancement?: unknown };
+    const o = raw as Record<string, unknown>;
     const itemId = typeof o.itemId === 'string' ? o.itemId : 'none';
     let rolls: number[] | undefined;
     if (Array.isArray(o.rolls) && o.rolls.length > 0) {
@@ -118,6 +142,8 @@ export function normalizeEquippedEntry(raw: unknown): EquippedEntry {
       itemId,
       rolls: rolls?.length ? rolls : undefined,
       enhancement: enhancement !== undefined && enhancement > 0 ? enhancement : undefined,
+      craftedPrefixes: normalizeAppliedModifiers(o.craftedPrefixes),
+      craftedSuffixes: normalizeAppliedModifiers(o.craftedSuffixes),
     };
   }
   return { itemId: 'none' };
@@ -161,6 +187,10 @@ export interface InventoryStack {
   /** Rolled values for unique item numeric ranges, in order. */
   rolls?: number[];
   enhancement?: number;
+  /** Applied prefixes for crafted base-equipment items (up to 2). */
+  craftedPrefixes?: import('./eocModifiers').AppliedModifier[];
+  /** Applied suffixes for crafted base-equipment items (up to 2). */
+  craftedSuffixes?: import('./eocModifiers').AppliedModifier[];
 }
 
 export const INVENTORY_MAX_SLOTS = 100;

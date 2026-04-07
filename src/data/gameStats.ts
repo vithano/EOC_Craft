@@ -51,9 +51,12 @@ import { EOC_UNIQUE_BY_ID, isUniqueItemId, resolveUniqueMods } from './eocUnique
 import { FORMULA_CONSTANTS } from './formulaConstants'
 import {
   attributeThresholdConditionalPatchFromTexts,
+  applyExtraCraftedModPatterns,
   equipmentModifiersFromUniqueTexts,
   type UniqueGearStatPatch,
 } from './uniqueGearMods'
+import { EOC_BASE_EQUIPMENT_BY_ID, isCraftedEquipItemId } from './eocBaseEquipment'
+import { appliedModifiersToStatTexts } from './eocModifiers'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -1288,7 +1291,7 @@ function mergeAttributeThresholdConditionalUniques(
 /** Sum static items and rolled uniques for all worn slots. */
 export function aggregateEquippedToEquipmentModifiers(
   slots: string[],
-  getEquipped: (slot: string) => { itemId: string; rolls?: number[]; enhancement?: number } | null | undefined
+  getEquipped: (slot: string) => { itemId: string; rolls?: number[]; enhancement?: number; craftedPrefixes?: import('./eocModifiers').AppliedModifier[]; craftedSuffixes?: import('./eocModifiers').AppliedModifier[] } | null | undefined
 ): EquipmentModifiers {
   const eq = emptyEquipmentModifiers()
   for (const slot of slots) {
@@ -1339,6 +1342,52 @@ export function aggregateEquippedToEquipmentModifiers(
           eq.flatEnergyShieldFromGear += Math.round(def.baseEnergyShield * (1 + localDefPct / 100))
         }
         // Shield block chance: base * (1 + local block %) + flat block bonuses
+        if (slot === 'Off-hand' && def.baseBlockChance != null) {
+          const localBlockPct = patch.localIncreasedBlockPct ?? 0
+          eq.blockChanceFromGear += def.baseBlockChance * (1 + localBlockPct / 100)
+        }
+      }
+
+      mergeUniqueGearPatch(eq, patch)
+      continue
+    }
+
+    if (isCraftedEquipItemId(itemId)) {
+      const def = EOC_BASE_EQUIPMENT_BY_ID[itemId]
+      if (!def) continue
+      const prefixes = entry?.craftedPrefixes ?? []
+      const suffixes = entry?.craftedSuffixes ?? []
+      const texts = appliedModifiersToStatTexts(prefixes, suffixes)
+      const isWeapon = slot === 'Weapon'
+      const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
+      applyExtraCraftedModPatterns(patch, texts)
+
+      if (isWeapon) {
+        const baseDmgMin = def.baseDamageMin ?? 0
+        const baseDmgMax = def.baseDamageMax ?? 0
+        if (baseDmgMin > 0 || baseDmgMax > 0) {
+          const localPhysPct = patch.localIncreasedPhysDamagePct ?? 0
+          eq.flatDamageMin += baseDmgMin * (1 + localPhysPct / 100)
+          eq.flatDamageMax += baseDmgMax * (1 + localPhysPct / 100)
+        }
+        if (def.baseAttackSpeed != null) {
+          const localApsPct = patch.localIncreasedApsPct ?? 0
+          eq.weaponEffectiveAps = def.baseAttackSpeed * (1 + localApsPct / 100)
+        }
+        if (def.baseCritChance != null) {
+          eq.weaponBaseCritChance = def.baseCritChance
+        }
+      } else {
+        const localDefPct = patch.localIncreasedDefencesPct ?? 0
+        if (def.baseArmour != null) {
+          eq.flatArmour += Math.round(def.baseArmour * (1 + localDefPct / 100))
+        }
+        if (def.baseEvasion != null) {
+          eq.flatEvasion += Math.round(def.baseEvasion * (1 + localDefPct / 100))
+        }
+        if (def.baseEnergyShield != null) {
+          eq.flatEnergyShieldFromGear += Math.round(def.baseEnergyShield * (1 + localDefPct / 100))
+        }
         if (slot === 'Off-hand' && def.baseBlockChance != null) {
           const localBlockPct = patch.localIncreasedBlockPct ?? 0
           eq.blockChanceFromGear += def.baseBlockChance * (1 + localBlockPct / 100)

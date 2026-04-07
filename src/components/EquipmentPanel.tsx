@@ -3,11 +3,12 @@
 import { useCallback, useMemo, useState } from "react";
 import { useGameData } from "../contexts/GameDataContext";
 import type { ComputedBuildStats } from "../data/gameStats";
-import type { EquippedEntry, EquipmentFilter, InventoryStack, Rarity } from "../data/equipment";
+import type { AppliedModifier, EquippedEntry, EquipmentFilter, InventoryStack, Rarity } from "../data/equipment";
 import {
   EQUIPMENT_SLOTS,
   getEquippedEntry,
   getItemDefinition,
+  isCraftedEquipItemId,
   INVENTORY_MAX_SLOTS,
   slotCategory,
 } from "../data/equipment";
@@ -31,6 +32,18 @@ import {
   type HitDamageTypeRow,
 } from "../data/damageTypes";
 import { equipmentModifiersFromUniqueTexts } from "../data/uniqueGearMods";
+import {
+  EOC_BASE_EQUIPMENT,
+  getBaseEquipmentForSlot,
+  type EocBaseEquipmentDefinition,
+} from "../data/eocBaseEquipment";
+import {
+  EOC_MODIFIERS_BY_ID,
+  defaultRollsForModifier,
+  formatModifierText,
+  getModifiersForItemType,
+  type EocModifierDefinition,
+} from "../data/eocModifiers";
 import EocStatsPanel from "./EocStatsPanel";
 import { EmptySlotIcon, EquippedItemIcon, FilterIcon, plannerSlotToGlyphKey } from "./equipmentIcons";
 
@@ -64,6 +77,7 @@ interface EquipmentPanelProps {
   onExtractStack: (stackId: string) => void;
   onExtractAll: () => void;
   onAddUniqueToBag: (slot: string, itemId: string, rolls: number[], enhancement: number) => void;
+  onAddCraftedToBag: (slot: string, itemId: string, prefixes: AppliedModifier[], suffixes: AppliedModifier[]) => void;
   stats: ComputedBuildStats;
   incomingDamage: number;
   nexusTier: number;
@@ -132,6 +146,7 @@ export default function EquipmentPanel({
   onExtractStack,
   onExtractAll,
   onAddUniqueToBag,
+  onAddCraftedToBag,
   stats,
   incomingDamage,
   nexusTier,
@@ -146,12 +161,28 @@ export default function EquipmentPanel({
   const [craftSlot, setCraftSlot] = useState<string>("__all__");
   const [craftSearch, setCraftSearch] = useState("");
   const [craftUniqueId, setCraftUniqueId] = useState<string>("");
-  /** Raw text per roll so “-” / partial decimals are editable before blur. */
+  /** Raw text per roll so "-" / partial decimals are editable before blur. */
   const [craftRollTexts, setCraftRollTexts] = useState<string[]>([]);
   const [craftEnhancement, setCraftEnhancement] = useState(0);
   /** Draft rolls / enhancement in the center detail panel for the selected bag or worn unique. */
   const [detailRollTexts, setDetailRollTexts] = useState<string[]>([]);
   const [detailEnhancement, setDetailEnhancement] = useState(0);
+
+  // --- Regular equipment crafting state ---
+  const [craftMode, setCraftMode] = useState('unique'); // 'unique' | 'regular'
+  const [regSlot, setRegSlot] = useState('Weapon');
+  const [regBaseId, setRegBaseId] = useState('');
+  // Up to 2 prefix modifier IDs; index 0 and 1
+  const [regPrefixId0, setRegPrefixId0] = useState('');
+  const [regPrefixId1, setRegPrefixId1] = useState('');
+  // Up to 2 suffix modifier IDs
+  const [regSuffixId0, setRegSuffixId0] = useState('');
+  const [regSuffixId1, setRegSuffixId1] = useState('');
+  // Rolls: [roll1, roll2] for each modifier slot
+  const [regPrefixRoll0, setRegPrefixRoll0] = useState([0, 0]);
+  const [regPrefixRoll1, setRegPrefixRoll1] = useState([0, 0]);
+  const [regSuffixRoll0, setRegSuffixRoll0] = useState([0, 0]);
+  const [regSuffixRoll1, setRegSuffixRoll1] = useState([0, 0]);
 
   const filteredInventory = useMemo(() => {
     if (filter === "all") return inventory;
@@ -177,6 +208,74 @@ export default function EquipmentPanel({
   }, [craftSlot, craftSearch, sheetVersion]);
 
   const craftDef = craftUniqueId ? EOC_UNIQUE_BY_ID[craftUniqueId] : undefined;
+
+  // --- Regular crafting computed values ---
+  const regBaseDef = useMemo(
+    () => EOC_BASE_EQUIPMENT.find((d) => d.id === regBaseId) ?? null,
+    [regBaseId, sheetVersion]
+  );
+  const regItemType = regBaseDef?.itemType ?? '';
+  const regBaseItems = useMemo(
+    () => getBaseEquipmentForSlot(regSlot),
+    [regSlot, sheetVersion]
+  );
+  const regAvailPrefixes = useMemo(
+    () => (regItemType ? getModifiersForItemType(regItemType, 'prefix') : []),
+    [regItemType, sheetVersion]
+  );
+  const regAvailSuffixes = useMemo(
+    () => (regItemType ? getModifiersForItemType(regItemType, 'suffix') : []),
+    [regItemType, sheetVersion]
+  );
+  const regPrefixDef0 = regPrefixId0 ? (EOC_MODIFIERS_BY_ID[regPrefixId0] ?? null) : null;
+  const regPrefixDef1 = regPrefixId1 ? (EOC_MODIFIERS_BY_ID[regPrefixId1] ?? null) : null;
+  const regSuffixDef0 = regSuffixId0 ? (EOC_MODIFIERS_BY_ID[regSuffixId0] ?? null) : null;
+  const regSuffixDef1 = regSuffixId1 ? (EOC_MODIFIERS_BY_ID[regSuffixId1] ?? null) : null;
+
+  function getModSpec(mod: EocModifierDefinition | null) {
+    if (!mod || !regItemType) return null;
+    return mod.itemTypeValues[regItemType] ?? null;
+  }
+
+  function resetRegSlot(slot: string) {
+    setRegSlot(slot);
+    setRegBaseId('');
+    setRegPrefixId0(''); setRegPrefixId1('');
+    setRegSuffixId0(''); setRegSuffixId1('');
+    setRegPrefixRoll0([0, 0]); setRegPrefixRoll1([0, 0]);
+    setRegSuffixRoll0([0, 0]); setRegSuffixRoll1([0, 0]);
+  }
+
+  function resetRegBase(id: string) {
+    setRegBaseId(id);
+    setRegPrefixId0(''); setRegPrefixId1('');
+    setRegSuffixId0(''); setRegSuffixId1('');
+    setRegPrefixRoll0([0, 0]); setRegPrefixRoll1([0, 0]);
+    setRegSuffixRoll0([0, 0]); setRegSuffixRoll1([0, 0]);
+  }
+
+  function applyDefaultRolls(
+    mod: EocModifierDefinition | null,
+    setRolls: (r: [number, number]) => void
+  ) {
+    if (!mod || !regItemType) {
+      setRolls([0, 0]);
+      return;
+    }
+    const defaults = defaultRollsForModifier(mod, regItemType);
+    setRolls([defaults.roll1, defaults.roll2 ?? 0]);
+  }
+
+  function buildCraftedItem() {
+    if (!regBaseDef) return null;
+    const prefixes: AppliedModifier[] = [];
+    if (regPrefixDef0) prefixes.push({ modifierId: regPrefixId0, roll1: regPrefixRoll0[0], roll2: getModSpec(regPrefixDef0)?.range2 != null ? regPrefixRoll0[1] : undefined });
+    if (regPrefixDef1) prefixes.push({ modifierId: regPrefixId1, roll1: regPrefixRoll1[0], roll2: getModSpec(regPrefixDef1)?.range2 != null ? regPrefixRoll1[1] : undefined });
+    const suffixes: AppliedModifier[] = [];
+    if (regSuffixDef0) suffixes.push({ modifierId: regSuffixId0, roll1: regSuffixRoll0[0], roll2: getModSpec(regSuffixDef0)?.range2 != null ? regSuffixRoll0[1] : undefined });
+    if (regSuffixDef1) suffixes.push({ modifierId: regSuffixId1, roll1: regSuffixRoll1[0], roll2: getModSpec(regSuffixDef1)?.range2 != null ? regSuffixRoll1[1] : undefined });
+    return { slot: regBaseDef.slot, itemId: regBaseDef.id, prefixes, suffixes };
+  }
 
   const clampRollAt = useCallback((index: number, v: number) => {
     if (!craftDef) return v;
@@ -696,156 +795,392 @@ export default function EquipmentPanel({
                 ))}
               </div>
               <div className="rounded-sm border border-[#4a3f32] bg-[#14100c] p-2 text-left">
-                <div className="mb-2 font-serif text-[11px] uppercase tracking-wider text-[#c9a227]">
-                  Add unique (1.1.0 list)
-                </div>
-                <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Slot</label>
-                <select
-                  className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8]"
-                  value={craftSlot}
-                  onChange={(e) => {
-                    setCraftSlot(e.target.value);
-                    setCraftUniqueId("");
-                    setCraftRollTexts([]);
-                    setCraftEnhancement(0);
-                  }}
-                >
-                  <option value="__all__">All Slots</option>
-                  {EQUIPMENT_SLOTS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Search by name or modifier</label>
-                <input
-                  className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
-                  placeholder="e.g. fire damage, increased life…"
-                  value={craftSearch}
-                  onChange={(e) => { setCraftSearch(e.target.value); setCraftUniqueId(""); setCraftRollTexts([]); setCraftEnhancement(0); }}
-                />
-                <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">
-                  Unique{craftableUniques.length > 0 ? ` (${craftableUniques.length})` : ""}
-                </label>
-                <select
-                  className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8]"
-                  value={craftUniqueId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    setCraftUniqueId(id);
-                    const def = id ? EOC_UNIQUE_BY_ID[id] : undefined;
-                    setCraftRollTexts(def ? defaultRollsForUnique(def).map(String) : []);
-                    setCraftEnhancement(0);
-                  }}
-                >
-                  <option value="">— Choose —</option>
-                  {craftableUniques.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {craftSlot === "__all__" ? `[${u.slot}] ${u.name}` : u.name}
-                    </option>
-                  ))}
-                </select>
-                {craftDef && rollBoundsForUnique(craftDef).length > 0 && (
-                  <div className="mb-2 max-h-48 space-y-2 overflow-y-auto pr-0.5">
-                    {rollBoundsForUnique(craftDef).map((b, i) => {
-                      const lo = Math.min(b.min, b.max);
-                      const hi = Math.max(b.min, b.max);
-                      const fallback = (lo + hi) / 2;
-                      const label = rollLabelForIndex(craftDef, i);
-                      const ph = `${lo} – ${hi}`;
-                      const commitRollText = (raw: string) => {
-                        const t = raw.trim();
-                        const parsed = t === "" || t === "-" || t === "." || t === "-." ? NaN : Number(t);
-                        const v = Number.isFinite(parsed) ? parsed : fallback;
-                        const c = clampRollAt(i, v);
-                        setCraftRollTexts((prev) => {
-                          const next = [...prev];
-                          while (next.length <= i) next.push(String(fallback));
-                          next[i] = String(c);
-                          return next;
-                        });
-                      };
-                      return (
-                        <div key={i}>
-                          <label className="mb-0.5 block text-[10px] leading-snug text-[#a89070]">
-                            {label}
-                          </label>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            autoComplete="off"
-                            className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
-                            placeholder={ph}
-                            value={craftRollTexts[i] ?? ""}
-                            onChange={(e) => {
-                              const t = e.target.value;
-                              setCraftRollTexts((prev) => {
-                                const next = [...prev];
-                                while (next.length <= i) next.push(String(fallback));
-                                next[i] = t;
-                                return next;
-                              });
-                            }}
-                            onBlur={(e) => {
-                              commitRollText(e.target.value);
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="font-serif text-[11px] uppercase tracking-wider text-[#c9a227]">
+                    Craft item
                   </div>
-                )}
-                {craftDef && (
-                  <div className="mb-2">
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      aria-pressed={craftMode === "unique"}
+                      className={`rounded-sm border px-2 py-1 font-serif text-[10px] tracking-wide ${
+                        craftMode === "unique"
+                          ? "border-[#7a5f24] bg-[#251a0f] text-[#e8dcc8]"
+                          : "border-[#3d3428] bg-[#0d0a08] text-[#a89070] hover:border-[#5c4d3d]"
+                      }`}
+                      onClick={() => setCraftMode("unique")}
+                    >
+                      Unique
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={craftMode === "regular"}
+                      className={`rounded-sm border px-2 py-1 font-serif text-[10px] tracking-wide ${
+                        craftMode === "regular"
+                          ? "border-[#7a5f24] bg-[#251a0f] text-[#e8dcc8]"
+                          : "border-[#3d3428] bg-[#0d0a08] text-[#a89070] hover:border-[#5c4d3d]"
+                      }`}
+                      onClick={() => setCraftMode("regular")}
+                    >
+                      Regular
+                    </button>
+                  </div>
+                </div>
+
+                {craftMode === "unique" && (
+                  <>
+                    <div className="mb-2 font-serif text-[10px] text-[#8a7d6b]">Unique crafting (1.3.2 list)</div>
+
+                    <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Slot</label>
+                    <select
+                      className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8]"
+                      value={craftSlot}
+                      onChange={(e) => {
+                        setCraftSlot(e.target.value);
+                        setCraftUniqueId("");
+                        setCraftRollTexts([]);
+                        setCraftEnhancement(0);
+                      }}
+                    >
+                      <option value="__all__">All Slots</option>
+                      {EQUIPMENT_SLOTS.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+
                     <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">
-                      Enhancement (0–{maxEnhancementForUnique(craftDef)} · +{craftDef.enhancementBonusPerLevel}%
-                      /lvl to first % in innate)
+                      Search by name or modifier
                     </label>
                     <input
-                      type="number"
-                      className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
-                      placeholder={`0 – ${maxEnhancementForUnique(craftDef)}`}
-                      min={0}
-                      max={maxEnhancementForUnique(craftDef)}
-                      step={1}
-                      value={craftEnhancement}
+                      className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
+                      placeholder="e.g. fire damage, increased life…"
+                      value={craftSearch}
                       onChange={(e) => {
-                        const n = Math.floor(Number(e.target.value));
-                        const mx = maxEnhancementForUnique(craftDef);
-                        if (Number.isNaN(n)) {
-                          setCraftEnhancement(0);
-                          return;
-                        }
-                        setCraftEnhancement(Math.min(mx, Math.max(0, n)));
+                        setCraftSearch(e.target.value);
+                        setCraftUniqueId("");
+                        setCraftRollTexts([]);
+                        setCraftEnhancement(0);
                       }}
                     />
-                  </div>
+
+                    <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">
+                      Unique{craftableUniques.length > 0 ? ` (${craftableUniques.length})` : ""}
+                    </label>
+                    <select
+                      className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8]"
+                      value={craftUniqueId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setCraftUniqueId(id);
+                        const def = id ? EOC_UNIQUE_BY_ID[id] : undefined;
+                        setCraftRollTexts(def ? defaultRollsForUnique(def).map(String) : []);
+                        setCraftEnhancement(0);
+                      }}
+                    >
+                      <option value="">— Choose —</option>
+                      {craftableUniques.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {craftSlot === "__all__" ? `[${u.slot}] ${u.name}` : u.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    {craftDef && rollBoundsForUnique(craftDef).length > 0 && (
+                      <div className="mb-2 max-h-48 space-y-2 overflow-y-auto pr-0.5">
+                        {rollBoundsForUnique(craftDef).map((b, i) => {
+                          const lo = Math.min(b.min, b.max);
+                          const hi = Math.max(b.min, b.max);
+                          const fallback = (lo + hi) / 2;
+                          const label = rollLabelForIndex(craftDef, i);
+                          const ph = `${lo} – ${hi}`;
+                          const commitRollText = (raw: string) => {
+                            const t = raw.trim();
+                            const parsed = t === "" || t === "-" || t === "." || t === "-." ? NaN : Number(t);
+                            const v = Number.isFinite(parsed) ? parsed : fallback;
+                            const c = clampRollAt(i, v);
+                            setCraftRollTexts((prev) => {
+                              const next = [...prev];
+                              while (next.length <= i) next.push(String(fallback));
+                              next[i] = String(c);
+                              return next;
+                            });
+                          };
+                          return (
+                            <div key={i}>
+                              <label className="mb-0.5 block text-[10px] leading-snug text-[#a89070]">{label}</label>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                autoComplete="off"
+                                className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
+                                placeholder={ph}
+                                value={craftRollTexts[i] ?? ""}
+                                onChange={(e) => {
+                                  const t = e.target.value;
+                                  setCraftRollTexts((prev) => {
+                                    const next = [...prev];
+                                    while (next.length <= i) next.push(String(fallback));
+                                    next[i] = t;
+                                    return next;
+                                  });
+                                }}
+                                onBlur={(e) => commitRollText(e.target.value)}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {craftDef && (
+                      <div className="mb-2">
+                        <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">
+                          Enhancement (0–{maxEnhancementForUnique(craftDef)} · +{craftDef.enhancementBonusPerLevel}%
+                          /lvl to first % in innate)
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8] placeholder:text-[#5c5348]"
+                          placeholder={`0 – ${maxEnhancementForUnique(craftDef)}`}
+                          min={0}
+                          max={maxEnhancementForUnique(craftDef)}
+                          step={1}
+                          value={craftEnhancement}
+                          onChange={(e) => {
+                            const n = Math.floor(Number(e.target.value));
+                            const mx = maxEnhancementForUnique(craftDef);
+                            if (Number.isNaN(n)) {
+                              setCraftEnhancement(0);
+                              return;
+                            }
+                            setCraftEnhancement(Math.min(mx, Math.max(0, n)));
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      className={`${brassBtn} w-full py-2 text-[11px]`}
+                      disabled={!craftUniqueId || invStacks >= INVENTORY_MAX_SLOTS}
+                      onClick={() => {
+                        if (!craftUniqueId) return;
+                        const def = EOC_UNIQUE_BY_ID[craftUniqueId];
+                        if (!def) return;
+                        const bounds = rollBoundsForUnique(def);
+                        const rolls = bounds.map((b, i) => {
+                          const lo = Math.min(b.min, b.max);
+                          const hi = Math.max(b.min, b.max);
+                          const fallback = (lo + hi) / 2;
+                          const t = (craftRollTexts[i] ?? "").trim();
+                          const parsed = t === "" || t === "-" || t === "." || t === "-." ? NaN : Number(t);
+                          const v = Number.isFinite(parsed) ? parsed : fallback;
+                          return clampRollAt(i, v);
+                        });
+                        const addSlot =
+                          craftSlot === "__all__" ? resolveDefSlotForBag(craftDef?.slot ?? def.slot) : craftSlot;
+                        onAddUniqueToBag(addSlot, craftUniqueId, rolls, craftEnhancement);
+                      }}
+                    >
+                      {invStacks >= INVENTORY_MAX_SLOTS ? "Bag full" : "Add to bag"}
+                    </button>
+                  </>
                 )}
-                <button
-                  type="button"
-                  className={`${brassBtn} w-full py-2 text-[11px]`}
-                  disabled={!craftUniqueId || invStacks >= INVENTORY_MAX_SLOTS}
-                  onClick={() => {
-                    if (!craftUniqueId) return;
-                    const def = EOC_UNIQUE_BY_ID[craftUniqueId];
-                    if (!def) return;
-                    const bounds = rollBoundsForUnique(def);
-                    const rolls = bounds.map((b, i) => {
-                      const lo = Math.min(b.min, b.max);
-                      const hi = Math.max(b.min, b.max);
-                      const fallback = (lo + hi) / 2;
-                      const t = (craftRollTexts[i] ?? "").trim();
-                      const parsed =
-                        t === "" || t === "-" || t === "." || t === "-." ? NaN : Number(t);
-                      const v = Number.isFinite(parsed) ? parsed : fallback;
-                      return clampRollAt(i, v);
-                    });
-                    const addSlot = craftSlot === "__all__"
-                      ? resolveDefSlotForBag(craftDef?.slot ?? def.slot)
-                      : craftSlot;
-                    onAddUniqueToBag(addSlot, craftUniqueId, rolls, craftEnhancement);
-                  }}
-                >
-                  {invStacks >= INVENTORY_MAX_SLOTS ? "Bag full" : "Add to bag"}
-                </button>
+
+                {craftMode === "regular" && (
+                  <>
+                    <div className="mb-2 font-serif text-[10px] text-[#8a7d6b]">
+                      Regular crafting (base item + modifiers)
+                    </div>
+
+                    <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Slot</label>
+                    <select
+                      className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8]"
+                      value={regSlot}
+                      onChange={(e) => resetRegSlot(e.target.value)}
+                    >
+                      {EQUIPMENT_SLOTS.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+
+                    <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">Base item</label>
+                    <select
+                      className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8]"
+                      value={regBaseId}
+                      onChange={(e) => resetRegBase(e.target.value)}
+                    >
+                      <option value="">— Choose —</option>
+                      {regBaseItems.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    {!regBaseDef && (
+                      <div className="mb-2 rounded-sm border border-[#3d3428] bg-[#0d0a08]/40 p-2 text-[10px] text-[#7a6b5a]">
+                        Choose a base item to see available prefixes/suffixes.
+                      </div>
+                    )}
+
+                    {regBaseDef && (
+                      <>
+                        <div className="mb-2 rounded-sm border border-[#3d3428] bg-[#0d0a08]/40 p-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-serif text-[11px] text-[#e8dcc8]">{regBaseDef.name}</div>
+                              <div className="text-[10px] text-[#8a7d6b]">
+                                {regBaseDef.itemType}
+                                {regBaseDef.twoHanded ? " · Two-handed" : ""}
+                              </div>
+                            </div>
+                            <div className="text-right font-mono text-[10px] text-[#8a7d6b]">
+                              {isCraftedEquipItemId(regBaseDef.id) ? "Craftable" : ""}
+                            </div>
+                          </div>
+                          {regBaseDef.innate && (
+                            <div className="mt-1 text-[10px] leading-snug text-[#a89070]">{regBaseDef.innate}</div>
+                          )}
+                        </div>
+
+                        <div className="mb-2 grid grid-cols-1 gap-2">
+                          {(
+                            [
+                              {
+                                kind: "Prefix #1",
+                                id: regPrefixId0,
+                                setId: setRegPrefixId0,
+                                def: regPrefixDef0,
+                                avail: regAvailPrefixes,
+                                rolls: regPrefixRoll0,
+                                setRolls: setRegPrefixRoll0,
+                              },
+                              {
+                                kind: "Prefix #2",
+                                id: regPrefixId1,
+                                setId: setRegPrefixId1,
+                                def: regPrefixDef1,
+                                avail: regAvailPrefixes,
+                                rolls: regPrefixRoll1,
+                                setRolls: setRegPrefixRoll1,
+                              },
+                              {
+                                kind: "Suffix #1",
+                                id: regSuffixId0,
+                                setId: setRegSuffixId0,
+                                def: regSuffixDef0,
+                                avail: regAvailSuffixes,
+                                rolls: regSuffixRoll0,
+                                setRolls: setRegSuffixRoll0,
+                              },
+                              {
+                                kind: "Suffix #2",
+                                id: regSuffixId1,
+                                setId: setRegSuffixId1,
+                                def: regSuffixDef1,
+                                avail: regAvailSuffixes,
+                                rolls: regSuffixRoll1,
+                                setRolls: setRegSuffixRoll1,
+                              },
+                            ] as const
+                          ).map((row) => {
+                            const spec = getModSpec(row.def);
+                            const hasRoll2 = spec?.range2 != null;
+                            const modText =
+                              row.def ? formatModifierText(row.def, row.rolls[0], hasRoll2 ? row.rolls[1] : undefined) : "";
+                            return (
+                              <div key={row.kind} className="rounded-sm border border-[#3d3428] bg-[#0d0a08]/30 p-2">
+                                <div className="mb-1 flex items-center justify-between gap-2">
+                                  <label className="text-[10px] text-[#8a7d6b]">{row.kind}</label>
+                                  <button
+                                    type="button"
+                                    className="text-[10px] text-[#a89070] hover:text-[#e8dcc8]"
+                                    onClick={() => {
+                                      row.setId("");
+                                      row.setRolls([0, 0]);
+                                    }}
+                                  >
+                                    Clear
+                                  </button>
+                                </div>
+                                <select
+                                  className="mb-2 w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-serif text-[11px] text-[#e8dcc8]"
+                                  value={row.id}
+                                  onChange={(e) => {
+                                    const id = e.target.value;
+                                    row.setId(id);
+                                    const def = id ? (EOC_MODIFIERS_BY_ID[id] ?? null) : null;
+                                    applyDefaultRolls(def, row.setRolls);
+                                  }}
+                                >
+                                  <option value="">— None —</option>
+                                  {row.avail.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.name}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                {row.def && spec && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">
+                                        Roll 1 ({spec.range1.min}–{spec.range1.max})
+                                      </label>
+                                      <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8]"
+                                        value={row.rolls[0]}
+                                        onChange={(e) => row.setRolls([Number(e.target.value), row.rolls[1]])}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-0.5 block text-[10px] text-[#8a7d6b]">
+                                        Roll 2{" "}
+                                        {hasRoll2 ? `(${spec.range2!.min}–${spec.range2!.max})` : "(—)"}
+                                      </label>
+                                      <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        disabled={!hasRoll2}
+                                        className="w-full rounded-sm border border-[#5c4d3d] bg-[#0d0a08] px-2 py-1.5 font-mono text-[11px] text-[#e8dcc8] disabled:opacity-40"
+                                        value={row.rolls[1]}
+                                        onChange={(e) => row.setRolls([row.rolls[0], Number(e.target.value)])}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {modText && (
+                                  <div className="mt-2 text-[10px] leading-snug text-[#a89070]">{modText}</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          type="button"
+                          className={`${brassBtn} w-full py-2 text-[11px]`}
+                          disabled={!regBaseDef || invStacks >= INVENTORY_MAX_SLOTS}
+                          onClick={() => {
+                            const built = buildCraftedItem();
+                            if (!built) return;
+                            onAddCraftedToBag(built.slot, built.itemId, built.prefixes, built.suffixes);
+                          }}
+                        >
+                          {invStacks >= INVENTORY_MAX_SLOTS ? "Bag full" : "Add to bag"}
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="flex flex-wrap gap-2">

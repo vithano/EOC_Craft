@@ -15,6 +15,7 @@ import {
   getEquippedEntry,
   migrateEquippedFromSave,
   weaponUsesBothHands,
+  type AppliedModifier,
   type EquippedEntry,
   type InventoryStack,
 } from "../data/equipment";
@@ -40,8 +41,8 @@ function equipmentModifiersFromEquippedMap(equipped: Record<string, EquippedEntr
   return aggregateEquippedToEquipmentModifiers(EQUIPMENT_SLOTS, (slot) => getEquippedEntry(equipped, slot));
 }
 
-function stackIdentityKey(rolls: number[] | undefined, enhancement?: number): string {
-  return JSON.stringify({ rolls: rolls ?? [], en: enhancement ?? 0 });
+function stackIdentityKey(rolls: number[] | undefined, enhancement?: number, craftedPrefixes?: AppliedModifier[], craftedSuffixes?: AppliedModifier[]): string {
+  return JSON.stringify({ rolls: rolls ?? [], en: enhancement ?? 0, cp: craftedPrefixes ?? [], cs: craftedSuffixes ?? [] });
 }
 
 function addOrMergeStack(
@@ -50,17 +51,24 @@ function addOrMergeStack(
   itemId: string,
   qty: number,
   rolls?: number[],
-  enhancement?: number
+  enhancement?: number,
+  craftedPrefixes?: AppliedModifier[],
+  craftedSuffixes?: AppliedModifier[]
 ): InventoryStack[] {
   const en = enhancement !== undefined && enhancement > 0 ? enhancement : undefined;
-  const merge = inv.find(
-    (s) =>
-      s.slot === slot &&
-      s.itemId === itemId &&
-      stackIdentityKey(s.rolls, s.enhancement) === stackIdentityKey(rolls, en)
-  );
-  if (merge) {
-    return inv.map((s) => (s.id === merge.id ? { ...s, qty: s.qty + qty } : s));
+  // Crafted items always create new stacks (each instance is unique)
+  const isCrafted = (craftedPrefixes?.length ?? 0) > 0 || (craftedSuffixes?.length ?? 0) > 0;
+  if (!isCrafted) {
+    const merge = inv.find(
+      (s) =>
+        s.slot === slot &&
+        s.itemId === itemId &&
+        !s.craftedPrefixes?.length && !s.craftedSuffixes?.length &&
+        stackIdentityKey(s.rolls, s.enhancement) === stackIdentityKey(rolls, en)
+    );
+    if (merge) {
+      return inv.map((s) => (s.id === merge.id ? { ...s, qty: s.qty + qty } : s));
+    }
   }
   const id =
     typeof crypto !== "undefined" && crypto.randomUUID
@@ -69,6 +77,8 @@ function addOrMergeStack(
   const row: InventoryStack = { id, slot, itemId, qty };
   if (rolls?.length) row.rolls = rolls;
   if (en !== undefined) row.enhancement = en;
+  if (craftedPrefixes?.length) row.craftedPrefixes = craftedPrefixes;
+  if (craftedSuffixes?.length) row.craftedSuffixes = craftedSuffixes;
   return [...inv, row];
 }
 
@@ -300,12 +310,12 @@ export default function BuildPlanner() {
       .map((s) => (s.id === stackId ? { ...s, qty: s.qty - 1 } : s))
       .filter((s) => s.qty > 0);
     if (prev.itemId !== "none") {
-      nextInv = addOrMergeStack(nextInv, slot, prev.itemId, 1, prev.rolls, prev.enhancement);
+      nextInv = addOrMergeStack(nextInv, slot, prev.itemId, 1, prev.rolls, prev.enhancement, prev.craftedPrefixes, prev.craftedSuffixes);
     }
 
     let nextEquipped: Record<string, EquippedEntry> = {
       ...e,
-      [slot]: { itemId, rolls, enhancement },
+      [slot]: { itemId, rolls, enhancement, craftedPrefixes: stack.craftedPrefixes, craftedSuffixes: stack.craftedSuffixes },
     };
 
     if (slot === "Weapon" && weaponUsesBothHands(itemId)) {
@@ -335,7 +345,7 @@ export default function BuildPlanner() {
     const cur = getEquippedEntry(e, slot);
     if (cur.itemId === "none") return;
     setEquipped({ ...e, [slot]: { itemId: "none" } });
-    setInventory(addOrMergeStack(inv, slot, cur.itemId, 1, cur.rolls, cur.enhancement));
+    setInventory(addOrMergeStack(inv, slot, cur.itemId, 1, cur.rolls, cur.enhancement, cur.craftedPrefixes, cur.craftedSuffixes));
   }, []);
 
   const addUniqueToBag = useCallback(
@@ -349,6 +359,25 @@ export default function BuildPlanner() {
           1,
           rolls.length ? rolls : undefined,
           enhancement > 0 ? enhancement : undefined
+        );
+      });
+    },
+    []
+  );
+
+  const addCraftedToBag = useCallback(
+    (slot: string, itemId: string, craftedPrefixes: AppliedModifier[], craftedSuffixes: AppliedModifier[]) => {
+      setInventory((inv) => {
+        if (inv.length >= INVENTORY_MAX_SLOTS) return inv;
+        return addOrMergeStack(
+          inv,
+          slot,
+          itemId,
+          1,
+          undefined,
+          undefined,
+          craftedPrefixes.length ? craftedPrefixes : undefined,
+          craftedSuffixes.length ? craftedSuffixes : undefined
         );
       });
     },
@@ -649,6 +678,7 @@ export default function BuildPlanner() {
               onExtractStack={extractStack}
               onExtractAll={extractAll}
               onAddUniqueToBag={addUniqueToBag}
+              onAddCraftedToBag={addCraftedToBag}
               stats={stats}
               incomingDamage={incomingDamage}
               nexusTier={nexusTier}

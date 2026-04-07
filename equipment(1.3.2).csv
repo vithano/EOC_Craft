@@ -1,0 +1,73 @@
+Item Slot,Item Type,Name,Innate Stat,Enhancement Bonus,physical damage,base critical hit chance,attack speed,armour,evasion,energy shield,chance to block,required level,required strength,required dexterity,required intelligence
+Weapon,Mace,Mace,16% increased Melee Physical Damage,1.60%,75-112,9%,1,,,,,70,150,,
+Weapon,Mace,Flail,Hits ignore 20% of Enemy Armour,2.00%,64-95,9%,1.15,,,,,70,150,,
+Weapon,Mace,Hammer,+8% chance to deal Double Damage with Attacks,0.80%,86-129,9%,0.85,,,,,70,150,,
+Weapon,Warhammer,Warhammer,32% increased Melee Physical Damage,3.20%,112-168,9%,0.85,,,,,70,150,,
+Weapon,Warhammer,Maul,Hits ignore 40% of Enemy Armour,4.00%,95-143,9%,0.98,,,,,70,150,,
+Weapon,Warhammer,Mallet,+16% chance to deal Double Damage with Attacks,1.60%,129-193,9%,0.72,,,,,70,150,,
+Weapon,Sword,Sword,24% Increased Accuracy Rating,2.40%,47-112,12%,1.15,,,,,70,90,90,
+Weapon,Sword,Foil,12% Increased Attack Speed,1.20%,40-95,12%,1.32,,,,,70,90,90,
+Weapon,Sword,Falchion,32% Increased Attack Critical Hit Chance,3.20%,54-129,12%,0.98,,,,,70,90,90,
+Weapon,Greatsword,Greatsword,48% Increased Accuracy Rating,4.80%,75-149,12%,1,,,,,70,90,90,
+Weapon,Greatsword,Broadsword,24% Increased Attack Speed,2.40%,64-127,12%,1.15,,,,,70,90,90,
+Weapon,Greatsword,Claymore,64% Increased Attack Critical Hit Chance,6.40%,86-171,12%,0.85,,,,,70,90,90,
+Weapon,Hand Crossbow,Hand Crossbow,24% Increased Accuracy Rating,2.40%,65-93,12%,1.15,,,,,70,,150,
+Weapon,Hand Crossbow,Boltcaster,12% Increased Attack Speed,1.20%,55-79,12%,1.32,,,,,70,,150,
+Weapon,Hand Crossbow,Arcus,32% Increased Attack Critical Hit Chance,3.20%,75-107,12%,0.98,,,,,70,,150,
+Weapon,Bow,Bow,48% Increased Accuracy Rating,4.80%,93-131,12%,1,,,,,70,,150,
+Weapon,Bow,Shortbow,24% Increased Attack Speed,2.40%,79-111,12%,1.15,,,,,70,,150,
+Weapon,Bow,Longbow,64% Increased Attack Critical Hit Chance,6.40%,107-151,12%,0.85,,,,,70,,150,
+Weapon,Dagger,Dagger,Hits ignore 20% of Enemy Armour,2.00%,65-84,15%,1.15,,,,,70,,90,90
+Weapon,Dagger,Dirk,Gain 12 Life On Hit,1.2,55-71,15%,1.32,,,,,70,,90,90
+Weapon,Dagger,Knife,+24% To Critical Damage Multiplier,2.40%,75-97,15%,0.98,,,,,70,,90,90
+Weapon,Wand,Wand,16% Spell Damage,1.60%,,,,,,,,70,,,150
+Weapon,Wand,Sceptre,16% Increased Mana,1.60%,,,,,,,,70,,,150
+Weapon,Wand,Sprig,12% Increased Cast Speed,1.20%,,,,,,,,70,,,150
+Weapon,Magestaff,Magestaff,32% Increased Spell Damage,3.20%,,,,,,,,70,,,150
+Weapon,Magestaff,Cane,32% Increased Mana,3.20%,,,,,,,,70,,,150
+Weapon,Magestaff,Rod,24% Increased Cast Speed,2.40%,,,,,,,,70,,,150
+Weapon,Battlestaff,Battlestaff,+24% Chance To Block,2.40%,93-131,15%,1,,,,,70,90,,90
+Weapon,Battlestaff,Bladestaff,64% Increased Attack Critical Hit Chance,6.40%,79-111,15%,1.15,,,,,70,90,,90
+Weapon,Battlestaff,Wingstaff,32% Increased Mana,3.20%,107-151,15%,0.85,,,,,70,90,,90
+Armor,Body,Plate Chest,12% Increaased Armour,1.20%,,,,482,,,,70,150,,
+Armor,Body,Scale Armour,+40 To Maximum Life,4,,,,241,241,,,70,90,90,
+Armor,Body,Leather Vest,12% Increased Evasion Chance,1.20%,,,,,482,,,70,,150,
+Armor,Body,Cloak Mantle,+4% Chance To Dodge,0.40%,,,,,241,121,,70,,90,90
+Armor,Body,Cloth Robe,12% Increased Energy Shield,1.20%,,,,,,241,,70,,,150
+Armor,Body,Chain Mail,+8% To All Elemental Resistances,0.80%,,,,241,,121,,70,90,,90
+Armor,Helmet,Visor,12% Increaased Armour,1.20%,,,,241,,,,70,150,,
+Armor,Helmet,Helm,+40 To Maximum Life,4,,,,121,121,,,70,90,90,
+Armor,Helmet,Hood,12% Increased Evasion Chance,1.20%,,,,,241,,,70,,150,
+Armor,Helmet,Mask,+4% Chance To Dodge,0.40%,,,,,121,60,,70,,90,90
+Armor,Helmet,Circlet,12% Increased Energy Shield,1.20%,,,,,,121,,70,,,150
+Armor,Helmet,Coif,+8% To All Elemental Resistances,0.80%,,,,121,,60,,70,90,,90
+Armor,Gloves,Mitts,12% Increaased Armour,1.20%,,,,121,,,,70,150,,
+Armor,Gloves,Gauntlets,+40 To Maximum Life,4,,,,60,60,,,70,90,90,
+Armor,Gloves,Bracers,12% Increased Evasion Chance,1.20%,,,,,121,,,70,,150,
+Armor,Gloves,Wraps,+4% Chance To Dodge,0.40%,,,,,60,30,,70,,90,90
+Armor,Gloves,Gloves,12% Increased Energy Shield,1.20%,,,,,,60,,70,,,150
+Armor,Gloves,Cuffs,+8% To All Elemental Resistances,0.80%,,,,60,,30,,70,90,,90
+Armor,Boots,Greaves,12% Increaased Armour,1.20%,,,,121,,,,70,150,,
+Armor,Boots,Sabatons,+40 To Maximum Life,4,,,,60,60,,,70,90,90,
+Armor,Boots,Boots,12% Increased Evasion Chance,1.20%,,,,,121,,,70,,150,
+Armor,Boots,Sandals,+4% Chance To Dodge,0.40%,,,,,60,30,,70,,90,90
+Armor,Boots,Shoes,12% Increased Energy Shield,1.20%,,,,,,60,,70,,,150
+Armor,Boots,Chausses,+8% To All Elemental Resistances,0.80%,,,,60,,30,,70,90,,90
+Armor,Shield,Tower Shield,12% Increaased Armour,1.20%,,,,241,,,25%,70,150,,
+Armor,Shield,Round Shield,+40 To Maximum Life,4,,,,121,121,,25%,70,90,90,
+Armor,Shield,Buckler,12% Increased Evasion Chance,1.20%,,,,,241,,25%,70,,150,
+Armor,Shield,Targe,+4% Chance To Dodge,0.40%,,,,,121,60,25%,70,,90,90
+Armor,Shield,Spirit Shield,12% Increased Energy Shield,1.20%,,,,,,121,25%,70,,,150
+Armor,Shield,Kite Shield,+8% To All Elemental Resistances,0.80%,,,,121,,60,25%,70,90,,90
+Accessory,Amulet,Ruby Amulet,+40 To Strength,4,,,,,,,,70,,,
+Accessory,Amulet,Emerald Amulet,+40 To Dexterity,4,,,,,,,,70,,,
+Accessory,Amulet,Sapphire Amulet,+40 To Intelligence,4,,,,,,,,70,,,
+Accessory,Amulet,Onyx Amulet,+20 To All Attributes,2,,,,,,,,70,,,
+Accessory,Ring,Carnelian Ring,12% Increased Life Recovery,1.20%,,,,,,,,70,,,
+Accessory,Ring,Amethyst Ring,32% Increased Mana Regeneration,3.20%,,,,,,,,70,,,
+Accessory,Ring,Jade Ring,+320 To Accuracy Rating,32,,,,,,,,70,,,
+Accessory,Ring,Diamond Ring,32% Increased Critical Hit Chance,3.20%,,,,,,,,70,,,
+Accessory,Belt,Heavy Belt,12% Increased Defences,1.20%,,,,,,,,70,,,
+Accessory,Belt,Leather Belt,+40 To Maximum Life,4,,,,,,,,70,,,
+Accessory,Belt,Cloth Belt,+4% Chance To Dodge,0.40%,,,,,,,,70,,,
+Accessory,Belt,Chain Belt,+8% To All Elemental Resistances,0.80%,,,,,,,,70,,,

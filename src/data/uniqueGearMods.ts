@@ -1196,3 +1196,46 @@ export function equipmentModifiersFromUniqueTexts(
 
   return acc;
 }
+
+// ---------------------------------------------------------------------------
+// Additional single-value patterns used by crafted modifier text output
+// (called immediately after the main loop to extend the same accumulator)
+// ---------------------------------------------------------------------------
+
+/** Extend an existing patch with patterns that crafted modifier text produces. */
+export function applyExtraCraftedModPatterns(
+  acc: UniqueGearStatPatch,
+  texts: string[]
+): void {
+  const addNum = (key: keyof UniqueGearStatPatch, v: number) => {
+    const cur = acc[key];
+    (acc as Record<string, number>)[key as string] =
+      typeof cur === 'number' ? cur + v : v;
+  };
+
+  for (const raw of texts) {
+    const l = raw.trim();
+    if (!l) continue;
+    let m: RegExpMatchArray | null;
+
+    // % increased physical damage → global increased damage
+    m = l.match(/^([\d.]+)%\s+increased\s+physical\s+damage\b/i);
+    if (m) { addNum('increasedDamageFromGear', Number(m[1])); continue; }
+
+    // Single-value max resistance patterns
+    m = l.match(/^\+(\d+(?:\.\d+)?)%\s+to\s+maximum\s+fire\s+resistance\b/i);
+    if (m) { addNum('maxFireResBonusFromGear', Number(m[1])); continue; }
+
+    m = l.match(/^\+(\d+(?:\.\d+)?)%\s+to\s+maximum\s+cold\s+resistance\b/i);
+    if (m) { addNum('maxColdResBonusFromGear', Number(m[1])); continue; }
+
+    m = l.match(/^\+(\d+(?:\.\d+)?)%\s+to\s+maximum\s+lightning\s+resistance\b/i);
+    if (m) { addNum('maxLightningResBonusFromGear', Number(m[1])); continue; }
+
+    m = l.match(/^\+(\d+(?:\.\d+)?)%\s+to\s+maximum\s+chaos\s+resistance\b/i);
+    if (m) { addNum('maxChaosResBonusFromGear', Number(m[1])); continue; }
+
+    m = l.match(/^\+(\d+(?:\.\d+)?)%\s+to\s+all\s+maximum\s+elemental\s+resistances\b/i);
+    if (m) { addNum('maxAllElementalResBonusFromGear', Number(m[1])); continue; }
+  }
+}

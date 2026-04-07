@@ -11,11 +11,13 @@
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { parseUniquesCSV, parseAbilitiesCSV, parseFormulaConstantsCSV } from '../lib/parseSheetData';
+import { parseUniquesCSV, parseAbilitiesCSV, parseFormulaConstantsCSV, parseEquipmentCSV, parseEquipmentModifiersCSV } from '../lib/parseSheetData';
 import { updateUniqueDefinitions } from '../data/eocUniques';
 import { updateAbilityDefinitions } from '../data/eocAbilities';
 import { updateFormulaConstants } from '../data/formulaConstants';
 import { invalidateEquipmentItemsCache } from '../data/equipment';
+import { updateBaseEquipmentDefinitions } from '../data/eocBaseEquipment';
+import { updateModifierDefinitions } from '../data/eocModifiers';
 
 export interface GameDataState {
   loading: boolean;
@@ -52,12 +54,15 @@ export function GameDataProvider({ children }: { children: React.ReactNode }) {
     async function loadAll() {
       const errors: string[] = [];
 
-      // Fetch all three tabs concurrently; each failure is non-fatal
-      const [uniquesResult, abilitiesResult, formulasResult] = await Promise.allSettled([
-        fetchSheetCSV('Uniques'),
-        fetchSheetCSV('Abilities'),
-        fetchSheetCSV('Formulas'),
-      ]);
+      // Fetch all tabs concurrently; each failure is non-fatal
+      const [uniquesResult, abilitiesResult, formulasResult, equipResult, modsResult] =
+        await Promise.allSettled([
+          fetchSheetCSV('Uniques'),
+          fetchSheetCSV('Abilities'),
+          fetchSheetCSV('Formulas'),
+          fetchSheetCSV('Equipment'),
+          fetchSheetCSV('Equipment_Modifiers'),
+        ]);
       if (cancelled) return;
 
       if (uniquesResult.status === 'fulfilled') {
@@ -82,6 +87,20 @@ export function GameDataProvider({ children }: { children: React.ReactNode }) {
         if (Object.keys(patch).length > 0) updateFormulaConstants(patch);
       } else {
         errors.push(`Formulas: ${formulasResult.reason}`);
+      }
+
+      if (equipResult.status === 'fulfilled') {
+        const defs = parseEquipmentCSV(equipResult.value);
+        if (defs.length > 0) updateBaseEquipmentDefinitions(defs);
+      } else {
+        errors.push(`Equipment: ${equipResult.reason}`);
+      }
+
+      if (modsResult.status === 'fulfilled') {
+        const defs = parseEquipmentModifiersCSV(modsResult.value);
+        if (defs.length > 0) updateModifierDefinitions(defs);
+      } else {
+        errors.push(`EquipmentModifiers: ${modsResult.reason}`);
       }
 
       if (!cancelled) {

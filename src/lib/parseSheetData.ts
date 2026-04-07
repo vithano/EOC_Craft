@@ -1,5 +1,5 @@
 /**
- * Parsers for Google Sheets CSV tabs: Uniques, Abilities, Formulas.
+ * Parsers for Google Sheets CSV tabs: Uniques, Abilities, Formulas, Equipment, EquipmentModifiers.
  * Uniques parser is a TypeScript port of scripts/generate_eoc_uniques.py.
  * Abilities parser is a TypeScript port of scripts/generate_eoc_abilities.py.
  * Formulas parser reads Key/Value rows into FormulaConstants.
@@ -8,6 +8,8 @@
 import type { EocUniqueDefinition, UniqueModPiece } from '../data/eocUniques';
 import type { EocAbilityDefinition, EocAbilityType, EocSpellHit } from '../data/eocAbilities';
 import type { FormulaConstants } from '../data/formulaConstants';
+import type { EocBaseEquipmentDefinition } from '../data/eocBaseEquipment';
+import type { EocModifierDefinition, ModifierValueSpec } from '../data/eocModifiers';
 
 // ---------------------------------------------------------------------------
 // Generic CSV parser (RFC 4180)
@@ -81,7 +83,7 @@ const RANGE_RE = /\(\s*(-?\d+(?:\.\d+)?)\s*%?\s+to\s+(-?\d+(?:\.\d+)?)\s*%?\s*\)
 const DASH_RANGE_RE = /^(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)$/;
 
 const TWO_HANDED_TYPES = new Set([
-  'Warhammer', 'Greatsword', 'Bow', 'Magestave', 'Battlestave',
+  'Warhammer', 'Greatsword', 'Bow', 'Magestaff', 'Battlestaff',
 ]);
 
 function slugify(name: string): string {
@@ -459,4 +461,150 @@ export function parseAbilitiesCSV(csv: string): EocAbilityDefinition[] {
   }
 
   return abilities;
+}
+
+// ---------------------------------------------------------------------------
+// Equipment parser (Equipment tab)
+// Expected columns match equipment(1.3.2).csv
+// ---------------------------------------------------------------------------
+
+const TWO_HANDED_EQUIP_TYPES = new Set([
+  'Warhammer', 'Greatsword', 'Bow', 'Magestaff', 'Battlestaff',
+]);
+
+function equipGameSlot(itemSlot: string, itemType: string): string {
+  if (itemSlot === 'Weapon') return 'Weapon';
+  if (itemSlot === 'Armor') {
+    const m: Record<string, string> = {
+      Body: 'Chest', Helmet: 'Helmet', Gloves: 'Gloves',
+      Boots: 'Boots', Shield: 'Off-hand',
+    };
+    return m[itemType] ?? itemType;
+  }
+  if (itemSlot === 'Accessory') {
+    const m: Record<string, string> = { Amulet: 'Amulet', Ring: 'Ring', Belt: 'Belt' };
+    return m[itemType] ?? itemType;
+  }
+  return itemType;
+}
+
+export function parseEquipmentCSV(csv: string): EocBaseEquipmentDefinition[] {
+  const rows = parseCSV(csv);
+  if (rows.length < 2) return [];
+  const hdr = headerMap(rows);
+
+  const defs: EocBaseEquipmentDefinition[] = [];
+  for (const row of rows.slice(1)) {
+    const name = col(row, hdr, 'Name');
+    if (!name) continue;
+
+    const itemSlot = col(row, hdr, 'Item Slot');
+    const itemType = col(row, hdr, 'Item Type');
+    const slot = equipGameSlot(itemSlot, itemType);
+    const id = `equip_${slugify(name)}`;
+
+    const enhBonus = col(row, hdr, 'Enhancement Bonus');
+    const [dmgMin, dmgMax] = parsePhysDamage(col(row, hdr, 'physical damage'));
+
+    defs.push({
+      id,
+      name,
+      slot,
+      itemType,
+      innate: col(row, hdr, 'Innate Stat'),
+      enhancementBonusPerLevel: parseEnhancementPercent(enhBonus),
+      twoHanded: TWO_HANDED_EQUIP_TYPES.has(itemType),
+      reqLevel: toIntMaybe(col(row, hdr, 'required level')) ?? 70,
+      reqStr: toIntMaybe(col(row, hdr, 'required strength')),
+      reqDex: toIntMaybe(col(row, hdr, 'required dexterity')),
+      reqInt: toIntMaybe(col(row, hdr, 'required intelligence')),
+      baseDamageMin: dmgMin,
+      baseDamageMax: dmgMax,
+      baseCritChance: toFloatMaybe(col(row, hdr, 'base critical hit chance')),
+      baseAttackSpeed: toFloatMaybe(col(row, hdr, 'attack speed')),
+      baseArmour: toIntMaybe(col(row, hdr, 'armour')),
+      baseEvasion: toIntMaybe(col(row, hdr, 'evasion')),
+      baseEnergyShield: toIntMaybe(col(row, hdr, 'energy shield')),
+      baseBlockChance: toFloatMaybe(col(row, hdr, 'chance to block')),
+    });
+  }
+  return defs;
+}
+
+// ---------------------------------------------------------------------------
+// EquipmentModifiers parser (EquipmentModifiers tab)
+// Expected columns: Type, Parent_name, Name, [item type columns...]
+// ---------------------------------------------------------------------------
+
+/** Parse "(2 to 51) to (6 to 101)" or "(30 to 170)%" or "(10 to 200)" into value spec. */
+function parseModifierCell(cell: string): ModifierValueSpec | null {
+  const s = cell.trim();
+  if (!s) return null;
+
+  // Match "(A to B) to (C to D)" — two ranges
+  const twoRangeRe = /^\(\s*(-?[\d.]+)\s+to\s+(-?[\d.]+)\s*\)\s*%?\s+to\s+\(\s*(-?[\d.]+)\s+to\s+(-?[\d.]+)\s*\)\s*%?$/i;
+  const twoM = s.match(twoRangeRe);
+  if (twoM) {
+    return {
+      range1: { min: parseFloat(twoM[1]), max: parseFloat(twoM[2]) },
+      range2: { min: parseFloat(twoM[3]), max: parseFloat(twoM[4]) },
+    };
+  }
+
+  // Match "(A to B)%" or "(A to B)" — single range
+  const oneRangeRe = /^\(\s*(-?[\d.]+)\s+to\s+(-?[\d.]+)\s*\)\s*%?$/i;
+  const oneM = s.match(oneRangeRe);
+  if (oneM) {
+    return { range1: { min: parseFloat(oneM[1]), max: parseFloat(oneM[2]) } };
+  }
+
+  return null;
+}
+
+// Item type column names (in CSV header order after Type, Parent_name, Name)
+const EQUIP_MODIFIER_ITEM_TYPES = [
+  'Mace', 'Warhammer', 'Sword', 'Greatsword', 'Bow', 'Hand Crossbow',
+  'Dagger', 'Wand', 'Magestaff', 'Battlestaff',
+  'Plate Chest', 'Scale Armour', 'Leather Vest', 'Cloak Mantle', 'Cloth Robe', 'Chain Mail',
+  'Visor', 'Helm', 'Hood', 'Mask', 'Circlet', 'Coif',
+  'Mitts', 'Gauntlets', 'Bracers', 'Wraps', 'Gloves', 'Cuffs',
+  'Greaves', 'Sabatons', 'Boots', 'Sandals', 'Shoes', 'Chausses',
+  'Tower Shield', 'Round Shield', 'Buckler', 'Targe', 'Spirit Shield', 'Kite Shield',
+  'Amulet', 'Ring', 'Belt',
+];
+
+function modId(type: string, name: string): string {
+  return `${type}_${slugify(name)}`;
+}
+
+export function parseEquipmentModifiersCSV(csv: string): EocModifierDefinition[] {
+  const rows = parseCSV(csv);
+  if (rows.length < 2) return [];
+  const hdr = headerMap(rows);
+
+  const defs: EocModifierDefinition[] = [];
+  for (const row of rows.slice(1)) {
+    const type = col(row, hdr, 'Type').trim().toLowerCase() as 'prefix' | 'suffix';
+    if (type !== 'prefix' && type !== 'suffix') continue;
+    const parentName = col(row, hdr, 'Parent_name').trim();
+    const name = col(row, hdr, 'Name').trim();
+    if (!name) continue;
+
+    const itemTypeValues: Record<string, ModifierValueSpec> = {};
+    for (const itemType of EQUIP_MODIFIER_ITEM_TYPES) {
+      const cellVal = col(row, hdr, itemType);
+      if (!cellVal) continue;
+      const spec = parseModifierCell(cellVal);
+      if (spec) itemTypeValues[itemType] = spec;
+    }
+
+    defs.push({
+      id: modId(type, name),
+      type,
+      parentName,
+      name,
+      itemTypeValues,
+    });
+  }
+  return defs;
 }
