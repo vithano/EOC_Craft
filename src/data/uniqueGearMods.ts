@@ -93,6 +93,31 @@ export interface UniqueGearStatPatch {
 
   /** Self-damage on attack: take physical damage equal to X% max life when you attack. */
   takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear?: number;
+
+  /** Ailments inflicted with critical hits gain 1% more duration per 1% critical damage multiplier. */
+  ailmentsOnCritGainDurationPerCritMultiFromGear?: boolean;
+
+  /** After you cast a spell, your action bar is set to X%. */
+  actionBarSetToPercentAfterCastFromGear?: number;
+  /** Your action bar is filled by X% when you block. */
+  actionBarFilledByPercentOnBlockFromGear?: number;
+  /** While your off-hand is empty, your first attack during an encounter is always a critical hit. */
+  firstAttackAlwaysCritFromGear?: boolean;
+  /** While your off-hand is empty, your action bar is set to X% at the beginning of an encounter. */
+  actionBarSetToPercentAtStartFromGear?: number;
+
+  /** When you deal a critical hit, perform an additional hit with X% chance. */
+  extraHitOnCritChanceFromGear?: number;
+  /** When you would block, dodge instead. */
+  blockReplacedByDodgeFromGear?: boolean;
+  /** When you would be hit while at maximum life, your chance to dodge is rolled twice and the better result is used. */
+  dodgeRolledTwiceAtMaxLifeBetterFromGear?: boolean;
+  /** When you would be hit while below maximum life, your chance to dodge is rolled twice and the worse result is used. */
+  dodgeRolledTwiceBelowMaxLifeWorseFromGear?: boolean;
+  /** When you would deal double damage, 50% chance to deal triple damage instead. */
+  doubleDamageUpgradesToTripleChanceFromGear?: number;
+  /** When you would deal triple damage, 50% chance to deal quadruple damage instead. */
+  tripleDamageUpgradesToQuadrupleChanceFromGear?: number;
   pctIncreasedLifeFromGear?: number;
   pctIncreasedManaFromGear?: number;
   pctIncreasedArmourFromGear?: number;
@@ -932,6 +957,46 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/take\s+physical\s+damage\s+equal\s+to\s+([\d.]+)%\s+of\s+your\s+maximum\s+life\s+when\s+you\s+attack\b/i);
     if (m) add({ takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear: num(m)! });
+
+    if (/ailments\s+inflicted\s+with\s+critical\s+hits\s+gain\b/i.test(low)) {
+      acc.ailmentsOnCritGainDurationPerCritMultiFromGear = true;
+      mark();
+    }
+
+    m = l.match(/after\s+you\s+cast\s+a\s+spell,\s+your\s+action\s+bar\s+is\s+set\s+to\s+([\d.]+)%/i);
+    if (m) add({ actionBarSetToPercentAfterCastFromGear: num(m)! });
+
+    m = l.match(/your\s+action\s+bar\s+is\s+filled\s+by\s+([\d.]+)%\s+when\s+you\s+block\b/i);
+    if (m) add({ actionBarFilledByPercentOnBlockFromGear: num(m)! });
+
+    if (/while\s+your\s+off-hand\s+is\s+empty,\s+your\s+first\s+attack\s+during\s+an\s+encounter\s+is\s+always\s+a\s+critical\s+hit\b/i.test(low)) {
+      acc.firstAttackAlwaysCritFromGear = true;
+      mark();
+    }
+    m = l.match(/while\s+your\s+off-hand\s+is\s+empty,\s+your\s+action\s+bar\s+is\s+set\s+to\s+([\d.]+)%\s+at\s+the\s+begninning\s+of\s+an\s+encounter\b/i);
+    if (m) add({ actionBarSetToPercentAtStartFromGear: num(m)! });
+
+    m = l.match(/when\s+you\s+deal\s+a\s+critical\s+hit,\s+perform\s+an\s+additional\s+hit\s+with\s+a\s+([\d.]+)%\s+chance\b/i);
+    if (m) add({ extraHitOnCritChanceFromGear: num(m)! });
+
+    if (/when\s+you\s+would\s+block,\s+dodge\s+instead\b/i.test(low)) {
+      acc.blockReplacedByDodgeFromGear = true;
+      mark();
+    }
+    if (/when\s+you\s+would\s+be\s+hit\s+while\s+at\s+maximum\s+life,\s+your\s+chance\s+to\s+dodge\s+is\s+rolled\s+twice.*better\b/i.test(low)) {
+      acc.dodgeRolledTwiceAtMaxLifeBetterFromGear = true;
+      mark();
+    }
+    if (/when\s+you\s+would\s+be\s+hit\s+while\s+below\s+maximum\s+life,\s+your\s+chance\s+to\s+dodge\s+is\s+rolled\s+twice.*worse\b/i.test(low)) {
+      acc.dodgeRolledTwiceBelowMaxLifeWorseFromGear = true;
+      mark();
+    }
+    if (/when\s+you\s+would\s+deal\s+double\s+damage,\s+50%\s+chance\s+to\s+deal\s+triple\s+damage\s+instead\b/i.test(low)) {
+      add({ doubleDamageUpgradesToTripleChanceFromGear: 50 });
+    }
+    if (/when\s+you\s+would\s+deal\s+triple\s+damage,\s+50%\s+chance\s+to\s+deal\s+quadruple\s+damage\s+instead\b/i.test(low)) {
+      add({ tripleDamageUpgradesToQuadrupleChanceFromGear: 50 });
+    }
 
     m = l.match(/\+?([\d.]+)%\s+chance\s+to\s+avoid\s+ailments\b/i);
     if (m) add({ avoidAilmentsChanceFromGear: num(m)! });

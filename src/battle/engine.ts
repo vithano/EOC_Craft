@@ -340,18 +340,21 @@ function resolvePlayerAttack(
   enemyLife: number,
   stats: ComputedBuildStats,
   attackOpts?: { targetTakesIncreasedDamagePct: number }
-): { damage: number; outcome: PlayerHitOutcome } {
+): { damage: number; outcome: PlayerHitOutcome; anyCrit: boolean; anyDouble: boolean; anyTriple: boolean } {
   const evadePct = stats.hitsCannotBeEvaded
     ? 0
     : computeEvasionChancePercent(stats.accuracy, enemy.evasionRating, 0)
   const miss = Math.random() * 100 < evadePct
-  if (miss) return { damage: 0, outcome: 'miss' }
+  if (miss) return { damage: 0, outcome: 'miss', anyCrit: false, anyDouble: false, anyTriple: false }
 
   const blk = enemy.blockChance ?? 0
   const zealot = stats.classBonusesActive.includes('zealot')
   const strikes = Math.max(1, stats.strikesPerAttack ?? 1)
   let total = 0
   let blockedStrikes = 0
+  let anyCrit = false
+  let anyDouble = false
+  let anyTriple = false
 
   for (let s = 0; s < strikes; s++) {
     const blocked = blk > 0 && Math.random() * 100 < blk
@@ -366,16 +369,38 @@ function resolvePlayerAttack(
         base *= stats.critMultiplier
         isCrit = true
       }
+      if (isCrit) anyCrit = true
 
       const tChance = stats.tripleDamageChance ?? 0
       if (stats.classBonusesActive.includes('destroyer')) {
         const tripleChance = stats.doubleDamageChance / 2
-        if (Math.random() * 100 < tripleChance) base *= 3
-        else if (Math.random() * 100 < stats.doubleDamageChance) base *= 2
+        if (Math.random() * 100 < tripleChance) {
+          base *= 3
+          anyTriple = true
+        } else if (Math.random() * 100 < stats.doubleDamageChance) {
+          base *= 2
+          anyDouble = true
+        }
       } else if (tChance > 0 && Math.random() * 100 < tChance) {
         base *= 3
+        anyTriple = true
       } else if (Math.random() * 100 < stats.doubleDamageChance) {
-        base *= 2
+        // Damage proc chaining: if we "would deal double", allow upgrade to triple
+        const up = stats.doubleDamageUpgradesToTripleChance ?? 0
+        if (up > 0 && Math.random() * 100 < up) {
+          base *= 3
+          anyTriple = true
+        } else {
+          base *= 2
+          anyDouble = true
+        }
+      }
+      // Damage proc chaining: if we "would deal triple", allow upgrade to quadruple
+      if (anyTriple) {
+        const up4 = stats.tripleDamageUpgradesToQuadrupleChance ?? 0
+        if (up4 > 0 && Math.random() * 100 < up4) {
+          base *= 4 / 3
+        }
       }
 
       if (stats.dealNoDamageExceptCrit && !isCrit) base = 0
@@ -392,7 +417,7 @@ function resolvePlayerAttack(
 
   const outcome: PlayerHitOutcome =
     blockedStrikes === strikes && strikes > 0 ? 'enemy_blocked' : 'hit'
-  return { damage: total, outcome }
+  return { damage: total, outcome, anyCrit, anyDouble, anyTriple }
 }
 
 const BASE_BLEED_SEC = 5
@@ -927,7 +952,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         }
         const shockNow = activeShockPct(ailmentState, t)
         const enemyLifeBeforeHit = enemyLife
-        const { damage, outcome } = resolvePlayerAttack(enemy, enemyLife, stats, {
+        const { damage, outcome, anyCrit } = resolvePlayerAttack(enemy, enemyLife, stats, {
           targetTakesIncreasedDamagePct: shockNow,
         })
         enemyLife -= damage
@@ -967,7 +992,8 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           log.push({ t, kind: 'player_attack', message: msg, damage })
         }
         if (damage > 0) {
-          const hitWasCritical = Math.random() * 100 < stats.critChance
+          const hitWasCritical = (stats.firstAttackAlwaysCrit ?? false) && !firstHitFlag.used ? true : anyCrit
+          firstHitFlag.used = true
           applyPlayerAilmentsOnHit(
             stats,
             damage,
@@ -980,6 +1006,11 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
             maxLog,
             enemyDebuffEvents
           )
+          const extraOnCrit = stats.extraHitOnCritChance ?? 0
+          if (hitWasCritical && extraOnCrit > 0 && Math.random() * 100 < extraOnCrit) {
+            const r2 = resolvePlayerAttack(enemy, enemyLife, stats, { targetTakesIncreasedDamagePct: shockNow })
+            enemyLife -= r2.damage
+          }
           if (enemyLife > 0) {
             const fixedExec = stats.executeEnemiesBelowLifePercent ?? 0
             const chillExec = (stats.executeEnemiesBelowLifePercentEqualToChillEffect ?? false)

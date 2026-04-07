@@ -434,6 +434,17 @@ export interface EquipmentModifiers {
   randomIgniteDurationMorePercentFromGear: number
   chillYouInflictInfiniteDurationFromGear: boolean
   takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear: number
+  ailmentsOnCritGainDurationPerCritMultiFromGear: boolean
+  actionBarSetToPercentAfterCastFromGear: number
+  actionBarFilledByPercentOnBlockFromGear: number
+  firstAttackAlwaysCritFromGear: boolean
+  actionBarSetToPercentAtStartFromGear: number
+  extraHitOnCritChanceFromGear: number
+  blockReplacedByDodgeFromGear: boolean
+  dodgeRolledTwiceAtMaxLifeBetterFromGear: boolean
+  dodgeRolledTwiceBelowMaxLifeWorseFromGear: boolean
+  doubleDamageUpgradesToTripleChanceFromGear: number
+  tripleDamageUpgradesToQuadrupleChanceFromGear: number
   pctIncreasedLifeFromGear: number
   pctIncreasedManaFromGear: number
   pctIncreasedArmourFromGear: number
@@ -773,6 +784,17 @@ export interface ComputedBuildStats {
   randomIgniteDurationMorePercent: number
   chillYouInflictInfiniteDuration: boolean
   takePhysicalDamagePercentOfMaxLifeWhenYouAttack: number
+  ailmentsOnCritGainDurationPerCritMulti: boolean
+  actionBarSetToPercentAfterCast: number
+  actionBarFilledByPercentOnBlock: number
+  firstAttackAlwaysCrit: boolean
+  actionBarSetToPercentAtStart: number
+  extraHitOnCritChance: number
+  blockReplacedByDodge: boolean
+  dodgeRolledTwiceAtMaxLifeBetter: boolean
+  dodgeRolledTwiceBelowMaxLifeWorse: boolean
+  doubleDamageUpgradesToTripleChance: number
+  tripleDamageUpgradesToQuadrupleChance: number
   pctDexIntConvertedToStr: number
   convertEvasionToArmour: boolean
   energyShieldCannotBeReducedBelowMaximum: boolean
@@ -962,6 +984,17 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     randomIgniteDurationMorePercentFromGear: 0,
     chillYouInflictInfiniteDurationFromGear: false,
     takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear: 0,
+    ailmentsOnCritGainDurationPerCritMultiFromGear: false,
+    actionBarSetToPercentAfterCastFromGear: 0,
+    actionBarFilledByPercentOnBlockFromGear: 0,
+    firstAttackAlwaysCritFromGear: false,
+    actionBarSetToPercentAtStartFromGear: 0,
+    extraHitOnCritChanceFromGear: 0,
+    blockReplacedByDodgeFromGear: false,
+    dodgeRolledTwiceAtMaxLifeBetterFromGear: false,
+    dodgeRolledTwiceBelowMaxLifeWorseFromGear: false,
+    doubleDamageUpgradesToTripleChanceFromGear: 0,
+    tripleDamageUpgradesToQuadrupleChanceFromGear: 0,
     pctIncreasedLifeFromGear: 0,
     pctIncreasedManaFromGear: 0,
     pctIncreasedArmourFromGear: 0,
@@ -1279,6 +1312,27 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.chillYouInflictInfiniteDurationFromGear) eq.chillYouInflictInfiniteDurationFromGear = true
   if (p.takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear !== undefined) {
     addNum('takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear', p.takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear)
+  }
+  if (p.ailmentsOnCritGainDurationPerCritMultiFromGear) eq.ailmentsOnCritGainDurationPerCritMultiFromGear = true
+  if (p.actionBarSetToPercentAfterCastFromGear !== undefined) {
+    addNum('actionBarSetToPercentAfterCastFromGear', p.actionBarSetToPercentAfterCastFromGear)
+  }
+  if (p.actionBarFilledByPercentOnBlockFromGear !== undefined) {
+    addNum('actionBarFilledByPercentOnBlockFromGear', p.actionBarFilledByPercentOnBlockFromGear)
+  }
+  if (p.firstAttackAlwaysCritFromGear) eq.firstAttackAlwaysCritFromGear = true
+  if (p.actionBarSetToPercentAtStartFromGear !== undefined) {
+    addNum('actionBarSetToPercentAtStartFromGear', p.actionBarSetToPercentAtStartFromGear)
+  }
+  if (p.extraHitOnCritChanceFromGear !== undefined) addNum('extraHitOnCritChanceFromGear', p.extraHitOnCritChanceFromGear)
+  if (p.blockReplacedByDodgeFromGear) eq.blockReplacedByDodgeFromGear = true
+  if (p.dodgeRolledTwiceAtMaxLifeBetterFromGear) eq.dodgeRolledTwiceAtMaxLifeBetterFromGear = true
+  if (p.dodgeRolledTwiceBelowMaxLifeWorseFromGear) eq.dodgeRolledTwiceBelowMaxLifeWorseFromGear = true
+  if (p.doubleDamageUpgradesToTripleChanceFromGear !== undefined) {
+    addNum('doubleDamageUpgradesToTripleChanceFromGear', p.doubleDamageUpgradesToTripleChanceFromGear)
+  }
+  if (p.tripleDamageUpgradesToQuadrupleChanceFromGear !== undefined) {
+    addNum('tripleDamageUpgradesToQuadrupleChanceFromGear', p.tripleDamageUpgradesToQuadrupleChanceFromGear)
   }
   if (p.pctIncreasedLifeFromGear !== undefined) addNum('pctIncreasedLifeFromGear', p.pctIncreasedLifeFromGear)
   if (p.pctIncreasedManaFromGear !== undefined) addNum('pctIncreasedManaFromGear', p.pctIncreasedManaFromGear)
@@ -3205,6 +3259,17 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     100,
     Math.max(0, eq.takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear)
   )
+  const ailmentsOnCritGainDurationPerCritMulti = eq.ailmentsOnCritGainDurationPerCritMultiFromGear
+  const actionBarSetToPercentAfterCast = Math.min(100, Math.max(0, eq.actionBarSetToPercentAfterCastFromGear))
+  const actionBarFilledByPercentOnBlock = Math.min(100, Math.max(0, eq.actionBarFilledByPercentOnBlockFromGear))
+  const firstAttackAlwaysCrit = eq.firstAttackAlwaysCritFromGear
+  const actionBarSetToPercentAtStart = Math.min(100, Math.max(0, eq.actionBarSetToPercentAtStartFromGear))
+  const extraHitOnCritChance = Math.min(100, Math.max(0, eq.extraHitOnCritChanceFromGear))
+  const blockReplacedByDodge = eq.blockReplacedByDodgeFromGear
+  const dodgeRolledTwiceAtMaxLifeBetter = eq.dodgeRolledTwiceAtMaxLifeBetterFromGear
+  const dodgeRolledTwiceBelowMaxLifeWorse = eq.dodgeRolledTwiceBelowMaxLifeWorseFromGear
+  const doubleDamageUpgradesToTripleChance = Math.min(100, Math.max(0, eq.doubleDamageUpgradesToTripleChanceFromGear))
+  const tripleDamageUpgradesToQuadrupleChance = Math.min(100, Math.max(0, eq.tripleDamageUpgradesToQuadrupleChanceFromGear))
   const convertEvasionToArmour = eq.convertEvasionToArmourFromGear
   const energyShieldCannotBeReducedBelowMaximum = eq.energyShieldCannotBeReducedBelowMaximumFromGear
   const countsAsDualWielding = eq.countsAsDualWieldingFromGear
@@ -4034,6 +4099,17 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     randomIgniteDurationMorePercent,
     chillYouInflictInfiniteDuration,
     takePhysicalDamagePercentOfMaxLifeWhenYouAttack,
+    ailmentsOnCritGainDurationPerCritMulti,
+    actionBarSetToPercentAfterCast,
+    actionBarFilledByPercentOnBlock,
+    firstAttackAlwaysCrit,
+    actionBarSetToPercentAtStart,
+    extraHitOnCritChance,
+    blockReplacedByDodge,
+    dodgeRolledTwiceAtMaxLifeBetter,
+    dodgeRolledTwiceBelowMaxLifeWorse,
+    doubleDamageUpgradesToTripleChance,
+    tripleDamageUpgradesToQuadrupleChance,
     pctDexIntConvertedToStr,
     convertEvasionToArmour,
     energyShieldCannotBeReducedBelowMaximum,
