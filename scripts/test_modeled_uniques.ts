@@ -237,6 +237,135 @@ function main() {
     assert(stats.takeChaosDamagePerSecond === 1, `Expected stats.takeChaosDamagePerSecond=1, got ${stats.takeChaosDamagePerSecond}`);
   }
 
+  // Hemophage / Ironstance / Lightshroud / Dusk and Dawn: conversions and hard overrides
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      [
+        "50% of your dexterity and intelligence is converted to strength",
+        "Your total evasion rating is converted into armour",
+        "Your energy shield cannot be reduced below its maximum by damage taken",
+        "counts as dual-wielding",
+      ],
+      { isWeapon: false }
+    );
+    assert(patch.pctDexIntConvertedToStrFromGear === 50, `Expected pctDexIntConvertedToStr=50, got ${patch.pctDexIntConvertedToStrFromGear}`);
+    assert(Boolean(patch.convertEvasionToArmourFromGear), "Expected convertEvasionToArmourFromGear true");
+    assert(Boolean(patch.energyShieldCannotBeReducedBelowMaximumFromGear), "Expected energyShieldCannotBeReducedBelowMaximumFromGear true");
+    assert(Boolean(patch.countsAsDualWieldingFromGear), "Expected countsAsDualWieldingFromGear true");
+
+    const eq = emptyEquipmentModifiers();
+    eq.pctDexIntConvertedToStrFromGear = 50;
+    eq.convertEvasionToArmourFromGear = true;
+    eq.energyShieldCannotBeReducedBelowMaximumFromGear = true;
+    eq.countsAsDualWieldingFromGear = true;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(stats.pctDexIntConvertedToStr === 50, `Expected stats.pctDexIntConvertedToStr=50, got ${stats.pctDexIntConvertedToStr}`);
+    assert(Boolean(stats.convertEvasionToArmour), "Expected stats.convertEvasionToArmour true");
+    assert(Boolean(stats.energyShieldCannotBeReducedBelowMaximum), "Expected stats.energyShieldCannotBeReducedBelowMaximum true");
+    assert(Boolean(stats.countsAsDualWielding), "Expected stats.countsAsDualWielding true");
+  }
+
+  // Mind Bulwark / Tide of Corruption / Soulthirst: mana→armour and leech-to-ES flags
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      [
+        "Gain armour equal to 40% of maximum mana",
+        "Leech 6% of hit damage from spells as energy shield",
+        "Life leech effects apply to your energy shield instead",
+        "Excess recovery from life leech is applied to your energy shield instead",
+      ],
+      { isWeapon: false }
+    );
+    assert(patch.armourEqualToPercentOfMaxManaFromGear === 40, `Expected armourEqualToPercentOfMaxMana=40, got ${patch.armourEqualToPercentOfMaxManaFromGear}`);
+    assert(patch.spellHitDamageLeechedAsEnergyShieldPercentFromGear === 6, `Expected spellESLeech=6, got ${patch.spellHitDamageLeechedAsEnergyShieldPercentFromGear}`);
+    assert(Boolean(patch.lifeLeechAppliesToEnergyShieldFromGear), "Expected lifeLeechAppliesToEnergyShieldFromGear true");
+    assert(Boolean(patch.excessLifeLeechRecoveryToEnergyShieldFromGear), "Expected excessLifeLeechRecoveryToEnergyShieldFromGear true");
+
+    const eq = emptyEquipmentModifiers();
+    eq.armourEqualToPercentOfMaxManaFromGear = 40;
+    eq.spellHitDamageLeechedAsEnergyShieldPercentFromGear = 6;
+    eq.lifeLeechAppliesToEnergyShieldFromGear = true;
+    eq.excessLifeLeechRecoveryToEnergyShieldFromGear = true;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(stats.armourEqualToPercentOfMaxMana === 40, `Expected stats.armourEqualToPercentOfMaxMana=40, got ${stats.armourEqualToPercentOfMaxMana}`);
+    assert(stats.spellHitDamageLeechedAsEnergyShieldPercent === 6, `Expected stats.spellHitDamageLeechedAsEnergyShieldPercent=6, got ${stats.spellHitDamageLeechedAsEnergyShieldPercent}`);
+    assert(Boolean(stats.lifeLeechAppliesToEnergyShield), "Expected stats.lifeLeechAppliesToEnergyShield true");
+    assert(Boolean(stats.excessLifeLeechRecoveryToEnergyShield), "Expected stats.excessLifeLeechRecoveryToEnergyShield true");
+  }
+
+  // Divinarius: increased recovery from all sources
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["40% increased recovery from all sources"],
+      { isWeapon: false }
+    );
+    assert(
+      patch.pctIncreasedRecoveryFromAllSourcesFromGear === 40,
+      `Expected pctIncreasedRecoveryFromAllSources=40, got ${patch.pctIncreasedRecoveryFromAllSourcesFromGear}`
+    );
+    const eq = emptyEquipmentModifiers();
+    eq.pctIncreasedRecoveryFromAllSourcesFromGear = 40;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(
+      Math.abs(stats.recoveryRateMult - 1.4) < 1e-9,
+      `Expected stats.recoveryRateMult=1.4, got ${stats.recoveryRateMult}`
+    );
+  }
+
+  // Woe Touch / Flashfire: less ailment duration + less ignite duration
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["40% less ailment duration", "75% less ignite duration"],
+      { isWeapon: false }
+    );
+    assert(
+      Math.abs((patch.ailmentDurationLessMultFromGear ?? 1) - 0.6) < 1e-9,
+      `Expected ailmentDurationLessMultFromGear=0.6, got ${patch.ailmentDurationLessMultFromGear}`
+    );
+    assert(
+      Math.abs((patch.igniteDurationLessMultFromGear ?? 1) - 0.25) < 1e-9,
+      `Expected igniteDurationLessMultFromGear=0.25, got ${patch.igniteDurationLessMultFromGear}`
+    );
+  }
+
+  // Leyweve / Solemn Oath: crit multi per accuracy + armour per intelligence
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["+1% to critical damage multiplier per 20 accuracy rating", "+16 armour per 10 intelligence"],
+      { isWeapon: false }
+    );
+    assert(
+      patch.critMultiPctPer20AccuracyFromGear === 1,
+      `Expected critMultiPctPer20AccuracyFromGear=1, got ${patch.critMultiPctPer20AccuracyFromGear}`
+    );
+    assert(
+      patch.armourPer10IntFromGear === 16,
+      `Expected armourPer10IntFromGear=16, got ${patch.armourPer10IntFromGear}`
+    );
+
+    const baseEq = emptyEquipmentModifiers();
+    baseEq.flatAccuracy = 2000;
+    baseEq.intBonus = 100; // 100 Int → (100/10)*16 = 160 flat armour
+    const baseStats = computeBuildStats(buildWithEqMods(baseEq));
+
+    const eq = emptyEquipmentModifiers();
+    eq.flatAccuracy = 2000;
+    eq.intBonus = 100;
+    eq.critMultiPctPer20AccuracyFromGear = 1;
+    eq.armourPer10IntFromGear = 16;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+
+    const armourBreak = (stats as any).statBreakdowns?.armour;
+    const armourLine = armourBreak?.lines?.find?.((l: any) => l?.label === 'Gear: armour per 10 Int (flat)');
+    const expectedArmourFromInt = Math.round((stats.int / 10) * 16);
+    assert(
+      armourLine?.value === expectedArmourFromInt,
+      `Expected armour breakdown line value=${expectedArmourFromInt}, got ${armourLine?.value}`
+    );
+    // +1% per 20 accuracy, with ~ (base + 2000) accuracy. Use a delta assertion vs baseline to avoid base constant coupling.
+    assert(stats.critMultiplier > baseStats.critMultiplier, `Expected critMultiplier increased, got ${stats.critMultiplier} vs ${baseStats.critMultiplier}`);
+  }
+
   // Broken Legacy: fixed crit chance = 50%
   {
     const patch = equipmentModifiersFromUniqueTexts(

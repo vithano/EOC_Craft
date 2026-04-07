@@ -36,8 +36,8 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /have infinite duration/i, reason: "Infinite ailment duration not modeled" },
 
   // Special conversion / attribute conversion rules not modeled
-  { re: /is converted to strength$/i, reason: "Attribute conversion not modeled" },
-  { re: /your total evasion rating is converted into armour/i, reason: "Stat conversion not modeled" },
+  // (modeled) attribute conversion (Dex/Int → Str)
+  // (modeled) evasion → armour conversion
 
   // Meta-progression lines
   { re: /increased experience gain$/i, reason: "Experience gain not modeled" },
@@ -53,7 +53,7 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /increased melee critical hit chance per 10 intelligence/i, reason: "Attribute-scaled crit for melee only not modeled" },
   { re: /increased range attack damage per 10 strength/i, reason: "Attribute-scaled ranged damage not modeled" },
   // (modeled) increased shock effect now affects battle sim
-  { re: /increased recovery from all sources/i, reason: "Global recovery scaling not modeled" },
+  // (modeled) increased recovery from all sources
   { re: /chance to reduce no damage on block/i, reason: "Block variance not modeled" },
   // (modeled) mana regen can be diverted to ES
   { re: /abilities gain additional base mana cost/i, reason: "Ability cost scaling by max energy not modeled" },
@@ -62,17 +62,17 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /cannot evade while you are above/i, reason: "Conditional evasion disable not modeled" },
   { re: /cannot recover life while above/i, reason: "Conditional recovery disable not modeled" },
   { re: /chaos damage can inflict all elemental ailments/i, reason: "Chaos ailment eligibility not modeled" },
-  { re: /counts as dual-wielding/i, reason: "Dual-wield tag mechanics not modeled" },
+  // (modeled) counts-as-dual-wielding flag (planner-only for now)
   { re: /critical hits have a 100% chance to inflict poison/i, reason: "Crit-conditional ailment overrides not modeled" },
   { re: /critical hits have a 100% chance to inflict elemental ailments/i, reason: "Crit-conditional ailment overrides not modeled" },
   // (modeled) enemy resistance mirroring + chill immunity + enemy less dmg / more speed now affect battle sim
-  { re: /excess recovery from life leech is applied to your energy shield instead/i, reason: "Leech overflow to ES not modeled" },
-  { re: /gain armour equal to \d+% of maximum mana/i, reason: "Cross-stat conversion (mana→armour) not modeled" },
+  // (modeled) leech overflow to ES (planner-only flag for now)
+  // (modeled) mana → armour conversion
   { re: /^if your death was prevented/i, reason: "Stage-based death prevention mechanics not modeled" },
   { re: /ignite effects.*randomly gain between/i, reason: "Randomized ailment duration not modeled" },
   { re: /^increased local attack speed/i, reason: "Non-standard local attack speed format not modeled" },
-  { re: /leech .* from spells as energy shield/i, reason: "Spell leech to ES not modeled" },
-  { re: /life leech effects apply to your energy shield instead/i, reason: "Leech to ES replacement not modeled" },
+  // (modeled) spell leech to ES (battle sim; simplified)
+  // (modeled) leech applies to ES (planner + battle sim; partial)
   // (modeled) self life loss per second
   // (modeled) ability costs can be paid with ES
   // (modeled) poison reflection to self (battle sim)
@@ -102,17 +102,17 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /chance to block is (?:doubled|halved)/i, reason: "Block chance overrides not modeled" },
   { re: /your chaos damage can ignite/i, reason: "Chaos ignite eligibility not modeled" },
   { re: /your critical hit chance is \d+%/i, reason: "Fixed crit chance override not modeled" },
-  { re: /energy shield cannot be reduced below its maximum/i, reason: "Special ES floor not modeled" },
+  // (modeled) ES cannot be reduced below maximum (battle sim)
   { re: /hits inflict chill as though dealing/i, reason: "Chill magnitude override not modeled" },
   { re: /leech effects also apply to damage over time/i, reason: "Leech interaction with DoT not modeled" },
   { re: /lightning damage can inflict poison/i, reason: "Cross-element ailment eligibility not modeled" },
-  { re: /critical damage multiplier per 20 accuracy rating/i, reason: "Accuracy-scaled crit multiplier not modeled" },
+  // (modeled) crit damage multiplier per 20 accuracy rating
   { re: /life per magic item equipped/i, reason: "Per-equipped-item scaling not modeled" },
-  { re: /armou?r per 10 intelligence/i, reason: "Attribute-scaled armour not modeled" },
+  // (modeled) armour per 10 intelligence
   { re: /^\d+\s+increased\s+defences$/i, reason: "Non-standard defences text format not modeled" },
-  { re: /less ailment duration$/i, reason: "Ailment duration less multiplier not modeled" },
+  // (modeled) less ailment duration
   { re: /more shock duration$/i, reason: "Shock duration scaling not modeled" },
-  { re: /less ignite duration$/i, reason: "Ignite duration less multiplier not modeled" },
+  // (modeled) less ignite duration
   { re: /^critital hits have a 100% chance to inflict elemental ailments$/i, reason: "Data typo; crit-conditional ailment override not modeled" },
 ]
 

@@ -403,6 +403,8 @@ export interface EquipmentModifiers {
   intBonus: number
   /** Flat accuracy from gear (before % increased accuracy). */
   flatAccuracy: number
+  /** Flat armour gained per 10 intelligence (e.g. "+16 armour per 10 intelligence" → 16). */
+  armourPer10IntFromGear: number
   pctIncreasedLifeFromGear: number
   pctIncreasedManaFromGear: number
   pctIncreasedArmourFromGear: number
@@ -594,6 +596,7 @@ export interface EquipmentModifiers {
   increasedItemQuantityFromGear: number
   critIncPctPerItemRarityPctFromGear: number
   critMultiPctPerItemQuantityPctFromGear: number
+  critMultiPctPer20AccuracyFromGear: number
   additionalAbilityLevelsAllFromGear: number
   additionalAbilityLevelsColdFromGear: number
 
@@ -636,6 +639,17 @@ export interface EquipmentModifiers {
 
   loseLifePerSecondFromGear: number
   takeChaosDamagePerSecondFromGear: number
+
+  pctDexIntConvertedToStrFromGear: number
+  convertEvasionToArmourFromGear: boolean
+  energyShieldCannotBeReducedBelowMaximumFromGear: boolean
+  countsAsDualWieldingFromGear: boolean
+
+  armourEqualToPercentOfMaxManaFromGear: number
+  lifeLeechAppliesToEnergyShieldFromGear: boolean
+  spellHitDamageLeechedAsEnergyShieldPercentFromGear: number
+  excessLifeLeechRecoveryToEnergyShieldFromGear: boolean
+  pctIncreasedRecoveryFromAllSourcesFromGear: number
 }
 
 export interface ComputedBuildStats {
@@ -705,6 +719,15 @@ export interface ComputedBuildStats {
   flatLifeRegenPerSecond: number
   loseLifePerSecond: number
   takeChaosDamagePerSecond: number
+  pctDexIntConvertedToStr: number
+  convertEvasionToArmour: boolean
+  energyShieldCannotBeReducedBelowMaximum: boolean
+  countsAsDualWielding: boolean
+  armourEqualToPercentOfMaxMana: number
+  lifeLeechAppliesToEnergyShield: boolean
+  spellHitDamageLeechedAsEnergyShieldPercent: number
+  excessLifeLeechRecoveryToEnergyShield: boolean
+  recoveryRateMult: number
   lifeRecoveryPct: number
   esRecoveryPct: number
 
@@ -859,6 +882,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     dexBonus: 0,
     intBonus: 0,
     flatAccuracy: 0,
+    armourPer10IntFromGear: 0,
     pctIncreasedLifeFromGear: 0,
     pctIncreasedManaFromGear: 0,
     pctIncreasedArmourFromGear: 0,
@@ -1031,6 +1055,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     increasedItemQuantityFromGear: 0,
     critIncPctPerItemRarityPctFromGear: 0,
     critMultiPctPerItemQuantityPctFromGear: 0,
+    critMultiPctPer20AccuracyFromGear: 0,
     additionalAbilityLevelsAllFromGear: 0,
     additionalAbilityLevelsColdFromGear: 0,
     maxShockEffectBonusFromGear: 0,
@@ -1065,6 +1090,15 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     flatLifeRegenPerSecondPerCharacterLevelFromGear: 0,
     loseLifePerSecondFromGear: 0,
     takeChaosDamagePerSecondFromGear: 0,
+    pctDexIntConvertedToStrFromGear: 0,
+    convertEvasionToArmourFromGear: false,
+    energyShieldCannotBeReducedBelowMaximumFromGear: false,
+    countsAsDualWieldingFromGear: false,
+    armourEqualToPercentOfMaxManaFromGear: 0,
+    lifeLeechAppliesToEnergyShieldFromGear: false,
+    spellHitDamageLeechedAsEnergyShieldPercentFromGear: 0,
+    excessLifeLeechRecoveryToEnergyShieldFromGear: false,
+    pctIncreasedRecoveryFromAllSourcesFromGear: 0,
   }
 }
 
@@ -1125,6 +1159,7 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.dexBonus !== undefined) addNum('dexBonus', p.dexBonus)
   if (p.intBonus !== undefined) addNum('intBonus', p.intBonus)
   if (p.flatAccuracy !== undefined) addNum('flatAccuracy', p.flatAccuracy)
+  if (p.armourPer10IntFromGear !== undefined) addNum('armourPer10IntFromGear', p.armourPer10IntFromGear)
   if (p.pctIncreasedLifeFromGear !== undefined) addNum('pctIncreasedLifeFromGear', p.pctIncreasedLifeFromGear)
   if (p.pctIncreasedManaFromGear !== undefined) addNum('pctIncreasedManaFromGear', p.pctIncreasedManaFromGear)
   if (p.pctIncreasedArmourFromGear !== undefined) addNum('pctIncreasedArmourFromGear', p.pctIncreasedArmourFromGear)
@@ -1460,6 +1495,9 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.critMultiPctPerItemQuantityPctFromGear !== undefined) {
     addNum('critMultiPctPerItemQuantityPctFromGear', p.critMultiPctPerItemQuantityPctFromGear)
   }
+  if (p.critMultiPctPer20AccuracyFromGear !== undefined) {
+    addNum('critMultiPctPer20AccuracyFromGear', p.critMultiPctPer20AccuracyFromGear)
+  }
   if (p.additionalAbilityLevelsAllFromGear !== undefined) {
     addNum('additionalAbilityLevelsAllFromGear', p.additionalAbilityLevelsAllFromGear)
   }
@@ -1512,6 +1550,19 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
   if (p.loseLifePerSecondFromGear !== undefined) addNum('loseLifePerSecondFromGear', p.loseLifePerSecondFromGear)
   if (p.takeChaosDamagePerSecondFromGear !== undefined) addNum('takeChaosDamagePerSecondFromGear', p.takeChaosDamagePerSecondFromGear)
+  if (p.pctDexIntConvertedToStrFromGear !== undefined) addNum('pctDexIntConvertedToStrFromGear', p.pctDexIntConvertedToStrFromGear)
+  if (p.convertEvasionToArmourFromGear) eq.convertEvasionToArmourFromGear = true
+  if (p.energyShieldCannotBeReducedBelowMaximumFromGear) eq.energyShieldCannotBeReducedBelowMaximumFromGear = true
+  if (p.countsAsDualWieldingFromGear) eq.countsAsDualWieldingFromGear = true
+  if (p.armourEqualToPercentOfMaxManaFromGear !== undefined) addNum('armourEqualToPercentOfMaxManaFromGear', p.armourEqualToPercentOfMaxManaFromGear)
+  if (p.lifeLeechAppliesToEnergyShieldFromGear) eq.lifeLeechAppliesToEnergyShieldFromGear = true
+  if (p.spellHitDamageLeechedAsEnergyShieldPercentFromGear !== undefined) {
+    addNum('spellHitDamageLeechedAsEnergyShieldPercentFromGear', p.spellHitDamageLeechedAsEnergyShieldPercentFromGear)
+  }
+  if (p.excessLifeLeechRecoveryToEnergyShieldFromGear) eq.excessLifeLeechRecoveryToEnergyShieldFromGear = true
+  if (p.pctIncreasedRecoveryFromAllSourcesFromGear !== undefined) {
+    addNum('pctIncreasedRecoveryFromAllSourcesFromGear', p.pctIncreasedRecoveryFromAllSourcesFromGear)
+  }
 }
 
 /**
@@ -1774,6 +1825,18 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   dex  = Math.round(dex  * dexMult)
   int_ = Math.round(int_ * intMult)
 
+  // -------------------------------------------------------------------------
+  // 5b. Attribute conversion from gear
+  // -------------------------------------------------------------------------
+  const pctDexIntConvertedToStr = Math.max(0, Math.min(100, eq.pctDexIntConvertedToStrFromGear))
+  if (pctDexIntConvertedToStr > 0) {
+    const takeDex = Math.round(dex * (pctDexIntConvertedToStr / 100))
+    const takeInt = Math.round(int_ * (pctDexIntConvertedToStr / 100))
+    dex = Math.max(0, dex - takeDex)
+    int_ = Math.max(0, int_ - takeInt)
+    str += takeDex + takeInt
+  }
+
   mergeAttributeThresholdConditionalUniques(eq, config.equipped, str, dex, int_)
 
   // -------------------------------------------------------------------------
@@ -1843,7 +1906,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     u('increasedArmourAndEvasionRating') +
     u('increasedArmourAndEnergyShield') +
     eq.pctIncreasedArmourFromGear
-  const armourFlatBase = BASE_GAME_STATS.baseArmour + eq.flatArmour
+  const armourFromMaxMana = Math.round(maxMana * (eq.armourEqualToPercentOfMaxManaFromGear / 100))
+  const armourFromInt = Math.round((int_ / 10) * eq.armourPer10IntFromGear)
+  const armourFlatBase = BASE_GAME_STATS.baseArmour + eq.flatArmour + armourFromMaxMana + armourFromInt
   let armour = Math.round(
     armourFlatBase
     * (1 + (armourFromUpgrades + defFromDex) / 100)
@@ -1863,6 +1928,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     * eq.defencesLessMultFromGear
   )
   if (eq.cannotEvadeFromGear) evasionRating = 0
+  if (eq.convertEvasionToArmourFromGear && evasionRating > 0) {
+    armour += evasionRating
+    evasionRating = 0
+  }
 
   // -------------------------------------------------------------------------
   // 12. Block and dodge
@@ -2144,6 +2213,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     eq.increasedCriticalDamageMultiplierFromGear
     + attunementIncreasedCritMultiplierPct
     + eq.critMultiPctPerItemQuantityPctFromGear * eq.increasedItemQuantityFromGear
+    + eq.critMultiPctPer20AccuracyFromGear * (accuracy / 20)
   const recomputeCritMultiplier = () => {
     critMultiplier = attackCritMultFlatBase + (critMultFromUpgrades() / 100)
   }
@@ -2909,7 +2979,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const dotDamageMoreMultiplier = eq.dotDamageMoreMultFromGear
   const lightningPenetrationPercent = eq.lightningPenetrationFromGear
   const lifeOnHit = eq.lifeOnHitFromGear
-  const lifeLeechFromHitDamagePercent = eq.lifeLeechFromHitDamagePercentFromGear
+  const lifeLeechFromHitDamagePercent =
+    eq.lifeLeechAppliesToEnergyShieldFromGear ? 0 : eq.lifeLeechFromHitDamagePercentFromGear
   const lifeLeechFromPhysicalHitPercent = eq.lifeLeechFromPhysicalHitPercentFromGear
   const hitsCannotBeEvaded = eq.hitsCannotBeEvadedFromGear
   const blockDamageTakenMult = Math.min(
@@ -2933,7 +3004,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   if (eq.abilitiesNoCostFromGear) manaCostPerAttack = 0
 
   const damageDealtLessMult = eq.damageDealtLessMultFromGear
-  const lifeRecoveryRateMult = 1 + eq.pctIncreasedLifeRecoveryFromGear / 100
+  const recoveryRateMult = 1 + (eq.pctIncreasedLifeRecoveryFromGear + eq.pctIncreasedRecoveryFromAllSourcesFromGear) / 100
+  const lifeRecoveryRateMult = recoveryRateMult
   const physicalDamageTakenAsChaosPercent = eq.physicalTakenAsChaosPercentFromGear
   const physicalDamageTakenAsFirePercent = eq.physicalTakenAsFirePercentFromGear
   const physicalDamageTakenAsColdPercent = eq.physicalTakenAsColdPercentFromGear
@@ -2985,6 +3057,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const poisonDamageTakenLessPercent = eq.poisonDamageTakenLessPercentFromGear
   const loseLifePerSecond = eq.loseLifePerSecondFromGear
   const takeChaosDamagePerSecond = eq.takeChaosDamagePerSecondFromGear
+  const convertEvasionToArmour = eq.convertEvasionToArmourFromGear
+  const energyShieldCannotBeReducedBelowMaximum = eq.energyShieldCannotBeReducedBelowMaximumFromGear
+  const countsAsDualWielding = eq.countsAsDualWieldingFromGear
+  const armourEqualToPercentOfMaxMana = eq.armourEqualToPercentOfMaxManaFromGear
+  const lifeLeechAppliesToEnergyShield = eq.lifeLeechAppliesToEnergyShieldFromGear
+  const spellHitDamageLeechedAsEnergyShieldPercent = eq.spellHitDamageLeechedAsEnergyShieldPercentFromGear
+  const excessLifeLeechRecoveryToEnergyShield = eq.excessLifeLeechRecoveryToEnergyShieldFromGear
 
   // -------------------------------------------------------------------------
   // Planner stat breakdowns (every ComputedBuildStats field)
@@ -3172,6 +3251,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     { label: 'Base armour', value: BASE_GAME_STATS.baseArmour },
   ]
   dmgPushIf(armourLines, 'Gear: flat armour', eq.flatArmour)
+  if (armourFromMaxMana !== 0) {
+    armourLines.push({ label: 'Gear: armour from max mana (flat)', value: armourFromMaxMana })
+  }
+  if (armourFromInt !== 0) {
+    armourLines.push({ label: 'Gear: armour per 10 Int (flat)', value: armourFromInt })
+  }
   dmgPushIf(armourLines, 'Upgrades: increased armour', u('increasedArmour'))
   dmgPushIf(armourLines, 'Upgrades: increased armour and evasion', u('increasedArmourAndEvasionRating'))
   dmgPushIf(armourLines, 'Upgrades: increased armour and energy shield', u('increasedArmourAndEnergyShield'))
@@ -3411,6 +3496,15 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   ]
   dmgPushIf(critMultLines, 'Gear: flat crit multiplier bonus (added before increased)', eq.flatCriticalDamageMultiplierBonusFromGear / 100)
   dmgPushIf(critMultLines, 'Gear: increased crit damage multiplier (÷100 added to mult)', eq.increasedCriticalDamageMultiplierFromGear / 100)
+  if (eq.critMultiPctPer20AccuracyFromGear !== 0) {
+    const pct = eq.critMultiPctPer20AccuracyFromGear * (accuracy / 20)
+    if (pct !== 0) {
+      critMultLines.push({
+        label: `Gear: +${eq.critMultiPctPer20AccuracyFromGear}% crit damage multiplier per 20 accuracy (÷100)`,
+        value: pct / 100,
+      })
+    }
+  }
   if (attunementIncreasedCritMultiplierPct !== 0) {
     critMultLines.push({
       label: 'Ability attunement: to critical damage multiplier (÷100)',
@@ -3765,6 +3859,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     poisonDamageTakenLessPercent,
     loseLifePerSecond,
     takeChaosDamagePerSecond,
+    pctDexIntConvertedToStr,
+    convertEvasionToArmour,
+    energyShieldCannotBeReducedBelowMaximum,
+    countsAsDualWielding,
+    armourEqualToPercentOfMaxMana,
+    lifeLeechAppliesToEnergyShield,
+    spellHitDamageLeechedAsEnergyShieldPercent,
+    excessLifeLeechRecoveryToEnergyShield,
 
     // Ailments
     bleedChance,
@@ -3808,6 +3910,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     hitsTakenCannotBeCritical,
     damageDealtLessMult,
     lifeRecoveryRateMult,
+    recoveryRateMult,
     physicalDamageTakenAsChaosPercent,
     physicalDamageTakenAsFirePercent,
     physicalDamageTakenAsColdPercent,

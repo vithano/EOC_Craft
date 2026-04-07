@@ -37,6 +37,10 @@ export interface UniqueGearStatPatch {
   dexBonus?: number;
   intBonus?: number;
   flatAccuracy?: number;
+  /** Flat armour gained per 10 intelligence (e.g. "+16 armour per 10 intelligence" → 16). */
+  armourPer10IntFromGear?: number;
+  /** X in “+X% to critical damage multiplier per 20 accuracy rating”. */
+  critMultiPctPer20AccuracyFromGear?: number;
   pctIncreasedLifeFromGear?: number;
   pctIncreasedManaFromGear?: number;
   pctIncreasedArmourFromGear?: number;
@@ -301,6 +305,18 @@ export interface UniqueGearStatPatch {
 
   loseLifePerSecondFromGear?: number;
   takeChaosDamagePerSecondFromGear?: number;
+
+  pctDexIntConvertedToStrFromGear?: number;
+  convertEvasionToArmourFromGear?: boolean;
+  energyShieldCannotBeReducedBelowMaximumFromGear?: boolean;
+  countsAsDualWieldingFromGear?: boolean;
+
+  armourEqualToPercentOfMaxManaFromGear?: number;
+  lifeLeechAppliesToEnergyShieldFromGear?: boolean;
+  spellHitDamageLeechedAsEnergyShieldPercentFromGear?: number;
+  excessLifeLeechRecoveryToEnergyShieldFromGear?: boolean;
+
+  pctIncreasedRecoveryFromAllSourcesFromGear?: number;
 }
 
 function num(m: RegExpMatchArray | null, g = 1): number | null {
@@ -657,6 +673,7 @@ export function equipmentModifiersFromUniqueTexts(
       /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+less\s+ailment\s+duration\b/i
     );
     if (m) {
+      mark();
       const p = Math.abs(pctFromParenOrSingle(m));
       ailmentDurLessMult *= Math.max(0.05, 1 - p / 100);
     }
@@ -665,6 +682,7 @@ export function equipmentModifiersFromUniqueTexts(
       /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+less\s+(?:bleed|poison|chill|shock)\s+duration\b/i
     );
     if (m) {
+      mark();
       const p = Math.abs(pctFromParenOrSingle(m));
       ailmentDurLessMult *= Math.max(0.05, 1 - p / 100);
     }
@@ -673,12 +691,16 @@ export function equipmentModifiersFromUniqueTexts(
       /(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+less\s+ignite\s+duration\b/i
     );
     if (m) {
+      mark();
       const p = Math.abs(pctFromParenOrSingle(m));
       igniteDurLessMult *= Math.max(0.05, 1 - p / 100);
     }
 
     m = l.match(/([\d.]+)%\s+reduced\s+ailment\s+duration\b/i);
     if (m) add({ ailmentDurationBonusFromGear: -num(m)! });
+
+    m = l.match(/\+?([\d.]+)\s+armou?r\s+per\s+10\s+intelligence\b/i);
+    if (m) add({ armourPer10IntFromGear: num(m)! });
 
     m = l.match(/([\d.]+)%\s+increased\s+attributes\b/i);
     if (m) add({ pctIncreasedAllAttributesFromGear: num(m)! });
@@ -694,6 +716,9 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/\+([\d.]+)%\s+to\s+critical\s+damage\s+multiplier\s+per\s+1%\s+increased\s+item\s+quantity\b/i);
     if (m) add({ critMultiPctPerItemQuantityPctFromGear: num(m)! });
+
+    m = l.match(/\+([\d.]+)%\s+to\s+critical\s+damage\s+multiplier\s+per\s+20\s+accuracy\s+rating\b/i);
+    if (m) add({ critMultiPctPer20AccuracyFromGear: num(m)! });
 
     m = l.match(/\+\(?([\d.-]+)\)?\s+to\s+the\s+level\s+of\s+all\s+abilities\b/i);
     if (m) add({ additionalAbilityLevelsAllFromGear: num(m)! });
@@ -862,6 +887,43 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/take\s+([\d.]+)\s+chaos\s+damage\s+per\s+second\b/i);
     if (m) add({ takeChaosDamagePerSecondFromGear: num(m)! });
+
+    m = l.match(/([\d.]+)%\s+of\s+your\s+dexterity\s+and\s+intelligence\s+is\s+converted\s+to\s+strength\b/i);
+    if (m) add({ pctDexIntConvertedToStrFromGear: num(m)! });
+
+    if (/your\s+total\s+evasion\s+rating\s+is\s+converted\s+into\s+armour\b/i.test(low)) {
+      acc.convertEvasionToArmourFromGear = true;
+      mark();
+    }
+
+    if (/your\s+energy\s+shield\s+cannot\s+be\s+reduced\s+below\s+its\s+maximum\b/i.test(low)) {
+      acc.energyShieldCannotBeReducedBelowMaximumFromGear = true;
+      mark();
+    }
+
+    if (/counts\s+as\s+dual-wielding\b/i.test(low)) {
+      acc.countsAsDualWieldingFromGear = true;
+      mark();
+    }
+
+    m = l.match(/gain\s+armou?r\s+equal\s+to\s+([\d.]+)%\s+of\s+maximum\s+mana\b/i);
+    if (m) add({ armourEqualToPercentOfMaxManaFromGear: num(m)! });
+
+    if (/life\s+leech\s+effects\s+apply\s+to\s+your\s+energy\s+shield\s+instead\b/i.test(low)) {
+      acc.lifeLeechAppliesToEnergyShieldFromGear = true;
+      mark();
+    }
+
+    m = l.match(/leech\s+([\d.]+)%\s+of\s+hit\s+damage\s+from\s+spells\s+as\s+energy\s+shield\b/i);
+    if (m) add({ spellHitDamageLeechedAsEnergyShieldPercentFromGear: num(m)! });
+
+    if (/excess\s+recovery\s+from\s+life\s+leech\s+is\s+applied\s+to\s+your\s+energy\s+shield\s+instead\b/i.test(low)) {
+      acc.excessLifeLeechRecoveryToEnergyShieldFromGear = true;
+      mark();
+    }
+
+    m = l.match(/([\d.]+)%\s+increased\s+recovery\s+from\s+all\s+sources\b/i);
+    if (m) add({ pctIncreasedRecoveryFromAllSourcesFromGear: num(m)! });
 
     m = l.match(
       /regenerate\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+life\s+per\s+second\b/i

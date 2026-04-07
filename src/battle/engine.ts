@@ -318,6 +318,11 @@ function applyDamageToPools(
     dmg -= fromMana
   }
 
+  if ((stats.energyShieldCannotBeReducedBelowMaximum ?? false) && stats.maxEnergyShield > 0) {
+    // Simplified model: incoming damage cannot lower ES at all, so ES stays full and damage is prevented.
+    return 0
+  }
+
   if (stats.maxEnergyShield > 0 && state.energyShield > 0) {
     const toEs = Math.min(dmg, state.energyShield)
     state.energyShield -= toEs
@@ -837,6 +842,14 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
               Math.max(0, player.life + gainOnHit)
             )
           }
+          const spellEsLeechPct = stats.spellHitDamageLeechedAsEnergyShieldPercent ?? 0
+          if (spellEsLeechPct > 0 && stats.maxEnergyShield > 0) {
+            // Demo simplification: apply spell hit leech to ES on any hit event (we don't simulate actual spell casts here).
+            const gainEs = damage * (spellEsLeechPct / 100)
+            if (gainEs > 0) {
+              player.energyShield = Math.min(stats.maxEnergyShield, player.energyShield + gainEs)
+            }
+          }
         }
         if (log.length < maxLog) {
           const msg =
@@ -897,7 +910,8 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
 
     // Mana regeneration (optionally diverted to ES, and disabled if no-mana)
     const regenToEs = stats.manaRegenAppliesToEnergyShieldPercent ?? 0
-    const manaRegen = stats.manaRegenPerSecond * dt
+    const recAll = stats.recoveryRateMult ?? 1
+    const manaRegen = stats.manaRegenPerSecond * dt * recAll
     if ((stats.noMana ?? false) || stats.maxMana <= 0) {
       player.mana = 0
     } else {
@@ -959,7 +973,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     if (esRegenPct > 0 && stats.maxEnergyShield > 0) {
       player.energyShield = Math.min(
         stats.maxEnergyShield,
-        player.energyShield + stats.maxEnergyShield * (esRegenPct / 100) * dt
+        player.energyShield + stats.maxEnergyShield * (esRegenPct / 100) * dt * recAll
       )
     }
 
