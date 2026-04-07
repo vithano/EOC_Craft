@@ -146,6 +146,12 @@ export interface UniqueGearStatPatch {
   /** "If your death was prevented..., take X chaos damage per second" */
   takeChaosDamagePerSecondIfDeathPreventedFromGear?: number;
 
+  /** "% increased attribute requirements" (meta; shown in breakdown). */
+  pctIncreasedAttributeRequirementsFromGear?: number;
+
+  /** "Take chaos damage equal to X% of ability cost when you cast a spell" */
+  takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear?: number;
+
   /** When you deal a critical hit, perform an additional hit with X% chance. */
   extraHitOnCritChanceFromGear?: number;
   /** When you would block, dodge instead. */
@@ -1097,7 +1103,8 @@ export function equipmentModifiersFromUniqueTexts(
     if (/increased effect of other explicit modifiers on this item per enhancement tier\b/i.test(low)) mark();
     m = l.match(/([\d.]+)%\s+increased\s+experience\s+gain\b/i);
     if (m) add({ pctIncreasedExperienceGainFromGear: num(m)! });
-    if (/increased attribute requirements\b/i.test(low)) mark();
+    m = l.match(/([\d.]+)%\s+increased\s+attribute\s+requirements\b/i);
+    if (m) add({ pctIncreasedAttributeRequirementsFromGear: num(m)! });
     m = l.match(/([\d.]+)%\s+chance\s+to\s+skip\s+non-elite\s+enemy\s+encounters\b/i);
     if (m) add({ skipNonEliteEnemyEncountersChanceFromGear: num(m)! });
     m = l.match(/([\d.]+)\s+life\s+per\s+magic\s+item\s+equipped\b/i);
@@ -1148,7 +1155,8 @@ export function equipmentModifiersFromUniqueTexts(
     if (/^when you cast a spell,/i.test(low)) mark();
     if (/^when you attack/i.test(low)) mark();
     if (/^when you block/i.test(low)) mark();
-    if (/take chaos damage equal to/i.test(low)) mark();
+    m = l.match(/take\s+chaos\s+damage\s+equal\s+to\s+([\d.]+)%\s+of\s+ability\s+cost\s+when\s+you\s+cast\s+a\s+spell\b/i)
+    if (m) add({ takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear: num(m)! })
     if (/local damage of your weapons applies to spells/i.test(low)) {
       acc.weaponLocalDamageAppliesToSpellsFromGear = true;
       mark();

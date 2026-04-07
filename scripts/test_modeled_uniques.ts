@@ -744,6 +744,39 @@ function main() {
     assert(res.log.some((e) => (e as any).message?.includes?.("Death prevented")), "Expected death prevented log entry");
   }
 
+  // Annihilation: take chaos damage equal to 400% of ability cost when casting a spell
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["Take chaos damage equal to 400% of ability cost when you cast a spell"],
+      { isWeapon: false }
+    );
+    assert(
+      patch.takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear === 400,
+      `Expected takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear=400, got ${patch.takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear}`
+    );
+
+    const eq = emptyEquipmentModifiers();
+    eq.takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear = 400;
+    eq.actionBarSetToPercentAtStartFromGear = 100; // ensure an immediate action occurs
+    const stats = computeBuildStats({
+      ...buildWithEqMods(eq),
+      ability: { abilityId: "ability_mana_bolt", abilityLevel: 1, attunementPct: 0 }, // spell selection enables the on-cast hook
+    });
+    const enemy = {
+      id: "dummy",
+      name: "Dummy",
+      maxLife: 1_000_000,
+      armour: 0,
+      evasionRating: 0,
+      accuracy: 0,
+      damageMin: 0,
+      damageMax: 0,
+      aps: 0.01,
+    };
+    const res = simulateEncounter({ stats, enemy, options: { maxDurationSeconds: 0.3, dt: 0.02, maxLogEntries: 0 } });
+    assert(res.playerFinal.life < stats.maxLife, `Expected self chaos damage on cast to lower life, got ${res.playerFinal.life}/${stats.maxLife}`);
+  }
+
   // Broken Legacy: fixed crit chance = 50%
   {
     const patch = equipmentModifiersFromUniqueTexts(

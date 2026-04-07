@@ -999,6 +999,12 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         if (payLife) player.life -= cost
         else if (payEs) player.energyShield -= cost
         else player.mana -= cost
+        // "Take chaos damage equal to X% of ability cost when you cast a spell"
+        // Demo model: treat a spell selection as a "cast" event, using the actual cost paid this action.
+        const chaosPct = stats.takeChaosDamageEqualToPctOfAbilityCostOnSpellCast ?? 0
+        if (chaosPct > 0 && stats.spellDamageComputationBreakdown) {
+          player.life = Math.max(0, player.life - cost * (chaosPct / 100))
+        }
         const selfPhysPct = stats.takePhysicalDamagePercentOfMaxLifeWhenYouAttack ?? 0
         if (selfPhysPct > 0) {
           player.life = Math.max(0, player.life - runtimeMaxLife * (selfPhysPct / 100))

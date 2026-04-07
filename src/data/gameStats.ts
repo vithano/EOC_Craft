@@ -454,6 +454,8 @@ export interface EquipmentModifiers {
   preventDeathOncePerStageFromGear: boolean
   moreSpeedIfDeathPreventedThisStagePercentFromGear: number
   takeChaosDamagePerSecondIfDeathPreventedFromGear: number
+  pctIncreasedAttributeRequirementsFromGear: number
+  takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear: number
   extraHitOnCritChanceFromGear: number
   blockReplacedByDodgeFromGear: boolean
   dodgeRolledTwiceAtMaxLifeBetterFromGear: boolean
@@ -818,6 +820,8 @@ export interface ComputedBuildStats {
   preventDeathOncePerStage: boolean
   moreSpeedIfDeathPreventedThisStagePercent: number
   takeChaosDamagePerSecondIfDeathPrevented: number
+  pctIncreasedAttributeRequirements: number
+  takeChaosDamageEqualToPctOfAbilityCostOnSpellCast: number
   extraHitOnCritChance: number
   blockReplacedByDodge: boolean
   dodgeRolledTwiceAtMaxLifeBetter: boolean
@@ -1035,6 +1039,8 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     preventDeathOncePerStageFromGear: false,
     moreSpeedIfDeathPreventedThisStagePercentFromGear: 0,
     takeChaosDamagePerSecondIfDeathPreventedFromGear: 0,
+    pctIncreasedAttributeRequirementsFromGear: 0,
+    takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear: 0,
     extraHitOnCritChanceFromGear: 0,
     blockReplacedByDodgeFromGear: false,
     dodgeRolledTwiceAtMaxLifeBetterFromGear: false,
@@ -1401,6 +1407,15 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
   if (p.takeChaosDamagePerSecondIfDeathPreventedFromGear !== undefined) {
     addNum('takeChaosDamagePerSecondIfDeathPreventedFromGear', p.takeChaosDamagePerSecondIfDeathPreventedFromGear)
+  }
+  if (p.pctIncreasedAttributeRequirementsFromGear !== undefined) {
+    addNum('pctIncreasedAttributeRequirementsFromGear', p.pctIncreasedAttributeRequirementsFromGear)
+  }
+  if (p.takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear !== undefined) {
+    addNum(
+      'takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear',
+      p.takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear
+    )
   }
   if (p.extraHitOnCritChanceFromGear !== undefined) addNum('extraHitOnCritChanceFromGear', p.extraHitOnCritChanceFromGear)
   if (p.blockReplacedByDodgeFromGear) eq.blockReplacedByDodgeFromGear = true
@@ -3429,6 +3444,11 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     0,
     eq.takeChaosDamagePerSecondIfDeathPreventedFromGear
   )
+  const pctIncreasedAttributeRequirements = Math.max(0, eq.pctIncreasedAttributeRequirementsFromGear)
+  const takeChaosDamageEqualToPctOfAbilityCostOnSpellCast = Math.max(
+    0,
+    eq.takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear
+  )
   const extraHitOnCritChance = Math.min(100, Math.max(0, eq.extraHitOnCritChanceFromGear))
   const blockReplacedByDodge = eq.blockReplacedByDodgeFromGear
   const dodgeRolledTwiceAtMaxLifeBetter = eq.dodgeRolledTwiceAtMaxLifeBetterFromGear
@@ -4295,6 +4315,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     preventDeathOncePerStage,
     moreSpeedIfDeathPreventedThisStagePercent,
     takeChaosDamagePerSecondIfDeathPrevented,
+    pctIncreasedAttributeRequirements,
+    takeChaosDamageEqualToPctOfAbilityCostOnSpellCast,
     extraHitOnCritChance,
     blockReplacedByDodge,
     dodgeRolledTwiceAtMaxLifeBetter,
