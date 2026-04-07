@@ -595,9 +595,10 @@ function main() {
     eq.flatEnergyShieldFromGear = 1000;
     eq.additionalBaseManaCostPctOfMaxEnergyShieldFromGear = 4;
     const stats = computeBuildStats(buildWithEqMods(eq));
-    const expectedDelta = stats.maxEnergyShield * 0.04;
+    // Whole-number mana costs: delta matches round(ES × pct), not the float product (see gameStats mana cost section).
+    const expectedDelta = Math.round(stats.maxEnergyShield * 0.04);
     assert(
-      Math.abs((stats.manaCostPerAttack - baseStats.manaCostPerAttack) - expectedDelta) < 1e-6,
+      stats.manaCostPerAttack - baseStats.manaCostPerAttack === expectedDelta,
       `Expected manaCostPerAttack delta=${expectedDelta}, got ${stats.manaCostPerAttack - baseStats.manaCostPerAttack}`
     );
   }

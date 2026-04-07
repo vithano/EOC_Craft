@@ -284,6 +284,10 @@ export interface UniqueGearStatPatch {
   lifeRegenPercentOfMaxLifePerSecondFromGear?: number;
   manaRegenPercentOfMaxManaPerSecondFromGear?: number;
   esRegenPercentOfMaxPerSecondFromGear?: number;
+  /** "% increased energy shield per 10 intelligence" (value per 10 Int, floored in compute). */
+  energyShieldIncPctPer10IntFromGear?: number;
+  /** "Regenerate X% of energy shield per second per 150 intelligence" (value per 150 Int, floored in compute). */
+  esRegenPctPerSecondPer150IntFromGear?: number;
 
   lifeAsExtraEsPercentFromGear?: number;
   manaAsExtraEsPercentFromGear?: number;
@@ -1282,7 +1286,15 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(
       /regenerate\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+energy\s+shield\s+per\s+second\b/i
     );
-    if (m) add({ esRegenPercentOfMaxPerSecondFromGear: pctFromParenOrSingle(m) });
+    if (m && !/per\s+150\s+intelligence\b/i.test(low)) {
+      add({ esRegenPercentOfMaxPerSecondFromGear: pctFromParenOrSingle(m) });
+    }
+
+    m = l.match(/([\d.]+)%\s+increased\s+energy\s+shield\s+per\s+10\s+intelligence\b/i);
+    if (m) add({ energyShieldIncPctPer10IntFromGear: num(m)! });
+
+    m = l.match(/regenerate\s+([\d.]+)%\s+of\s+energy\s+shield\s+per\s+second\s+per\s+150\s+intelligence\b/i);
+    if (m) add({ esRegenPctPerSecondPer150IntFromGear: num(m)! });
 
     m = l.match(/gain\s+([\d.]+)%\s+of\s+life\s+as\s+extra\s+base\s+energy\s+shield\b/i);
     if (m) add({ lifeAsExtraEsPercentFromGear: num(m)! });
@@ -1451,7 +1463,8 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/([\d.]+)%\s+increased\s+life\b/i);
     if (m) add({ pctIncreasedLifeFromGear: num(m)! });
 
-    m = l.match(/([\d.]+)%\s+increased\s+mana\b/i);
+    // Avoid matching "increased mana regeneration".
+    m = l.match(/([\d.]+)%\s+increased\s+mana\b(?!\s+regeneration\b|\s+regen\b)/i);
     if (m) add({ pctIncreasedManaFromGear: num(m)! });
 
     m = l.match(/([\d.]+)%\s+increased\s+armour\b/i);

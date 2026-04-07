@@ -42,7 +42,7 @@ import {
 } from "../data/eocBaseEquipment";
 import {
   EOC_MODIFIERS_BY_ID,
-  appliedModifiersToStatTexts,
+  craftedEquipStatParseTexts,
   defaultRollsForModifier,
   formatModifierText,
   getModifiersForItemType,
@@ -386,10 +386,12 @@ export default function EquipmentPanel({
 
     // ── Non-unique fallback ───────────────────────────────────────────────────
     if (!udef) {
+      const craftedEnhMax = 10;
+      const craftedEnh = Math.max(0, Math.min(craftedEnhMax, Math.floor(detailEnhancement || 0)));
       const craftedBase = isCraftedEquipItemId(itemId) ? (EOC_BASE_EQUIPMENT_BY_ID[itemId] ?? null) : null;
       const craftedPrefixes = entry.craftedPrefixes ?? [];
       const craftedSuffixes = entry.craftedSuffixes ?? [];
-      const craftedTexts = craftedBase ? appliedModifiersToStatTexts(craftedPrefixes, craftedSuffixes) : [];
+      const craftedTexts = craftedBase ? craftedEquipStatParseTexts(craftedBase, craftedPrefixes, craftedSuffixes, craftedEnh) : [];
       const craftedPatch = craftedBase
         ? (() => {
             const p = equipmentModifiersFromUniqueTexts(craftedTexts, { isWeapon: slot === "Weapon" });
@@ -423,6 +425,25 @@ export default function EquipmentPanel({
               { type: "lightning", min: lightningR.min, max: lightningR.max },
               { type: "chaos", min: chaosR.min, max: chaosR.max },
             ]);
+          } else {
+            const spPhys = localFlatDamageDisplayRange(craftedPatch.flatSpellDamageMin ?? 0, craftedPatch.flatSpellDamageMax ?? 0);
+            const spFire = localFlatDamageDisplayRange(craftedPatch.flatSpellFireMin ?? 0, craftedPatch.flatSpellFireMax ?? 0);
+            const spCold = localFlatDamageDisplayRange(craftedPatch.flatSpellColdMin ?? 0, craftedPatch.flatSpellColdMax ?? 0);
+            const spLit = localFlatDamageDisplayRange(
+              craftedPatch.flatSpellLightningMin ?? 0,
+              craftedPatch.flatSpellLightningMax ?? 0
+            );
+            const spChaos = localFlatDamageDisplayRange(craftedPatch.flatSpellChaosMin ?? 0, craftedPatch.flatSpellChaosMax ?? 0);
+            const spellRows = [
+              { type: "physical" as const, min: spPhys.min, max: spPhys.max },
+              { type: "fire" as const, min: spFire.min, max: spFire.max },
+              { type: "cold" as const, min: spCold.min, max: spCold.max },
+              { type: "lightning" as const, min: spLit.min, max: spLit.max },
+              { type: "chaos" as const, min: spChaos.min, max: spChaos.max },
+            ].filter((r) => r.min !== 0 || r.max !== 0);
+            if (spellRows.length > 0) {
+              craftedWeaponDamageByType = buildHitDamageByType(spellRows);
+            }
           }
           if (craftedBase.baseCritChance != null) {
             const localCrit = craftedPatch.critChanceBonus ?? 0;
@@ -451,8 +472,6 @@ export default function EquipmentPanel({
 
       // ── Crafted item: render in the same tooltip style as uniques ────────────
       if (craftedBase) {
-        const craftedEnhMax = 10;
-        const craftedEnh = Math.max(0, Math.min(craftedEnhMax, Math.floor(detailEnhancement || 0)));
         const craftedInnateResolved = craftedBase.innate
           ? applyEnhancementToResolvedInnate(craftedBase.innate, craftedBase.enhancementBonusPerLevel ?? 0, craftedEnh)
           : "";

@@ -59,7 +59,7 @@ import {
   type UniqueGearStatPatch,
 } from './uniqueGearMods'
 import { EOC_BASE_EQUIPMENT_BY_ID, isCraftedEquipItemId } from './eocBaseEquipment'
-import { appliedModifiersToStatTexts } from './eocModifiers'
+import { craftedEquipStatParseTexts } from './eocModifiers'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -171,6 +171,7 @@ export interface StatBreakdowns {
   dps: StatBreakdownBlock
   strikesPerAttack: StatBreakdownBlock
   manaRegenPerSecond: StatBreakdownBlock
+  esRegenPerSecond: StatBreakdownBlock
   lifeRecoveryPct: StatBreakdownBlock
   esRecoveryPct: StatBreakdownBlock
   bleedChance: StatBreakdownBlock
@@ -368,6 +369,8 @@ export interface SpellDamageComputationBreakdown {
   increasedDamagePercent: number
   /** Source lines that sum to `increasedDamagePercent`. */
   increasedDamagePercentSources?: StatContributionLine[]
+  /** “More/less” multipliers applied after Σ increased (planner). */
+  moreDamageMultipliers?: Array<{ label: string; factor: number }>
   /** Source lines for `addedDamageMultiplier` (typically the ability’s added multiplier). */
   addedDamageMultiplierSources?: StatContributionLine[]
   enemiesTakeIncreasedDamage: {
@@ -602,6 +605,8 @@ export interface EquipmentModifiers {
   lifeRegenPercentOfMaxLifePerSecondFromGear: number
   manaRegenPercentOfMaxManaPerSecondFromGear: number
   esRegenPercentOfMaxPerSecondFromGear: number
+  energyShieldIncPctPer10IntFromGear: number
+  esRegenPctPerSecondPer150IntFromGear: number
 
   lifeAsExtraEsPercentFromGear: number
   manaAsExtraEsPercentFromGear: number
@@ -787,6 +792,7 @@ export interface ComputedBuildStats {
 
   // Recovery
   manaRegenPerSecond: number
+  esRegenPerSecond: number
   manaRegenAppliesToEnergyShieldPercent: number
   manaCostPaidWithEnergyShield: boolean
   noMana: boolean
@@ -1177,6 +1183,8 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     lifeRegenPercentOfMaxLifePerSecondFromGear: 0,
     manaRegenPercentOfMaxManaPerSecondFromGear: 0,
     esRegenPercentOfMaxPerSecondFromGear: 0,
+    energyShieldIncPctPer10IntFromGear: 0,
+    esRegenPctPerSecondPer150IntFromGear: 0,
 
     lifeAsExtraEsPercentFromGear: 0,
     manaAsExtraEsPercentFromGear: 0,
@@ -1650,6 +1658,12 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.esRegenPercentOfMaxPerSecondFromGear !== undefined) {
     addNum('esRegenPercentOfMaxPerSecondFromGear', p.esRegenPercentOfMaxPerSecondFromGear)
   }
+  if (p.energyShieldIncPctPer10IntFromGear !== undefined) {
+    addNum('energyShieldIncPctPer10IntFromGear', p.energyShieldIncPctPer10IntFromGear)
+  }
+  if (p.esRegenPctPerSecondPer150IntFromGear !== undefined) {
+    addNum('esRegenPctPerSecondPer150IntFromGear', p.esRegenPctPerSecondPer150IntFromGear)
+  }
   if (p.lifeAsExtraEsPercentFromGear !== undefined) {
     addNum('lifeAsExtraEsPercentFromGear', p.lifeAsExtraEsPercentFromGear)
   }
@@ -1965,7 +1979,7 @@ export function aggregateEquippedToEquipmentModifiers(
       if (!def) continue
       const prefixes = entry?.craftedPrefixes ?? []
       const suffixes = entry?.craftedSuffixes ?? []
-      const texts = appliedModifiersToStatTexts(prefixes, suffixes)
+      const texts = craftedEquipStatParseTexts(def, prefixes, suffixes, entry?.enhancement ?? 0)
       const isWeapon = slot === 'Weapon'
       const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
       applyExtraCraftedModPatterns(patch, texts)
@@ -2221,6 +2235,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const attrManaMult = guardianDoubled ? 2 : 1  // 10 mana per 10 int → 20 mana per 10 int
   const attrDefMult  = guardianDoubled ? 2 : 1  // 2% defenses per 10 dex → 4%
   const attrCritMult = guardianDoubled ? 2 : 1  // 2% crit per 10 dex → 4%
+  const attrMeleeDmgMult = guardianDoubled ? 2 : 1 // 1% melee damage per 10 str → 2%
+  const attrSpellDmgMult = guardianDoubled ? 2 : 1 // 1% spell damage per 10 int → 2%
   // Shared by ES, armour, evasion: 2% increased defences per full 10 DEX (× guardian on attrDefMult).
   const defFromDex = Math.floor(dex / 10) * attrDefMult * 2
 
@@ -2265,11 +2281,23 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + u('increasedArmourAndEnergyShield')
     + u('increasedEvasionRatingAndEnergyShield')
     + eq.pctIncreasedEnergyShieldFromGear
+    + Math.floor(int_ / 10) * eq.energyShieldIncPctPer10IntFromGear
   // Increased ES (incl. defFromDex) additive in one (1+Σ/100); occultist “more” and ES “less” multiply after.
   const occultistMoreES = bonus('occultist') ? 1.40 : 1.0
   let maxEnergyShield = Math.round(
     esBase * (1 + (esFromUpgrades + defFromDex) / 100) * occultistMoreES * eq.energyShieldLessMultFromGear
   )
+
+  // -------------------------------------------------------------------------
+  // 9b. Planner “current” pools (used by some “current X” effects)
+  // -------------------------------------------------------------------------
+  // Planner approximation: current life/ES are full, and current mana is reduced by any
+  // “sacrifice % of current mana per second” effect.
+  //
+  // For planner calculations that scale off “current mana”, we assume you start the cast at full mana.
+  const currentLife = maxLife
+  const currentEnergyShield = maxEnergyShield
+  const currentMana = maxMana
 
   // -------------------------------------------------------------------------
   // 10–11. Armour & evasion rating (defFromDex: §6)
@@ -2431,7 +2459,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         if (!def) continue
         const prefixes = ent.craftedPrefixes ?? []
         const suffixes = ent.craftedSuffixes ?? []
-        const texts = appliedModifiersToStatTexts(prefixes, suffixes)
+        const texts = craftedEquipStatParseTexts(def, prefixes, suffixes, ent.enhancement ?? 0)
         const isWeapon = slot === 'Weapon'
         const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
         applyExtraCraftedModPatterns(patch, texts)
@@ -2780,8 +2808,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     Math.min(100, eq.manaRegenToEnergyShieldPercentFromGear)
   )
 
+  const esRegenPercentOfMaxPerSecond =
+    eq.esRegenPercentOfMaxPerSecondFromGear +
+    Math.floor(int_ / 150) * eq.esRegenPctPerSecondPer150IntFromGear
+
   const manaRegenPerSecond =
     eq.noManaFromGear ? 0 : manaRegenPerSecondRaw
+
+  const esRegenPerSecond =
+    (maxEnergyShield * (esRegenPercentOfMaxPerSecond / 100)) +
+    (manaRegenPerSecond * (manaRegenAppliesToEnergyShieldPercent / 100))
 
   // -------------------------------------------------------------------------
   // 19b. Attack-time scaled accuracy (depends on final APS)
@@ -2800,8 +2836,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // - physical_and_elemental: was physical — phys-style + elemental + type-specific (same for fire/cold/lightning).
   // - chaos_style: attack + chaos-specific (no generic elemental increased).
   // -------------------------------------------------------------------------
-  const meleeDmgFromStr    = Math.floor(str / 10)                        // 1% increased melee damage per 10 str
-  const spellDmgFromInt    = Math.floor(int_ / 10)                       // 1% increased spell damage per 10 int
+  const meleeDmgFromStr    = Math.floor(str / 10) * attrMeleeDmgMult     // 1% inc melee per 10 Str (Guardian doubles)
+  const spellDmgFromInt    = Math.floor(int_ / 10) * attrSpellDmgMult    // 1% inc spell per 10 Int (Guardian doubles)
 
   const rangedAttackDmgFromGear =
     weaponTag === 'bow' || weaponTag === 'hand_crossbow'
@@ -3128,6 +3164,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           }
           const added = (def.addedDamageMultiplierPct ?? 100) / 100
           const isEle = ['fire', 'cold', 'lightning'].includes(scaledHit.element)
+          const baseType = spellElementToHitDamageType(scaledHit.element)
 
           const incFracForType = (t: HitDamageTypeRow['type']): number => {
             const isElemental = t === 'fire' || t === 'cold' || t === 'lightning'
@@ -3187,6 +3224,35 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
               (x) => x.increasedElementalDamageFromGear
             )
           }
+          if (baseType === 'fire') {
+            pushGear(
+              increasedDamagePercentSources,
+              'Gear: increased fire damage',
+              eq.increasedFireDamageFromGear,
+              (x) => x.increasedFireDamageFromGear
+            )
+          } else if (baseType === 'cold') {
+            pushGear(
+              increasedDamagePercentSources,
+              'Gear: increased cold damage',
+              eq.increasedColdDamageFromGear,
+              (x) => x.increasedColdDamageFromGear
+            )
+          } else if (baseType === 'lightning') {
+            pushGear(
+              increasedDamagePercentSources,
+              'Gear: increased lightning damage',
+              eq.increasedLightningDamageFromGear,
+              (x) => x.increasedLightningDamageFromGear
+            )
+          } else if (baseType === 'chaos') {
+            pushGear(
+              increasedDamagePercentSources,
+              'Gear: increased chaos damage',
+              eq.increasedChaosDamageFromGear,
+              (x) => x.increasedChaosDamageFromGear
+            )
+          }
           const addedDamageMultiplierSources: StatContributionLine[] = [
             { label: 'Ability: added damage multiplier', value: (def.addedDamageMultiplierPct ?? 100) },
           ]
@@ -3198,6 +3264,15 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             + eq.pctIncreasedCastSpeedFromGear
             + eq.castSpeedIncPctPer10DexFromGear * (dex / 10)
           const fx = selectedAbilityApplies && selectedAbilityDef?.id === def.id ? selectedAbilityLineEffects : null
+
+          // Multiplicative cast-speed sources (beyond additive increased cast speed).
+          const moreCastSpeedFromClass = classMoreCastSpeedMult
+          const moreCastSpeedFromCurrentMana =
+            eq.moreAttackAndCastSpeedPer50CurrentManaPctFromGear > 0
+              ? 1 + (currentMana / 50) * (eq.moreAttackAndCastSpeedPer50CurrentManaPctFromGear / 100)
+              : 1
+          const castSpeedMoreMult = Math.max(0.05, moreCastSpeedFromClass * moreCastSpeedFromCurrentMana)
+
           let hitsPerCast = 1
           if (fx?.hitsPerCastRange) {
             const avg = (fx.hitsPerCastRange.min + fx.hitsPerCastRange.max) / 2
@@ -3206,7 +3281,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           hitsPerCast = Math.max(0, hitsPerCast)
 
           let effectiveCastTime =
-            castBase / ((1 + castSpeedInc / 100) * eq.castSpeedLessMultFromGear)
+            castBase / ((1 + castSpeedInc / 100) * castSpeedMoreMult * eq.castSpeedLessMultFromGear)
           if (fx?.castSpeedAppliesToHitsPerCast) {
             // Storm Call: cast speed scales hit count, not cast time.
             effectiveCastTime = castBase / (eq.castSpeedLessMultFromGear || 1)
@@ -3217,14 +3292,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           // Spell “more” modifiers from ability lines (planner approximation: assume full pools at cast start).
           //
           // Blazing Radiance: "deal 1% more fire damage per 40 combined current life and energy shield"
-          // uses *pre-increased* pools (lifeFlat + esBase). This keeps the scaling in line with the sheet text
-          // (which references the pool size itself rather than the post-increased value).
+          // uses continuous scaling from current pools (planner: current life/ES snapshot).
           const blazingRadianceMoreFireMult =
             fx?.blazingRadianceMoreFireDamagePer40CombinedCurrentPct
               ? (() => {
-                  const combined = Math.max(0, lifeFlat + esBase)
-                  const steps = Math.floor(combined / 40)
-                  return 1 + steps * (fx.blazingRadianceMoreFireDamagePer40CombinedCurrentPct / 100)
+                  const combined = Math.max(0, currentLife + currentEnergyShield)
+                  return 1 + (combined / 40) * (fx.blazingRadianceMoreFireDamagePer40CombinedCurrentPct / 100)
                 })()
               : 1
 
@@ -3254,7 +3327,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           spellCritFlatBasePct = spellCritFlatBase
           spellCritIncreasedTotalPct = spellCritIncreased
           const spellRows: HitDamageTypeRow[] = [];
-          const baseType = spellElementToHitDamageType(scaledHit.element);
 
           const spellFlatRanges = {
             physical: localFlatDamageDisplayRange(eq.flatSpellDamageMin, eq.flatSpellDamageMax),
@@ -3409,6 +3481,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             addedDamageMultiplierSources,
             increasedDamagePercent: incFracForType(baseType) * 100,
             increasedDamagePercentSources,
+            moreDamageMultipliers: [
+              ...(spellMoreMult !== 1 ? [{ label: 'Ability: more spell damage (mult)', factor: spellMoreMult }] : []),
+              ...(blazingRadianceMoreFireMult !== 1
+                ? [{ label: 'Blazing Radiance: more fire damage from current life+ES (mult, fire only)', factor: blazingRadianceMoreFireMult }]
+                : []),
+            ],
             enemiesTakeIncreasedDamage: {
               gearPercent: eq.enemyDamageTakenIncreasedFromGear,
               tricksterPercent: enemyDamageTakenIncreasedFromTricksterPct,
@@ -3433,6 +3511,17 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
                         factor: s.eq.castSpeedLessMultFromGear,
                       }))
                       .filter((m) => m.factor !== 1),
+                    ...(moreCastSpeedFromCurrentMana !== 1
+                      ? [
+                          {
+                            label: 'Gear: more attack & cast speed per 50 current mana (mult)',
+                            factor: moreCastSpeedFromCurrentMana,
+                          },
+                        ]
+                      : []),
+                    ...(moreCastSpeedFromClass !== 1
+                      ? [{ label: 'Class bonus: more cast speed (mult)', factor: moreCastSpeedFromClass }]
+                      : []),
                     { label: 'Gear: cast speed less/more (mult) (total)', factor: eq.castSpeedLessMultFromGear },
                   ]
                 : [{ label: 'Gear: cast speed less/more (mult)', factor: eq.castSpeedLessMultFromGear }],
@@ -3744,7 +3833,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const lifeRegenPercentOfMaxPerSecond = eq.lifeRegenPercentOfMaxLifePerSecondFromGear
   const flatLifeRegenPerSecond =
     eq.flatLifeRegenPerSecondPerCharacterLevelFromGear * characterLevel
-  const esRegenPercentOfMaxPerSecond = eq.esRegenPercentOfMaxPerSecondFromGear
   const enemiesTakeIncreasedDamagePercent = enemyDamageTakenIncreasedTotalPct
   const damageTakenMultiplierFromGear =
     eq.damageTakenLessMultFromGear * eq.damageTakenMoreMultFromGear
@@ -4661,6 +4749,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       manaRegenLines,
       `flat regen × (1 + Σ inc%/100) = ${manaRegenPerSecond.toFixed(2)}/s`
     ),
+    esRegenPerSecond: blk(
+      [
+        { label: 'Base ES regen (gear % of max ES)', value: maxEnergyShield * (eq.esRegenPercentOfMaxPerSecondFromGear / 100) },
+        { label: 'Mana regen → ES', value: manaRegenPerSecond * (manaRegenAppliesToEnergyShieldPercent / 100) },
+      ],
+      `${esRegenPerSecond.toFixed(2)}/s`
+    ),
     lifeRecoveryPct: blk(lifeRecLines, `product of hunter/acolyte/upgrades/gear = ${lifeRecoveryPct.toFixed(2)}%`),
     esRecoveryPct: blk(esRecLines, `base × arcanist = ${esRecoveryPct.toFixed(2)}%`),
     bleedChance: blk([{ label: 'Σ upgrades + gear + ability lines', value: bleedChance }]),
@@ -4759,7 +4854,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       { label: 'From block power % (gear)', value: blockDamageTakenMult },
     ]),
     lifeRegenPercentOfMaxPerSecond: blk([{ label: 'Gear', value: lifeRegenPercentOfMaxPerSecond }]),
-    esRegenPercentOfMaxPerSecond: blk([{ label: 'Gear', value: esRegenPercentOfMaxPerSecond }]),
+    esRegenPercentOfMaxPerSecond: blk([
+      { label: 'Gear: base ES regen %/s', value: eq.esRegenPercentOfMaxPerSecondFromGear },
+      { label: 'Gear: % ES regen per 150 intelligence (floored)', value: Math.floor(int_ / 150) * eq.esRegenPctPerSecondPer150IntFromGear },
+    ]),
     enemiesTakeIncreasedDamagePercent: blk([
       { label: 'Gear', value: eq.enemyDamageTakenIncreasedFromGear },
       { label: 'Trickster', value: enemyDamageTakenIncreasedFromTricksterPct },
@@ -4889,6 +4987,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
     // Recovery
     manaRegenPerSecond,
+    esRegenPerSecond,
     manaRegenAppliesToEnergyShieldPercent,
     lifeRecoveryPct,
     esRecoveryPct,

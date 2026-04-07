@@ -4,6 +4,9 @@
  * Up to 2 prefixes and 2 suffixes can be applied to a single item.
  */
 
+import type { EocBaseEquipmentDefinition } from './eocBaseEquipment';
+import { applyEnhancementToResolvedInnate } from './eocUniques';
+
 /** A single rolled range like (2 to 51). */
 export interface ModRange {
   min: number;
@@ -231,4 +234,25 @@ export function appliedModifiersToStatTexts(
     if (t) texts.push(t);
   }
   return texts;
+}
+
+/**
+ * Stat-parseable lines for a crafted base item: implicit (innate) with enhancement scaling, then rolled prefixes/suffixes.
+ * Must match `aggregateEquippedToEquipmentModifiers` so UI previews agree with `computeBuildStats`.
+ */
+export function craftedEquipStatParseTexts(
+  def: EocBaseEquipmentDefinition,
+  prefixes: AppliedModifier[],
+  suffixes: AppliedModifier[],
+  enhancementLevel: number
+): string[] {
+  const en = Math.max(0, Math.floor(enhancementLevel));
+  const innateResolved = def.innate
+    ? applyEnhancementToResolvedInnate(def.innate, def.enhancementBonusPerLevel ?? 0, en)
+    : '';
+  const modTexts = appliedModifiersToStatTexts(prefixes, suffixes);
+  const out: string[] = [];
+  if (innateResolved.trim()) out.push(innateResolved);
+  out.push(...modTexts);
+  return out;
 }

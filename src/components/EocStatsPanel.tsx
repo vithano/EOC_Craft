@@ -16,6 +16,7 @@ import {
   LEVEL_100_ENEMY_ACCURACY,
   LEVEL_100_ENEMY_EVASION,
 } from "../data/eocFormulas";
+import { FORMULA_CONSTANTS } from "../data/formulaConstants";
 import { getNexusTierRow } from "../data/nexusEnemyScaling";
 import type { NexusTierRowWithModifiers } from "../data/enemyModifiers";
 import {
@@ -384,6 +385,18 @@ function SpellMultiplierBreakdownPanel({ b }: { b: SpellDamageComputationBreakdo
             <div>Added damage multiplier: ×{b.addedDamageMultiplier.toFixed(3)}</div>
             <div>Σ increased: +{b.increasedDamagePercent.toFixed(1)}% → ×{(1 + b.increasedDamagePercent / 100).toFixed(4)}</div>
           </div>
+          {b.moreDamageMultipliers && b.moreDamageMultipliers.length > 0 && (
+            <>
+              <div className="text-zinc-500 mt-1 mb-0.5">More/less multipliers (after Σ increased)</div>
+              <ul className="list-disc pl-4 font-mono space-y-0.5">
+                {b.moreDamageMultipliers.map((m, i) => (
+                  <li key={i}>
+                    {m.label}: ×{m.factor.toFixed(4)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           {b.addedDamageMultiplierSources && b.addedDamageMultiplierSources.length > 0 && (
             <>
               <div className="text-zinc-500 mt-1 mb-0.5">Added damage multiplier (sources)</div>
@@ -684,6 +697,57 @@ export default function EocStatsPanel({
     ],
   };
 
+  const igniteChance = Math.min(100, (stats.elementalAilmentChance ?? 0) + (stats.igniteInflictChanceBonus ?? 0));
+  const igniteChanceBreak: StatBreakdownBlock = {
+    formula: `min(100, elemental ailment chance + ignite inflict bonus) = ${igniteChance.toFixed(0)}%`,
+    lines: [
+      ...stats.statBreakdowns.elementalAilmentChance.lines.map((l) => ({
+        ...l,
+        label: `Elemental ailment: ${l.label}`,
+      })),
+      ...stats.statBreakdowns.igniteInflictChanceBonus.lines.map((l) => ({
+        ...l,
+        label: `Ignite bonus: ${l.label}`,
+      })),
+    ],
+  };
+
+  const chillChance = Math.min(100, stats.elementalAilmentChance + stats.chillInflictChanceBonus);
+  const chillChanceBreak: StatBreakdownBlock = {
+    formula: `min(100, elemental ailment chance + chill inflict bonus) = ${chillChance.toFixed(0)}%`,
+    lines: [
+      ...stats.statBreakdowns.elementalAilmentChance.lines.map((l) => ({
+        ...l,
+        label: `Elemental ailment: ${l.label}`,
+      })),
+      ...stats.statBreakdowns.chillInflictChanceBonus.lines.map((l) => ({
+        ...l,
+        label: `Chill bonus: ${l.label}`,
+      })),
+    ],
+  };
+  const chillEffectPreview = computeNonDamagingAilmentEffectPercent(
+    postMit,
+    stats.maxLife,
+    stats.maxEnergyShield,
+    (1 + shockEffectInc / 100) * (stats.chillInflictEffectMult ?? 1),
+    1,
+    0.7
+  );
+
+  const bleedChanceCapped = Math.min(100, Math.max(0, stats.bleedChance));
+  const poisonChanceCapped = Math.min(100, Math.max(0, stats.poisonChance));
+
+  const fireRow = byType.find((r) => r.type === "fire");
+  const BASE_IGNITE_SEC = 4;
+  const igniteDotMult =
+    (1 + (stats.damageOverTimeMultiplier ?? 0) / 100) * (stats.dotDamageMoreMultiplier ?? 1);
+  const igniteDpsMin =
+    fireRow && fireRow.min > 0 ? ((fireRow.min * FORMULA_CONSTANTS.igniteInherentMult) / BASE_IGNITE_SEC) * igniteDotMult : 0;
+  const igniteDpsMax =
+    fireRow && fireRow.max > 0 ? ((fireRow.max * FORMULA_CONSTANTS.igniteInherentMult) / BASE_IGNITE_SEC) * igniteDotMult : 0;
+  const igniteDurationSec = BASE_IGNITE_SEC * (stats.igniteAilmentDurationMultiplier ?? 1);
+
   const lifeOnKillBreak: StatBreakdownBlock = {
     formula: `flat on kill + max life × (recovered % / 100) = ${lifeOnKill}`,
     lines: [
@@ -767,6 +831,39 @@ export default function EocStatsPanel({
             value={stats.manaCostPerAttack.toFixed(0)}
             breakdown={sb.manaCostPerAttack}
           />
+          <BreakdownStatRow
+            label="Fire penetration"
+            value={`${(stats.firePenetrationPercent + stats.elementalPenetrationPercent).toFixed(0)}%`}
+            breakdown={{
+              formula: `fire pen + elemental pen = ${(stats.firePenetrationPercent + stats.elementalPenetrationPercent).toFixed(1)}%`,
+              lines: [
+                ...sb.firePenetrationPercent.lines.map((l) => ({ ...l, label: `Fire: ${l.label}` })),
+                ...sb.elementalPenetrationPercent.lines.map((l) => ({ ...l, label: `Elemental: ${l.label}` })),
+              ],
+            }}
+          />
+          <BreakdownStatRow
+            label="Cold penetration"
+            value={`${(stats.coldPenetrationPercent + stats.elementalPenetrationPercent).toFixed(0)}%`}
+            breakdown={{
+              formula: `cold pen + elemental pen = ${(stats.coldPenetrationPercent + stats.elementalPenetrationPercent).toFixed(1)}%`,
+              lines: [
+                ...sb.coldPenetrationPercent.lines.map((l) => ({ ...l, label: `Cold: ${l.label}` })),
+                ...sb.elementalPenetrationPercent.lines.map((l) => ({ ...l, label: `Elemental: ${l.label}` })),
+              ],
+            }}
+          />
+          <BreakdownStatRow
+            label="Lightning penetration"
+            value={`${(stats.lightningPenetrationPercent + stats.elementalPenetrationPercent).toFixed(0)}%`}
+            breakdown={{
+              formula: `lightning pen + elemental pen = ${(stats.lightningPenetrationPercent + stats.elementalPenetrationPercent).toFixed(1)}%`,
+              lines: [
+                ...sb.lightningPenetrationPercent.lines.map((l) => ({ ...l, label: `Lightning: ${l.label}` })),
+                ...sb.elementalPenetrationPercent.lines.map((l) => ({ ...l, label: `Elemental: ${l.label}` })),
+              ],
+            }}
+          />
               </>
             );
           })()}
@@ -786,6 +883,29 @@ export default function EocStatsPanel({
             value={`+${critBonusPct}%`}
             breakdown={sb.critMultiplier}
           />
+          {igniteChance > 0 && (
+            <>
+              <BreakdownStatRow
+                label="Ignite chance"
+                value={`${igniteChance.toFixed(0)}%`}
+                breakdown={igniteChanceBreak}
+              />
+              <BreakdownStatRow
+                label="Ignite DPS (on ignite)"
+                value={`${igniteDpsMin.toFixed(0)}–${igniteDpsMax.toFixed(0)}`}
+                sub={`${igniteDurationSec.toFixed(1)}s duration`}
+                breakdown={{
+                  formula: `ignite DPS = (fire hit × ${FORMULA_CONSTANTS.igniteInherentMult} / ${BASE_IGNITE_SEC}s) × (1 + DoT mult/100) × gear DoT more`,
+                  lines: [
+                    { label: "Fire hit (avg of range)", value: fireRow ? (fireRow.min + fireRow.max) / 2 : 0 },
+                    ...sb.damageOverTimeMultiplier.lines.map((l) => ({ ...l, label: `DoT multi: ${l.label}` })),
+                    ...sb.dotDamageMoreMultiplier.lines.map((l) => ({ ...l, label: `DoT more: ${l.label}` })),
+                    ...sb.igniteAilmentDurationMultiplier.lines.map((l) => ({ ...l, label: `Ignite duration mult: ${l.label}` })),
+                  ],
+                }}
+              />
+            </>
+          )}
 
           {shockChance > 0 && (
             <>
@@ -813,6 +933,56 @@ export default function EocStatsPanel({
                 sub="inc dmg taken"
               />
             </>
+          )}
+
+          {chillChance > 0 && (
+            <>
+              <SectionHeader label="Chill" />
+              <BreakdownStatRow
+                label="Chance to inflict chill"
+                value={`${chillChance.toFixed(0)}%`}
+                breakdown={chillChanceBreak}
+              />
+              {shockEffectInc > 0 && (
+                <BreakdownStatRow
+                  label="Increased effect"
+                  value={`${shockEffectInc.toFixed(0)}%`}
+                  breakdown={sb.nonDamagingAilmentEffectIncreasedPercent}
+                />
+              )}
+              {(stats.chillInflictEffectMult ?? 1) !== 1 && (
+                <BreakdownStatRow
+                  label="Chill effect mult (gear)"
+                  value={`×${(stats.chillInflictEffectMult ?? 1).toFixed(2)}`}
+                  breakdown={sb.chillInflictEffectMult}
+                />
+              )}
+              <BreakdownStatRow
+                label="Duration"
+                value={`${shockDuration.toFixed(2)}s`}
+                breakdown={sb.ailmentDurationBonus}
+              />
+              <StatRow
+                label="Effect preview"
+                value={`${Math.min(stats.maxChillEffect ?? 30, chillEffectPreview).toFixed(1)}%`}
+                sub="slow (approx.)"
+              />
+            </>
+          )}
+
+          {bleedChanceCapped > 0 && (
+            <BreakdownStatRow
+              label="Chance to inflict bleeding"
+              value={`${bleedChanceCapped.toFixed(0)}%`}
+              breakdown={sb.bleedChance}
+            />
+          )}
+          {poisonChanceCapped > 0 && (
+            <BreakdownStatRow
+              label="Chance to inflict poison"
+              value={`${poisonChanceCapped.toFixed(0)}%`}
+              breakdown={sb.poisonChance}
+            />
           )}
 
           <SectionHeader label="Attributes" />
