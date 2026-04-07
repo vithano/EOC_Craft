@@ -162,19 +162,31 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
   const selected = selectedId ? GAME_CLASSES_BY_ID[selectedId] : null;
   const selectedClassLevel = selected ? getClassLevel(selected.id, upgradeLevels) : 0;
 
-  const tryAdd = (cls: ClassDef, upgradeId: string) => {
+  /** Add up to `maxSteps` ranks in one update (each step re-checks caps). */
+  const tryAddUpTo = (cls: ClassDef, upgradeId: string, maxSteps: number) => {
+    if (maxSteps <= 0) return;
     const key = `${cls.id}/${upgradeId}`;
-    const cur = upgradeLevels[key] ?? 0;
-    if (cur >= 5) return;
-    if (totalAllocated >= MAX_PLANNER_LEVEL) return;
-    if (getClassLevel(cls.id, upgradeLevels) >= cls.maxLevel) return;
-    if (!isClassUnlocked(cls.id, upgradeLevels)) return;
-    if (cls.tier === "major") {
-      const m = majorClassIdsWithPoints(upgradeLevels);
-      if (m.length >= 1 && !m.includes(cls.id)) return;
+    let next = { ...upgradeLevels };
+    let changed = false;
+    for (let step = 0; step < maxSteps; step++) {
+      const cur = next[key] ?? 0;
+      if (cur >= MAX_RANKS_PER_UPGRADE) break;
+      const allocated = Object.values(next).reduce((a, b) => a + b, 0);
+      if (allocated >= MAX_PLANNER_LEVEL) break;
+      if (getClassLevel(cls.id, next) >= cls.maxLevel) break;
+      if (!isClassUnlocked(cls.id, next)) break;
+      if (cls.tier === "major") {
+        const m = majorClassIdsWithPoints(next);
+        if (m.length >= 1 && !m.includes(cls.id)) break;
+      }
+      next[key] = cur + 1;
+      changed = true;
     }
-    onChangeUpgradeLevels({ ...upgradeLevels, [key]: cur + 1 });
+    if (!changed) return;
+    onChangeUpgradeLevels(next);
   };
+
+  const tryAdd = (cls: ClassDef, upgradeId: string) => tryAddUpTo(cls, upgradeId, 1);
 
   const tryRemove = (cls: ClassDef, upgradeId: string) => {
     const key = `${cls.id}/${upgradeId}`;
@@ -278,7 +290,11 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
             </div>
             <ul className="list-disc pl-5 space-y-2 text-zinc-400 text-xs leading-relaxed">
               <li>Classes sit on three rings (base → path → ascend). Click a node to edit; lines show prerequisites.</li>
-              <li>Spend up to 5 ranks per small passive; each class is capped by its max level; total ranks are capped at {MAX_PLANNER_LEVEL} (Level).</li>
+              <li>
+                Spend up to 5 ranks per small passive; each class is capped by its max level; total ranks are capped at{" "}
+                {MAX_PLANNER_LEVEL} (Level). Use <span className="text-amber-400/90">+5</span> to add up to five ranks in one
+                click (stops early if a cap is hit).
+              </li>
               <li>Unlock path and ascend classes by meeting prerequisite points (10 on base, 15 on others).</li>
               <li>Only one major class may hold points at a time in this planner.</li>
               <li>Purple glow is selection; amber/green show progress and class bonus.</li>
@@ -413,7 +429,7 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
           </div>
         </div>
 
-        <div className="flex min-h-0 min-w-0 w-full flex-col bg-[#18131a] border-t border-amber-950/30 lg:min-h-0 lg:min-w-[280px] lg:w-[min(100%,320px)] xl:min-w-[300px] xl:w-[min(100%,340px)] lg:shrink-0 lg:border-t-0 lg:border-l lg:border-amber-950/30">
+        <div className="flex min-h-0 min-w-0 w-full flex-col bg-[#18131a] border-t border-amber-950/30 lg:min-h-0 lg:min-w-0 lg:flex-1 lg:border-t-0 lg:border-l lg:border-amber-950/30">
           {!selected ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 sm:p-8 text-center lg:min-h-[10rem]">
               <div className="rounded-xl border border-dashed border-zinc-700/80 bg-zinc-900/40 px-5 py-6 max-w-sm">
@@ -424,81 +440,82 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
               </div>
             </div>
           ) : (
-            <div className="flex min-h-0 flex-1 flex-col lg:min-h-0">
-              <div className="shrink-0 border-b border-amber-950/50 bg-[#1c1619] px-3 py-2 sm:px-4">
-                <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-amber-200/90 mb-1 sm:text-[9px]">
-                  Class bonus
+            <div className="grid min-h-0 flex-1 grid-cols-1 lg:min-h-0 lg:grid-cols-2">
+              <div className="flex min-h-0 min-w-0 flex-col border-b border-amber-950/30 lg:max-h-none lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-amber-950/30">
+                <div className="shrink-0 border-b border-amber-950/50 bg-[#1c1619] px-3 py-2 sm:px-4">
+                  <div className="text-[8px] font-bold uppercase tracking-[0.2em] text-amber-200/90 mb-1 sm:text-[9px]">
+                    Class bonus
+                  </div>
+                  <p className="text-xs font-medium leading-snug text-cyan-100/90 sm:text-[13px]">
+                    {selected.classBonusDescription}
+                  </p>
                 </div>
-                <p className="text-xs font-medium leading-snug text-cyan-100/90 sm:text-[13px]">
-                  {selected.classBonusDescription}
-                </p>
-              </div>
 
-              <div className="shrink-0 border-b border-amber-950/40 bg-gradient-to-r from-[#241e22] via-[#1e181c] to-[#1a1518] px-3 py-2.5 sm:px-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h2 className="font-cinzel text-sm font-bold uppercase tracking-[0.12em] text-amber-100 truncate sm:text-base">
-                      {selected.name}
-                    </h2>
-                    <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-200/80 sm:text-xs">
-                      {formatPerLevel(selected.perLevel)}
-                    </p>
+                <div className="shrink-0 bg-gradient-to-r from-[#241e22] via-[#1e181c] to-[#1a1518] px-3 py-2.5 sm:px-4 lg:border-b-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h2 className="font-cinzel text-sm font-bold uppercase tracking-[0.12em] text-amber-100 break-words sm:text-base">
+                        {selected.name}
+                      </h2>
+                      <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-200/80 sm:text-xs">
+                        {formatPerLevel(selected.perLevel)}
+                      </p>
+                    </div>
+                    <div
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rotate-45 border border-amber-700/80 bg-[#2a221c] text-[10px] font-bold text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:h-10 sm:w-10 sm:text-xs"
+                      title="Class points"
+                    >
+                      <span className="-rotate-45">{getClassLevel(selected.id, upgradeLevels)}</span>
+                    </div>
                   </div>
-                  <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rotate-45 border border-amber-700/80 bg-[#2a221c] text-[10px] font-bold text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:h-10 sm:w-10 sm:text-xs"
-                    title="Class points"
-                  >
-                    <span className="-rotate-45">{getClassLevel(selected.id, upgradeLevels)}</span>
-                  </div>
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span
-                    className={`text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-px sm:text-[10px] ${
-                      isClassUnlocked(selected.id, upgradeLevels)
-                        ? "bg-zinc-800/90 text-zinc-200 border border-zinc-700/80"
-                        : "bg-red-950/60 text-red-200 border border-red-900/50"
-                    }`}
-                  >
-                    {isClassUnlocked(selected.id, upgradeLevels) ? "Unlocked" : "Locked"}
-                  </span>
-                  {isClassBonusActive(selected.id, upgradeLevels) && (
-                    <span className="text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-px bg-emerald-950/80 text-emerald-200 border border-emerald-800/50 sm:text-[10px]">
-                      Bonus active
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span
+                      className={`text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-px sm:text-[10px] ${
+                        isClassUnlocked(selected.id, upgradeLevels)
+                          ? "bg-zinc-800/90 text-zinc-200 border border-zinc-700/80"
+                          : "bg-red-950/60 text-red-200 border border-red-900/50"
+                      }`}
+                    >
+                      {isClassUnlocked(selected.id, upgradeLevels) ? "Unlocked" : "Locked"}
                     </span>
-                  )}
-                  <span className="text-[9px] text-zinc-500 leading-tight sm:text-[10px]">
-                    Max {selected.maxLevel} · bonus @ {selected.classBonusRequiredPoints}
-                  </span>
-                </div>
-                <div className="mt-2 space-y-0.5">
-                  <div className="flex justify-between items-baseline gap-2 text-[8px] font-bold uppercase tracking-wide text-zinc-500 sm:text-[9px]">
-                    <span>Class points</span>
-                    <span className="tabular-nums text-amber-100 shrink-0 text-[10px] sm:text-xs">
-                      {selectedClassLevel} / {selected.maxLevel}
+                    {isClassBonusActive(selected.id, upgradeLevels) && (
+                      <span className="text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-px bg-emerald-950/80 text-emerald-200 border border-emerald-800/50 sm:text-[10px]">
+                        Bonus active
+                      </span>
+                    )}
+                    <span className="text-[9px] text-zinc-500 leading-tight sm:text-[10px]">
+                      Max {selected.maxLevel} · bonus @ {selected.classBonusRequiredPoints}
                     </span>
                   </div>
-                  <div
-                    className="flex h-1.5 gap-px overflow-hidden rounded bg-zinc-950 ring-1 ring-zinc-800/90"
-                    role="img"
-                    aria-label={`${selectedClassLevel} of ${selected.maxLevel} class points on the bar`}
-                  >
-                    {Array.from({ length: selected.maxLevel }, (_, i) => (
-                      <div
-                        key={i}
-                        title={`Point ${i + 1}${i < selectedClassLevel ? " (allocated)" : ""}`}
-                        className={`min-w-0 flex-1 transition-[background-color,box-shadow] duration-300 ease-out ${
-                          i < selectedClassLevel
-                            ? "bg-gradient-to-b from-amber-400 to-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
-                            : "bg-zinc-800/95"
-                        }`}
-                      />
-                    ))}
+                  <div className="mt-2 space-y-0.5">
+                    <div className="flex justify-between items-baseline gap-2 text-[8px] font-bold uppercase tracking-wide text-zinc-500 sm:text-[9px]">
+                      <span>Class points</span>
+                      <span className="tabular-nums text-amber-100 shrink-0 text-[10px] sm:text-xs">
+                        {selectedClassLevel} / {selected.maxLevel}
+                      </span>
+                    </div>
+                    <div
+                      className="flex h-1.5 gap-px overflow-hidden rounded bg-zinc-950 ring-1 ring-zinc-800/90"
+                      role="img"
+                      aria-label={`${selectedClassLevel} of ${selected.maxLevel} class points on the bar`}
+                    >
+                      {Array.from({ length: selected.maxLevel }, (_, i) => (
+                        <div
+                          key={i}
+                          title={`Point ${i + 1}${i < selectedClassLevel ? " (allocated)" : ""}`}
+                          className={`min-w-0 flex-1 transition-[background-color,box-shadow] duration-300 ease-out ${
+                            i < selectedClassLevel
+                              ? "bg-gradient-to-b from-amber-400 to-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+                              : "bg-zinc-800/95"
+                          }`}
+                        />
+                      ))}
+                    </div>
                   </div>
+                  <p className="mt-1.5 text-[9px] text-zinc-500 leading-snug sm:text-[10px]">{formatRequirement(selected)}</p>
                 </div>
-                <p className="mt-1.5 text-[9px] text-zinc-500 leading-snug sm:text-[10px]">{formatRequirement(selected)}</p>
               </div>
-
-              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 space-y-2 sm:px-4 sm:py-3">
+              <div className="min-h-0 min-w-0 overflow-y-auto px-3 py-2 space-y-2 sm:px-4 sm:py-3">
                 {selected.tier === "major" &&
                   majorClassIdsWithPoints(upgradeLevels).length >= 1 &&
                   !majorClassIdsWithPoints(upgradeLevels).includes(selected.id) &&
@@ -558,15 +575,27 @@ export default function EocClassesPanel({ upgradeLevels, onChangeUpgradeLevels }
                             </span>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          aria-label="Increase rank"
-                          onClick={() => tryAdd(selected, u.id)}
-                          disabled={cannotAdd}
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-600 bg-zinc-800/95 text-base font-bold leading-none text-zinc-100 hover:bg-zinc-700 hover:border-zinc-500 disabled:opacity-25 transition-colors sm:h-9 sm:w-9"
-                        >
-                          +
-                        </button>
+                        <div className="flex shrink-0 items-center gap-0.5">
+                          <button
+                            type="button"
+                            aria-label="Increase rank by one"
+                            onClick={() => tryAdd(selected, u.id)}
+                            disabled={cannotAdd}
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-600 bg-zinc-800/95 text-base font-bold leading-none text-zinc-100 hover:bg-zinc-700 hover:border-zinc-500 disabled:opacity-25 transition-colors sm:h-9 sm:w-9"
+                          >
+                            +
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Increase rank by up to five"
+                            title="Add up to 5 ranks at once (fewer if you hit per-upgrade, class, or global caps)"
+                            onClick={() => tryAddUpTo(selected, u.id, 5)}
+                            disabled={cannotAdd}
+                            className="flex h-8 min-w-[2.25rem] items-center justify-center rounded-md border border-amber-700/70 bg-amber-950/40 px-1 text-[10px] font-bold leading-none text-amber-100 hover:bg-amber-900/50 hover:border-amber-600 disabled:opacity-25 transition-colors sm:h-9 sm:min-w-[2.5rem] sm:text-[11px]"
+                          >
+                            +5
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

@@ -12,7 +12,6 @@ import {
   type EnemyModifierId,
 } from "../data/enemyModifiers";
 import AbilitiesPanel from "../components/AbilitiesPanel";
-import BuildSummary from "../components/BuildSummary";
 import EocClassesPanel from "../components/EocClassesPanel";
 import EocStatsPanel from "../components/EocStatsPanel";
 import EquipmentPanel from "../components/EquipmentPanel";
@@ -422,19 +421,6 @@ export default function BuildPlanner() {
     setInventory([]);
   }, []);
 
-  const upgradeTotalPoints = useMemo(
-    () => Object.values(upgradeLevels).reduce((a, b) => a + b, 0),
-    [upgradeLevels]
-  );
-  const classesWithPoints = useMemo(() => {
-    const ids = new Set<string>();
-    for (const k of Object.keys(upgradeLevels)) {
-      const [classId] = k.split("/");
-      if (classId) ids.add(classId);
-    }
-    return ids.size;
-  }, [upgradeLevels]);
-
   const applyBuildJsonImport = useCallback(() => {
     setBuildJsonImportError(null);
     const trimmed = buildJsonImport.trim();
@@ -624,128 +610,7 @@ export default function BuildPlanner() {
             </div>
           </div>
         )}
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 mb-2.5 grid grid-cols-1 md:grid-cols-2 gap-2.5">
-          <div className="bg-[#0f0d16] border border-amber-900/25 rounded-lg p-2.5 sm:p-3">
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <div className="font-cinzel text-amber-200/80 text-[10px] uppercase tracking-widest font-bold">Incoming Hit Damage</div>
-              <div className="text-amber-100 font-mono text-xs tabular-nums font-bold">{incomingDamage}</div>
-            </div>
-            <input
-              className="w-full accent-blue-500"
-              type="range"
-              min={1}
-              max={5000}
-              step={1}
-              value={incomingDamage}
-              onChange={(e) => setIncomingDamage(Number(e.target.value))}
-            />
-            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
-              <label className="flex flex-col gap-0.5 text-zinc-500">
-                <span className="uppercase tracking-wider">Hit damage type</span>
-                <select
-                  className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-zinc-200"
-                  value={incomingDamageType}
-                  onChange={(e) => setIncomingDamageType(e.target.value as ArmourDamageType)}
-                >
-                  <option value="physical">Physical</option>
-                  <option value="fire">Fire</option>
-                  <option value="cold">Cold</option>
-                  <option value="lightning">Lightning</option>
-                  <option value="chaos">Chaos</option>
-                </select>
-              </label>
-              <label className="flex flex-col gap-0.5 text-zinc-500">
-                <span className="uppercase tracking-wider">Hit source</span>
-                <select
-                  className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-zinc-200"
-                  value={incomingAttackKind}
-                  onChange={(e) => setIncomingAttackKind(e.target.value as "attack" | "spell")}
-                >
-                  <option value="attack">Attack (full evasion)</option>
-                  <option value="spell">Spell (half evasion)</option>
-                </select>
-              </label>
-            </div>
-            <div className="mt-0.5 flex justify-between text-[10px] text-zinc-700">
-              <span>1</span>
-              <span className="text-zinc-600 text-[9px]">Armour DR by type + res (preview)</span>
-              <span>5000</span>
-            </div>
-          </div>
-          <div className="bg-[#0f0d16] border border-amber-900/25 rounded-lg p-2.5 sm:p-3">
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <div className="font-cinzel text-amber-200/80 text-[10px] uppercase tracking-widest font-bold">Nexus Tier</div>
-              <div className="text-amber-100 font-mono text-xs tabular-nums font-bold">{nexusTier}</div>
-            </div>
-            <input
-              className="w-full accent-amber-500"
-              type="range"
-              min={0}
-              max={30}
-              step={1}
-              value={nexusTier}
-              onChange={(e) => setNexusTier(Number(e.target.value))}
-            />
-            <div className="mt-1 text-[10px] text-zinc-600 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-              {(() => {
-                const row = nexusEnemyRow;
-                if (!row) return null;
-                const avgPhys = Math.round((row.physMin + row.physMax) / 2);
-                return (
-                  <>
-                    <span>
-                      Phys {row.physMin}–{row.physMax} · avg {avgPhys}
-                    </span>
-                    <span>
-                      HP {row.health.toLocaleString("en-US")} · acc {row.accuracy} / eva {row.evasion}
-                      {row.energyShieldFromMods > 0 ? ` · +${row.energyShieldFromMods} ES (Barrier)` : ""}
-                    </span>
-                    {row.elementalResPercent !== NEXUS_TIER_ROWS[nexusTier]?.elementalResPercent ||
-                    row.chaosResPercent !== NEXUS_TIER_ROWS[nexusTier]?.chaosResPercent ? (
-                      <span className="text-zinc-500">
-                        Elres {row.elementalResPercent}% · Chaos {row.chaosResPercent}%
-                      </span>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="text-amber-500/80 hover:text-amber-400 underline underline-offset-2"
-                      onClick={() => setIncomingDamage(avgPhys)}
-                    >
-                      Set to tier avg phys ({avgPhys})
-                    </button>
-                  </>
-                );
-              })()}
-            </div>
-            <div className="mt-2">
-              <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">
-                Enemy modifiers (max {MAX_ENEMY_MODIFIERS}, formulas.csv)
-              </div>
-              <div className="flex flex-wrap gap-1 max-h-[88px] overflow-y-auto pr-0.5">
-                {ENEMY_MODIFIER_ORDER.map((id) => {
-                  const on = enemyModifiers.includes(id);
-                  const disabled = !on && enemyModifiers.length >= MAX_ENEMY_MODIFIERS;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      title={enemyModifierDescription(id)}
-                      disabled={disabled}
-                      onClick={() => toggleEnemyModifier(id)}
-                      className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
-                        on
-                          ? "bg-amber-900/40 border-amber-700/60 text-amber-100"
-                          : "bg-zinc-900/80 border-zinc-800 text-zinc-500 hover:border-zinc-600"
-                      } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
-                    >
-                      {enemyModifierLabel(id)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
+
         <div className="w-full min-w-0 mb-2.5 px-3 sm:px-4 max-w-7xl mx-auto">
           {hydrated ? (
             <EocClassesPanel upgradeLevels={upgradeLevels} onChangeUpgradeLevels={setUpgradeLevels} />
@@ -781,25 +646,15 @@ export default function BuildPlanner() {
               nexusEnemyRow={nexusEnemyRow}
             />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
-            <div className="min-w-0 lg:col-span-2">
-              <EocStatsPanel
-                stats={stats}
-                incomingDamage={incomingDamage}
-                incomingDamageType={incomingDamageType}
-                incomingAttackKind={incomingAttackKind}
-                nexusTier={nexusTier}
-                nexusEnemyRow={nexusEnemyRow}
-              />
-            </div>
-            <div className="min-w-0">
-              <BuildSummary
-                equipped={equipped}
-                upgradeTotalPoints={upgradeTotalPoints}
-                classesWithPoints={classesWithPoints}
-                stats={stats}
-              />
-            </div>
+          <div className="min-w-0 w-full">
+            <EocStatsPanel
+              stats={stats}
+              incomingDamage={incomingDamage}
+              incomingDamageType={incomingDamageType}
+              incomingAttackKind={incomingAttackKind}
+              nexusTier={nexusTier}
+              nexusEnemyRow={nexusEnemyRow}
+            />
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-3 sm:px-4 mt-2.5 pb-4">

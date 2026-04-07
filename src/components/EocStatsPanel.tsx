@@ -883,6 +883,15 @@ export default function EocStatsPanel({
             value={`+${critBonusPct}%`}
             breakdown={sb.critMultiplier}
           />
+
+          <SectionHeader label="Ailments" />
+          <BreakdownStatRow
+            label="Ailment duration multiplier"
+            value={`×${stats.ailmentDurationMultiplier.toFixed(3)}`}
+            sub={`${stats.ailmentDurationBonus.toFixed(0)}% increased duration`}
+            breakdown={sb.ailmentDurationMultiplier}
+          />
+
           {igniteChance > 0 && (
             <>
               <BreakdownStatRow
@@ -997,13 +1006,8 @@ export default function EocStatsPanel({
           <BreakdownStatRow
             label="Armour"
             value={stats.armour}
-            sub={`DR ${drPhys.toFixed(0)}% phys · ${drEleArmour.toFixed(0)}% vs fire/cold/lightning · ${drChaosArmour.toFixed(0)}% vs chaos (armour effectiveness)`}
+            sub={`DR ${drPhys.toFixed(0)}% phys · ${drEleArmour.toFixed(0)}% elem · ${drChaosArmour.toFixed(0)}% chaos`}
             breakdown={sb.armour}
-          />
-          <StatRow
-            label="Incoming hit (preview)"
-            value={`${incomingDamageType} (${incomingAttackKind})`}
-            sub={`armour DR ${drPrimary.toFixed(0)}% → ${postMit.toFixed(1)} after armour & res`}
           />
           <BreakdownStatRow
             label="Evasion rating"

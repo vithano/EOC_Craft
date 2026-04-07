@@ -1,9 +1,18 @@
 /**
- * Nexus Tier Enemy Scaling — from `formulas/Echoes of Creation 1.1.1.4 v1 Public - Nexus Tier Enemy Scaling.csv`
- * Notes in sheet: base enemy damage ~286–400 at level 100; each tier above 0 scales by ~×1.2589 (use table for exact values).
+ * Nexus Tier Enemy Scaling — derived from `formulas.csv` (nexus scaling per tier).
+ *
+ * Per tier (from previous tier):
+ * - Life × nexusLifeMult (1.27479)
+ * - Regeneration (when modeled off scaled life, e.g. mods) follows the same life scaling in practice.
+ * - Hit damage (min/max per type) × (nexusDamageMult / (1 + nexusSpeedPerTierPct/100)) so that
+ *   combined with +5% APS per tier, DPS grows by nexusDamageMult (1.2589) per tier.
+ * - APS × (1 + nexusSpeedPerTierPct/100) each tier.
+ * - physDps / eleDps / chaosDps (reference DPS) × nexusDamageMult per tier.
+ *
+ * Accuracy, evasion, armour, and resistances do **not** scale with Nexus tier (tier 0 values are reused).
  */
 
-import { FORMULA_CONSTANTS } from './formulaConstants'
+import { FORMULA_CONSTANTS } from "./formulaConstants";
 
 export interface NexusTierRow {
   tier: number;
@@ -65,81 +74,114 @@ function n(
   };
 }
 
-/** Tiers 0–30 from the CSV (enemy stats columns are constant across tiers in this export). */
-export let NEXUS_TIER_ROWS: readonly NexusTierRow[] = [
-  n(0, 286, 400, 572, 800, 380, 532, 30003, 0.95, 327, 4402, 2763, 15, 0, 326, 652, 433),
-  n(1, 343, 480, 685, 960, 456, 638, 38247, 0.998, 327, 4402, 2763, 15, 0, 410, 821, 546),
-  n(2, 412, 577, 824, 1153, 548, 767, 48757, 1.045, 327, 4402, 2763, 15, 0, 516, 1033, 687),
-  n(3, 496, 694, 992, 1389, 660, 923, 62156, 1.093, 327, 4402, 2763, 15, 0, 650, 1300, 865),
-  n(4, 598, 838, 1197, 1675, 796, 1114, 79235, 1.14, 327, 4402, 2763, 15, 0, 819, 1637, 1089),
-  n(5, 723, 1012, 1446, 2025, 962, 1346, 101008, 1.188, 327, 4402, 2763, 15, 0, 1030, 2061, 1371),
-  n(6, 875, 1225, 1751, 2451, 1164, 1630, 128764, 1.235, 327, 4402, 2763, 15, 0, 1297, 2594, 1725),
-  n(7, 1061, 1486, 2122, 2971, 1411, 1976, 164148, 1.283, 327, 4402, 2763, 15, 0, 1633, 3266, 2172),
-  n(8, 1288, 1803, 2576, 3607, 1713, 2399, 209254, 1.33, 327, 4402, 2763, 15, 0, 2056, 4112, 2734),
-  n(9, 1566, 2192, 3131, 4384, 2082, 2915, 266755, 1.378, 327, 4402, 2763, 15, 0, 2588, 5176, 3442),
-  n(10, 1905, 2668, 3811, 5335, 2534, 3548, 340056, 1.425, 327, 4402, 2763, 15, 0, 3258, 6517, 4333),
-  n(11, 2321, 3250, 4643, 6500, 3087, 4322, 433500, 1.473, 327, 4402, 2763, 15, 0, 4102, 8204, 5455),
-  n(12, 2831, 3963, 5662, 7927, 3765, 5271, 552622, 1.52, 327, 4402, 2763, 15, 0, 5164, 10328, 6868),
-  n(13, 3456, 4838, 6912, 9677, 4596, 6435, 704477, 1.568, 327, 4402, 2763, 15, 0, 6501, 13001, 8646),
-  n(14, 4223, 5912, 8446, 11824, 5616, 7863, 898060, 1.615, 327, 4402, 2763, 15, 0, 8184, 16367, 10884),
-  n(15, 5164, 7230, 10328, 14460, 6868, 9616, 1144837, 1.663, 327, 4402, 2763, 15, 0, 10303, 20605, 13702),
-  n(16, 6321, 8849, 12641, 17698, 8406, 11769, 1459427, 1.71, 327, 4402, 2763, 15, 0, 12970, 25940, 17250),
-  n(17, 7742, 10839, 15484, 21677, 10297, 14415, 1860463, 1.758, 327, 4402, 2763, 15, 0, 16328, 32655, 21716),
-  n(18, 9490, 13286, 18980, 26572, 12621, 17670, 2371700, 1.805, 327, 4402, 2763, 15, 0, 20555, 41110, 27338),
-  n(19, 11640, 16297, 23281, 32593, 15482, 21675, 3023420, 1.853, 327, 4402, 2763, 15, 0, 25877, 51753, 34416),
-  n(20, 14288, 20003, 28575, 40006, 19003, 26604, 3854225, 1.9, 327, 4402, 2763, 15, 0, 32576, 65152, 43326),
-  n(21, 17548, 24567, 35096, 49135, 23339, 32675, 4913327, 1.948, 327, 4402, 2763, 15, 0, 41010, 82020, 54543),
-  n(22, 21565, 30192, 43131, 60383, 28682, 40155, 6263461, 1.995, 327, 4402, 2763, 15, 0, 51628, 103255, 68665),
-  n(23, 26517, 37124, 53035, 74249, 35268, 49375, 7984597, 2.043, 327, 4402, 2763, 15, 0, 64994, 129988, 86442),
-  n(24, 32624, 45674, 65248, 91347, 43390, 60746, 10178685, 2.09, 327, 4402, 2763, 15, 0, 81821, 163642, 108822),
-  n(25, 40158, 56221, 80315, 112442, 53410, 74774, 12975685, 2.138, 327, 4402, 2763, 15, 0, 103004, 206009, 136996),
-  n(26, 49455, 69238, 98911, 138476, 65776, 92086, 16541274, 2.185, 327, 4402, 2763, 15, 0, 129672, 259344, 172464),
-  n(27, 60935, 85309, 121869, 170618, 81043, 113461, 21086650, 2.233, 327, 4402, 2763, 15, 0, 163244, 326489, 217115),
-  n(28, 75112, 105158, 150225, 210316, 99900, 139860, 26881051, 2.28, 327, 4402, 2763, 15, 0, 205508, 411016, 273326),
-  n(29, 92629, 129682, 185259, 259363, 123197, 172477, 34267695, 2.328, 327, 4402, 2763, 15, 0, 258714, 517429, 344090),
-  n(30, 114279, 159991, 228558, 319982, 151991, 212788, 43684115, 2.375, 327, 4402, 2763, 15, 0, 325695, 651391, 433175),
-] as const;
+/** Tier 0 baseline (Nexus 0). Only life, damage, APS, and DPS columns scale per tier; other fields stay fixed. */
+const NEXUS_TIER_0_SEED = n(
+  0,
+  286,
+  400,
+  572,
+  800,
+  380,
+  532,
+  30003,
+  0.95,
+  327,
+  4402,
+  2763,
+  15,
+  0,
+  326,
+  652,
+  433
+);
 
-/** Called by GameDataProvider after fetching the Formulas sheet tab. */
+const MAX_NEXUS_TIER = 30;
+
+/**
+ * Build tiers 0…MAX_NEXUS_TIER from tier 0 and formulas.csv multipliers.
+ * Uses iterative rounding (same as a hand-maintained table).
+ */
+export function buildNexusTierRows(): NexusTierRow[] {
+  const C = FORMULA_CONSTANTS;
+  const lifeMult = C.nexusLifeMult;
+  const dpsMultPerTier = C.nexusDamageMult;
+  const speedMultPerTier = 1 + C.nexusSpeedPerTierPct / 100;
+  const hitMultPerTier = C.nexusDamageMult / speedMultPerTier;
+
+  const rows: NexusTierRow[] = [NEXUS_TIER_0_SEED];
+  for (let t = 1; t <= MAX_NEXUS_TIER; t++) {
+    const prev = rows[t - 1]!;
+    const seed = NEXUS_TIER_0_SEED;
+    rows.push(
+      n(
+        t,
+        Math.round(prev.physMin * hitMultPerTier),
+        Math.round(prev.physMax * hitMultPerTier),
+        Math.round(prev.elementalMin * hitMultPerTier),
+        Math.round(prev.elementalMax * hitMultPerTier),
+        Math.round(prev.chaosMin * hitMultPerTier),
+        Math.round(prev.chaosMax * hitMultPerTier),
+        Math.round(prev.health * lifeMult),
+        Number((prev.attacksPerSecond * speedMultPerTier).toFixed(3)),
+        seed.accuracy,
+        seed.evasion,
+        seed.armour,
+        seed.elementalResPercent,
+        seed.chaosResPercent,
+        Math.round(prev.physDps * dpsMultPerTier),
+        Math.round(prev.eleDps * dpsMultPerTier),
+        Math.round(prev.chaosDps * dpsMultPerTier)
+      )
+    );
+  }
+  return rows;
+}
+
+/** Tiers 0–30 derived from formulas.csv (see module doc). */
+export let NEXUS_TIER_ROWS: readonly NexusTierRow[] = buildNexusTierRows();
+
+/** Recompute rows after live formula constant patches (e.g. from the Formulas sheet). */
+export function rebuildNexusTierRowsFromConstants(): void {
+  NEXUS_TIER_ROWS = buildNexusTierRows();
+}
+
+/** Called if you load a full Nexus table from CSV instead of generated rows. */
 export function updateNexusTierRows(rows: NexusTierRow[]): void {
   NEXUS_TIER_ROWS = rows;
 }
 
 export function getNexusTierRow(tier: number): NexusTierRow | undefined {
-  return NEXUS_TIER_ROWS.find((r) => r.tier === tier);
+  const t = Math.max(0, Math.floor(tier));
+  return NEXUS_TIER_ROWS.find((r) => r.tier === t);
 }
 
 /**
  * Crucible scaling per formulas.csv: "nexus scaling divided into five steps".
  * Crucible 5 == Nexus 1, Crucible 10 == Nexus 2, etc.
  *
- * This returns a *modeled* row derived from tier-0 and the nexus multipliers,
- * and does not require a dedicated crucible CSV.
+ * Hit damage uses per-tier hit mult^steps; APS uses speed mult^steps; life uses life mult^steps;
+ * reference DPS uses nexusDamageMult^steps (hit × APS growth = nexusDamageMult per full nexus tier).
  */
 export function getCrucibleTierRow(crucibleTier: number): NexusTierRow | undefined {
-  const t0 = getNexusTierRow(0)
-  if (!t0) return undefined
-  const ct = Math.max(0, Math.floor(crucibleTier))
-  const steps = ct / 5
-  // Note: formulas.csv defines these as multiplicative per Nexus tier.
-  // For crucible, apply fractional exponent (5 steps per tier).
-  // Life & regen use nexusLifeMult; damage uses nexusDamageMult (speed scaling removed already).
-  // Speed itself is represented as APS in the nexus table; we scale APS by (1 + speedPerTier)^(steps).
-  // In the tier CSV, APS is already tiered, so we model it similarly here.
-  // (This keeps DPS roughly consistent with the note in formulas.csv.)
-  const C = FORMULA_CONSTANTS
-  const lifeMult = Math.pow(C.nexusLifeMult, steps)
-  const dmgMult = Math.pow(C.nexusDamageMult, steps)
-  const speedMult = Math.pow(1 + C.nexusSpeedPerTierPct / 100, steps)
+  const t0 = getNexusTierRow(0);
+  if (!t0) return undefined;
+  const ct = Math.max(0, Math.floor(crucibleTier));
+  const steps = ct / 5;
+  const C = FORMULA_CONSTANTS;
+  const lifeMult = Math.pow(C.nexusLifeMult, steps);
+  const dpsMult = Math.pow(C.nexusDamageMult, steps);
+  const speedMult = Math.pow(1 + C.nexusSpeedPerTierPct / 100, steps);
+  const hitMult = C.nexusDamageMult / (1 + C.nexusSpeedPerTierPct / 100);
+  const hitMultPow = Math.pow(hitMult, steps);
 
   return {
     tier: ct,
-    physMin: Math.round(t0.physMin * dmgMult),
-    physMax: Math.round(t0.physMax * dmgMult),
-    elementalMin: Math.round(t0.elementalMin * dmgMult),
-    elementalMax: Math.round(t0.elementalMax * dmgMult),
-    chaosMin: Math.round(t0.chaosMin * dmgMult),
-    chaosMax: Math.round(t0.chaosMax * dmgMult),
+    physMin: Math.round(t0.physMin * hitMultPow),
+    physMax: Math.round(t0.physMax * hitMultPow),
+    elementalMin: Math.round(t0.elementalMin * hitMultPow),
+    elementalMax: Math.round(t0.elementalMax * hitMultPow),
+    chaosMin: Math.round(t0.chaosMin * hitMultPow),
+    chaosMax: Math.round(t0.chaosMax * hitMultPow),
     health: Math.round(t0.health * lifeMult),
     attacksPerSecond: Number((t0.attacksPerSecond * speedMult).toFixed(3)),
     accuracy: t0.accuracy,
@@ -147,8 +189,8 @@ export function getCrucibleTierRow(crucibleTier: number): NexusTierRow | undefin
     armour: t0.armour,
     elementalResPercent: t0.elementalResPercent,
     chaosResPercent: t0.chaosResPercent,
-    physDps: Math.round(t0.physDps * dmgMult),
-    eleDps: Math.round(t0.eleDps * dmgMult),
-    chaosDps: Math.round(t0.chaosDps * dmgMult),
-  }
+    physDps: Math.round(t0.physDps * dpsMult),
+    eleDps: Math.round(t0.eleDps * dpsMult),
+    chaosDps: Math.round(t0.chaosDps * dpsMult),
+  };
 }
