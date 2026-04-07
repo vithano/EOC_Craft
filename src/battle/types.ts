@@ -63,6 +63,15 @@ export interface EnemyDebuffEvent {
   durationSec: number
 }
 
+export interface EnemyAilmentSummary {
+  /** Maximum concurrent stacks observed during the encounter. */
+  maxStacks: { bleed: number; poison: number; ignite: number; shock: number; chill: number }
+  /** Maximum total DoT DPS observed (sum of all active stacks of that kind). */
+  maxDotDps: { bleed: number; poison: number; ignite: number; total: number }
+  /** Maximum combined magnitudes observed (sum of active stacks, after caps). */
+  maxNonDotMagnitudePct: { shock: number; chill: number }
+}
+
 export interface EncounterResult {
   winner: 'player' | 'enemy' | 'timeout'
   durationSeconds: number
@@ -75,6 +84,10 @@ export interface EncounterResult {
   totalDotDamageToEnemy?: number
   /** Shock/chill applications (for UI summary). */
   enemyDebuffEvents?: EnemyDebuffEvent[]
+  /** Aggregated ailment stats for UI display (includes damaging + non-damaging). */
+  enemyAilmentSummary?: EnemyAilmentSummary
+  /** True if combat log was truncated to fit UI limit. */
+  logTruncated?: boolean
 }
 
 export interface EncounterOptions {
@@ -89,7 +102,12 @@ export interface EncounterOptions {
 export interface BattleContext {
   stats: ComputedBuildStats
   enemy: DemoEnemyDef
-  /** Optional formulas.csv enemy mods applied in combat. */
-  enemyMods?: import('../data/enemyModifiers').EnemyModifierId[]
+  /** Optional formulas.csv enemy mods applied in combat (up to 3). */
+  enemyMods?: readonly import('../data/enemyModifiers').EnemyModifierId[]
+  /**
+   * Optional enemy mods with tiers (1–3). If provided, takes precedence over `enemyMods`.
+   * Tier scaling is a demo convenience for quickly exploring harder variants.
+   */
+  enemyModsWithTiers?: readonly { id: import('../data/enemyModifiers').EnemyModifierId; tier: 1 | 2 | 3 }[]
   options?: EncounterOptions
 }

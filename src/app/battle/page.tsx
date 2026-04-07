@@ -2,25 +2,56 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { TRAINING_DUMMY } from "../../battle/enemies";
 import { simulateEncounter } from "../../battle/engine";
 import type { DemoEnemyDef } from "../../battle/types";
+import {
+  applyEnemyModifierBaseRatiosToScaledEnemy,
+  ENEMY_MODIFIER_ORDER,
+  MAX_ENEMY_MODIFIERS,
+  enemyModifierDescription,
+  enemyModifierLabel,
+  type EnemyModifierId,
+} from "../../data/enemyModifiers";
+import { enemyStatsAtLevel } from "../../data/formulaConstants";
+import { FORMULA_CONSTANTS } from "../../data/formulaConstants";
+import { getCrucibleTierRow, getNexusTierRow } from "../../data/nexusEnemyScaling";
 import {
   HIT_DAMAGE_TYPE_COLOR_CLASS,
   HIT_DAMAGE_TYPE_LABEL,
 } from "../../data/damageTypes";
 import { getEquippedEntry, migrateEquippedFromSave } from "../../data/equipment";
 import { computeBuildStats, emptyEquipmentModifiers } from "../../data/gameStats";
-import { loadStoredPlanner, type StoredPlannerPayload } from "../../lib/eocBuildStorage";
+import { loadBuildsState, type StoredPlannerPayload } from "../../lib/eocBuildStorage";
+
+type EnemyModSlot = { id: EnemyModifierId | null; tier: 1 | 2 | 3 };
+type EnemyRarity = "normal" | "elite" | "boss";
+type EnemyScalingMode = "level" | "nexus" | "crucible";
 
 export default function BattleDemoPage() {
-  const [enemyDraft, setEnemyDraft] = useState<DemoEnemyDef>({ ...TRAINING_DUMMY });
   const [runKey, setRunKey] = useState(0);
   const [plannerSnapshot, setPlannerSnapshot] = useState<StoredPlannerPayload | null>(null);
+  const [activeBuildName, setActiveBuildName] = useState<string | null>(null);
+  const [enemyModSlots, setEnemyModSlots] = useState<EnemyModSlot[]>(
+    () => Array.from({ length: MAX_ENEMY_MODIFIERS }, () => ({ id: null, tier: 1 }))
+  );
+  const [enemyMode, setEnemyMode] = useState<EnemyScalingMode>("level");
+  const [enemyLevel, setEnemyLevel] = useState<number>(100);
+  const [enemyZone, setEnemyZone] = useState<number>(1);
+  const [enemyRarity, setEnemyRarity] = useState<EnemyRarity>("normal");
+  const [nexusTier, setNexusTier] = useState<number>(0);
+  const [crucibleTier, setCrucibleTier] = useState<number>(0);
+
+  function loadActiveBuild(): { name: string | null; payload: StoredPlannerPayload | null } {
+    const state = loadBuildsState();
+    const active = state.builds.find((b) => b.id === state.activeBuildId) ?? state.builds[0];
+    return { name: active?.name ?? null, payload: active?.payload ?? null };
+  }
 
   useEffect(() => {
     queueMicrotask(() => {
-      setPlannerSnapshot(loadStoredPlanner());
+      const { name, payload } = loadActiveBuild();
+      setActiveBuildName(name);
+      setPlannerSnapshot(payload);
     });
   }, []);
 
@@ -41,14 +72,93 @@ export default function BattleDemoPage() {
 
   const stats = useMemo(() => computeBuildStats(activeConfig), [activeConfig]);
 
+  const derivedEnemy = useMemo((): DemoEnemyDef => {
+    const C = FORMULA_CONSTANTS;
+    const rarityLifeMult = enemyRarity === "elite" ? C.eliteLifeMult : enemyRarity === "boss" ? C.bossLifeMult : 1;
+    const rarityDmgMult = enemyRarity === "elite" ? C.eliteDamageMult : enemyRarity === "boss" ? C.bossDamageMult : 1;
+
+    const zone = Math.max(1, Math.floor(enemyZone || 1));
+
+    if (enemyMode === "nexus" || enemyMode === "crucible") {
+      const row = enemyMode === "nexus" ? getNexusTierRow(Math.max(0, Math.floor(nexusTier))) : getCrucibleTierRow(Math.max(0, Math.floor(crucibleTier)));
+      const tLabel = enemyMode === "nexus" ? `Nexus ${Math.max(0, Math.floor(nexusTier))}` : `Crucible ${Math.max(0, Math.floor(crucibleTier))}`;
+      if (!row) {
+        return {
+          id: "enemy",
+          name: `${tLabel} (missing data)`,
+          maxLife: 1,
+          armour: 0,
+          evasionRating: 0,
+          accuracy: 0,
+          damageMin: 0,
+          damageMax: 0,
+          aps: 0.95,
+          zone,
+        };
+      }
+      return {
+        id: "enemy",
+        name: `${tLabel}${enemyRarity !== "normal" ? ` (${enemyRarity})` : ""}`,
+        maxLife: Math.max(1, Math.round(row.health * rarityLifeMult)),
+        maxEnergyShield: 0,
+        armour: Math.max(0, Math.round(row.armour)),
+        evasionRating: Math.max(0, Math.round(row.evasion)),
+        accuracy: Math.max(0, Math.round(row.accuracy)),
+        damageMin: Math.max(0, Math.round(row.physMin * rarityDmgMult)),
+        damageMax: Math.max(0, Math.round(row.physMax * rarityDmgMult)),
+        physicalDamageMin: Math.max(0, Math.round(row.physMin * rarityDmgMult)),
+        physicalDamageMax: Math.max(0, Math.round(row.physMax * rarityDmgMult)),
+        elementalDamageMin: Math.max(0, Math.round(row.elementalMin * rarityDmgMult)),
+        elementalDamageMax: Math.max(0, Math.round(row.elementalMax * rarityDmgMult)),
+        chaosDamageMin: Math.max(0, Math.round(row.chaosMin * rarityDmgMult)),
+        chaosDamageMax: Math.max(0, Math.round(row.chaosMax * rarityDmgMult)),
+        aps: Math.max(0.05, row.attacksPerSecond),
+        fireResistancePercent: row.elementalResPercent,
+        coldResistancePercent: row.elementalResPercent,
+        lightningResistancePercent: row.elementalResPercent,
+        chaosResistancePercent: row.chaosResPercent,
+        zone,
+      };
+    }
+
+    const lvl = Math.max(1, Math.floor(enemyLevel || 1));
+    const base = enemyStatsAtLevel(lvl);
+    return {
+      id: "enemy",
+      name: `Enemy L${lvl}${enemyRarity !== "normal" ? ` (${enemyRarity})` : ""}`,
+      maxLife: Math.max(1, Math.round(base.life * rarityLifeMult)),
+      armour: Math.max(0, Math.round(base.armour)),
+      evasionRating: Math.max(0, Math.round(base.evasion)),
+      accuracy: Math.max(0, Math.round(base.accuracy)),
+      damageMin: Math.max(0, Math.round(base.damageMin * rarityDmgMult)),
+      damageMax: Math.max(0, Math.round(base.damageMax * rarityDmgMult)),
+      aps: Math.max(0.05, Number(base.speed.toFixed(3))),
+      zone,
+    };
+  }, [enemyMode, enemyLevel, enemyZone, enemyRarity, nexusTier, crucibleTier]);
+
+  const enemyWithMods = useMemo(() => {
+    const mods = enemyModSlots
+      .filter((s): s is { id: EnemyModifierId; tier: 1 | 2 | 3 } => Boolean(s.id))
+      .map((s) => ({ id: s.id!, tier: s.tier }));
+    return applyEnemyModifierBaseRatiosToScaledEnemy(derivedEnemy, mods);
+  }, [derivedEnemy, enemyModSlots]);
+
   const result = useMemo(() => {
     void runKey;
     return simulateEncounter({
       stats,
-      enemy: enemyDraft,
+      enemy: derivedEnemy,
+      enemyModsWithTiers: enemyModSlots
+        .filter((s): s is { id: EnemyModifierId; tier: 1 | 2 | 3 } => Boolean(s.id))
+        .map((s) => ({ id: s.id!, tier: s.tier })),
       options: { maxDurationSeconds: 90, maxLogEntries: 100, dt: 0.05 },
     });
-  }, [stats, enemyDraft, runKey]);
+  }, [stats, derivedEnemy, enemyModSlots, runKey]);
+
+  const selectedEnemyModIds = useMemo(() => {
+    return new Set(enemyModSlots.map((s) => s.id).filter(Boolean) as EnemyModifierId[]);
+  }, [enemyModSlots]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -57,16 +167,29 @@ export default function BattleDemoPage() {
           <div>
             <h1 className="text-lg font-bold">Demo encounter</h1>
             <p className="text-zinc-500 text-xs">
-              Uses your saved planner build (<code className="text-zinc-400">eocCraftBuild</code>) vs. a training dummy.
+              Uses your currently selected planner build
+              {activeBuildName ? (
+                <>
+                  {" "}
+                  (<code className="text-zinc-400">{activeBuildName}</code>)
+                </>
+              ) : (
+                ""
+              )}{" "}
+              vs. an enemy scaled by formulas (level/tier + modifiers).
             </p>
           </div>
           <div className="flex items-center gap-4">
             <button
               type="button"
               className="text-xs text-zinc-500 hover:text-zinc-300"
-              onClick={() => setPlannerSnapshot(loadStoredPlanner())}
+              onClick={() => {
+                const { name, payload } = loadActiveBuild();
+                setActiveBuildName(name);
+                setPlannerSnapshot(payload);
+              }}
             >
-              Reload saved build
+              Reload active build
             </button>
             <Link href="/" className="text-sm text-blue-400 hover:text-blue-300 shrink-0">
               ← Build planner
@@ -83,141 +206,226 @@ export default function BattleDemoPage() {
         )}
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <div className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Enemy stats (this encounter)</div>
+          <div className="text-zinc-500 text-xs uppercase tracking-wider mb-3">
+            Enemy modifiers (max {MAX_ENEMY_MODIFIERS})
+          </div>
+          <div className="space-y-2">
+            {enemyModSlots.map((slot, idx) => {
+              const inOtherSlots = new Set(selectedEnemyModIds);
+              if (slot.id) inOtherSlots.delete(slot.id);
+              return (
+                <div key={idx} className="grid grid-cols-12 gap-2 items-start">
+                  <label className="col-span-8 space-y-1">
+                    <span className="text-zinc-500 text-xs">Modifier {idx + 1}</span>
+                    <select
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm"
+                      value={slot.id ?? ""}
+                      onChange={(e) => {
+                        const next = (e.target.value || null) as EnemyModifierId | null;
+                        setEnemyModSlots((prev) => {
+                          const out = prev.map((s) => ({ ...s }));
+                          out[idx] = { ...out[idx], id: next };
+                          // Enforce distinct modifier types.
+                          if (next) {
+                            for (let j = 0; j < out.length; j++) {
+                              if (j !== idx && out[j].id === next) out[j].id = null;
+                            }
+                          }
+                          return out;
+                        });
+                      }}
+                    >
+                      <option value="">— none —</option>
+                      {ENEMY_MODIFIER_ORDER.map((id) => (
+                        <option key={id} value={id} disabled={inOtherSlots.has(id)}>
+                          {enemyModifierLabel(id)}
+                        </option>
+                      ))}
+                    </select>
+                    {slot.id && (
+                      <div className="text-[10px] text-zinc-500">
+                        {enemyModifierDescription(slot.id)}
+                      </div>
+                    )}
+                  </label>
+
+                  <label className="col-span-3 space-y-1">
+                    <span className="text-zinc-500 text-xs">Tier</span>
+                    <select
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm"
+                      value={slot.tier}
+                      disabled={!slot.id}
+                      onChange={(e) => {
+                        const tier = (Number(e.target.value) || 1) as 1 | 2 | 3;
+                        setEnemyModSlots((prev) => {
+                          const out = prev.map((s) => ({ ...s }));
+                          out[idx] = { ...out[idx], tier: tier === 2 || tier === 3 ? tier : 1 };
+                          return out;
+                        });
+                      }}
+                    >
+                      <option value={1}>I</option>
+                      <option value={2}>II</option>
+                      <option value={3}>III</option>
+                    </select>
+                  </label>
+
+                  <div className="col-span-1 pt-6">
+                    <button
+                      type="button"
+                      className="text-xs text-zinc-500 hover:text-zinc-200"
+                      onClick={() =>
+                        setEnemyModSlots((prev) => {
+                          const out = prev.map((s) => ({ ...s }));
+                          out[idx] = { id: null, tier: 1 };
+                          return out;
+                        })
+                      }
+                      title="Clear"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              type="button"
+              className="text-xs text-zinc-500 hover:text-zinc-200"
+              onClick={() =>
+                setEnemyModSlots(Array.from({ length: MAX_ENEMY_MODIFIERS }, () => ({ id: null, tier: 1 })))
+              }
+            >
+              Clear all
+            </button>
+            <span className="text-[10px] text-zinc-600">
+              Mods add to formula enemy bases (life 40, armour 1, …) before scaling; tier multiplies those
+              flat values. Powerful/Weak use per-tier exponents.
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Enemy scaling (formulas)</div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
             <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Name</span>
-              <input
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5"
-                value={enemyDraft.name}
-                onChange={(e) => setEnemyDraft((d) => ({ ...d, name: e.target.value }))}
-              />
+              <span className="text-zinc-500 text-xs">Mode</span>
+              <select
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm"
+                value={enemyMode}
+                onChange={(e) => setEnemyMode(e.target.value as EnemyScalingMode)}
+              >
+                <option value="level">Level scaling</option>
+                <option value="nexus">Nexus tier</option>
+                <option value="crucible">Crucible tier</option>
+              </select>
             </label>
             <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Max life</span>
+              <span className="text-zinc-500 text-xs">Rarity</span>
+              <select
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm"
+                value={enemyRarity}
+                onChange={(e) => setEnemyRarity(e.target.value as EnemyRarity)}
+              >
+                <option value="normal">Normal</option>
+                <option value="elite">Elite</option>
+                <option value="boss">Boss</option>
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Zone (res scaling)</span>
               <input
                 type="number"
                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.maxLife}
+                value={enemyZone}
                 onChange={(e) =>
-                  setEnemyDraft((d) => ({ ...d, maxLife: Math.max(1, Number(e.target.value) || 0) }))
+                  setEnemyZone(Math.max(1, Math.floor(Number(e.target.value) || 1)))
                 }
               />
             </label>
+
+            {enemyMode === "level" ? (
+              <label className="space-y-1">
+                <span className="text-zinc-500 text-xs">Enemy level</span>
+                <input
+                  type="number"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                  value={enemyLevel}
+                  onChange={(e) =>
+                    setEnemyLevel(Math.max(1, Math.min(100, Math.floor(Number(e.target.value) || 1))))
+                  }
+                />
+              </label>
+            ) : enemyMode === "nexus" ? (
+              <label className="space-y-1">
+                <span className="text-zinc-500 text-xs">Nexus tier</span>
+                <input
+                  type="number"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                  value={nexusTier}
+                  onChange={(e) => setNexusTier(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                />
+              </label>
+            ) : (
+              <label className="space-y-1">
+                <span className="text-zinc-500 text-xs">Crucible tier</span>
+                <input
+                  type="number"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                  value={crucibleTier}
+                  onChange={(e) => setCrucibleTier(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                />
+              </label>
+            )}
+
             <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Armour</span>
+              <span className="text-zinc-500 text-xs">Derived (with mods)</span>
+              <div className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs text-zinc-400">
+                {enemyWithMods.name}
+              </div>
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Life / ES / Armour</span>
+              <div className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs text-zinc-400 font-mono">
+                {enemyWithMods.maxLife} / {enemyWithMods.maxEnergyShield ?? 0} / {enemyWithMods.armour}
+              </div>
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Acc / Eva</span>
+              <div className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs text-zinc-400 font-mono">
+                {enemyWithMods.accuracy} / {enemyWithMods.evasionRating}
+              </div>
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Damage / APS</span>
+              <div className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs text-zinc-400 font-mono">
+                {enemyWithMods.damageMin}–{enemyWithMods.damageMax} · {enemyWithMods.aps.toFixed(3)}/s
+              </div>
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Res (fire/cold/light/chaos)</span>
+              <div className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs text-zinc-400 font-mono">
+                {(enemyWithMods.fireResistancePercent ?? 0).toFixed(0)}/
+                {(enemyWithMods.coldResistancePercent ?? 0).toFixed(0)}/
+                {(enemyWithMods.lightningResistancePercent ?? 0).toFixed(0)}/
+                {(enemyWithMods.chaosResistancePercent ?? 0).toFixed(0)}
+              </div>
+            </label>
+
+            {/* Legacy manual stat inputs removed intentionally (enemy is derived from formulas). */}
+            {false && (
+              <label className="space-y-1">
+                <span className="text-zinc-500 text-xs">Armour</span>
               <input
                 type="number"
                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.armour}
-                onChange={(e) =>
-                  setEnemyDraft((d) => ({ ...d, armour: Math.max(0, Number(e.target.value) || 0) }))
-                }
+                value={0}
+                onChange={() => {}}
               />
-            </label>
-            <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Evasion</span>
-              <input
-                type="number"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.evasionRating}
-                onChange={(e) =>
-                  setEnemyDraft((d) => ({ ...d, evasionRating: Math.max(0, Number(e.target.value) || 0) }))
-                }
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Accuracy</span>
-              <input
-                type="number"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.accuracy}
-                onChange={(e) =>
-                  setEnemyDraft((d) => ({ ...d, accuracy: Math.max(0, Number(e.target.value) || 0) }))
-                }
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Damage min</span>
-              <input
-                type="number"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.damageMin}
-                onChange={(e) =>
-                  setEnemyDraft((d) => ({ ...d, damageMin: Math.max(0, Number(e.target.value) || 0) }))
-                }
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Damage max</span>
-              <input
-                type="number"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.damageMax}
-                onChange={(e) =>
-                  setEnemyDraft((d) => ({
-                    ...d,
-                    damageMax: Math.max(d.damageMin, Number(e.target.value) || 0),
-                  }))
-                }
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Attacks / s</span>
-              <input
-                type="number"
-                step="0.05"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.aps}
-                onChange={(e) =>
-                  setEnemyDraft((d) => ({ ...d, aps: Math.max(0.1, Number(e.target.value) || 0.1) }))
-                }
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Block % (0–100)</span>
-              <input
-                type="number"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.blockChance ?? 0}
-                onChange={(e) => {
-                  const v = Number(e.target.value) || 0;
-                  setEnemyDraft((d) => ({
-                    ...d,
-                    blockChance: v <= 0 ? undefined : Math.min(100, Math.max(0, v)),
-                  }));
-                }}
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Crit chance %</span>
-              <input
-                type="number"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.critChance ?? 0}
-                onChange={(e) =>
-                  setEnemyDraft((d) => ({
-                    ...d,
-                    critChance: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
-                  }))
-                }
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-zinc-500 text-xs">Crit mult</span>
-              <input
-                type="number"
-                step="0.1"
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
-                value={enemyDraft.critMultiplier ?? 2}
-                onChange={(e) =>
-                  setEnemyDraft((d) => ({
-                    ...d,
-                    critMultiplier: Math.max(1, Number(e.target.value) || 2),
-                  }))
-                }
-              />
-            </label>
+              </label>
+            )}
           </div>
         </div>
 
@@ -284,14 +492,20 @@ export default function BattleDemoPage() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm space-y-1">
             <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Enemy (active)</div>
             <div>
-              {enemyDraft.name}: {enemyDraft.maxLife} life · {enemyDraft.aps} atk/s
+              {derivedEnemy.name}: {derivedEnemy.maxLife} life · {derivedEnemy.aps} atk/s
             </div>
+            {(enemyModSlots.some((s) => s.id) ?? false) && (
+              <div className="text-zinc-500 text-xs">
+                Mods:{" "}
+                {(enemyModSlots
+                  .filter((s) => s.id)
+                  .map((s) => `${enemyModifierLabel(s.id!)} ${s.tier === 1 ? "I" : s.tier === 2 ? "II" : "III"}`)
+                  .join(", ")) || "—"}
+              </div>
+            )}
             <div>
-              Dmg {enemyDraft.damageMin}–{enemyDraft.damageMax} · acc {enemyDraft.accuracy} · eva{" "}
-              {enemyDraft.evasionRating} · arm {enemyDraft.armour}
-              {enemyDraft.blockChance != null && enemyDraft.blockChance > 0
-                ? ` · ${enemyDraft.blockChance}% block`
-                : ""}
+              Dmg {derivedEnemy.damageMin}–{derivedEnemy.damageMax} · acc {derivedEnemy.accuracy} · eva{" "}
+              {derivedEnemy.evasionRating} · arm {derivedEnemy.armour}
             </div>
           </div>
         </div>
@@ -329,27 +543,56 @@ export default function BattleDemoPage() {
             {Math.round(result.playerFinal.energyShield)} / mana {Math.round(result.playerFinal.mana)} — enemy life{" "}
             {Math.max(0, Math.round(result.enemyLifeFinal))}
           </div>
-          {(result.enemyDebuffEvents?.length ?? 0) > 0 && (
+          {(result.enemyAilmentSummary || (result.enemyDebuffEvents?.length ?? 0) > 0) && (
             <div className="mb-3 rounded-lg border border-violet-800/70 bg-violet-950/25 px-3 py-2 text-sm">
               <div className="text-[10px] uppercase tracking-wider text-violet-300/90 mb-1.5">
-                Enemy ailments — shock / chill (this run)
+                Enemy ailments (this run)
               </div>
-              <ul className="space-y-1 text-xs font-mono text-violet-100/95">
-                {result.enemyDebuffEvents!.map((e, i) => (
-                  <li key={i}>
-                    <span className="text-zinc-500">{e.t.toFixed(2)}s</span>{" "}
-                    {e.kind === "shock" ? (
-                      <span>
-                        Shock ailment — +{e.magnitudePct.toFixed(0)}% damage you deal for {e.durationSec.toFixed(1)}s
-                      </span>
-                    ) : (
-                      <span>
-                        Chill ailment — {e.magnitudePct.toFixed(0)}% slower enemy attacks for {e.durationSec.toFixed(1)}s
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+
+              {result.enemyAilmentSummary && (
+                <div className="grid sm:grid-cols-2 gap-2 text-xs font-mono text-violet-100/95">
+                  <div className="space-y-0.5">
+                    <div className="text-zinc-500">Max stacks</div>
+                    <div>Bleed: {result.enemyAilmentSummary.maxStacks.bleed}</div>
+                    <div>Poison: {result.enemyAilmentSummary.maxStacks.poison}</div>
+                    <div>Ignite: {result.enemyAilmentSummary.maxStacks.ignite}</div>
+                    <div>Shock: {result.enemyAilmentSummary.maxStacks.shock} (max total +{result.enemyAilmentSummary.maxNonDotMagnitudePct.shock.toFixed(0)}%)</div>
+                    <div>Chill: {result.enemyAilmentSummary.maxStacks.chill} (max total −{result.enemyAilmentSummary.maxNonDotMagnitudePct.chill.toFixed(0)}%)</div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-zinc-500">Max DoT DPS</div>
+                    <div>Bleed: {result.enemyAilmentSummary.maxDotDps.bleed.toFixed(1)}</div>
+                    <div>Poison: {result.enemyAilmentSummary.maxDotDps.poison.toFixed(1)}</div>
+                    <div>Ignite: {result.enemyAilmentSummary.maxDotDps.ignite.toFixed(1)}</div>
+                    <div>Total: {result.enemyAilmentSummary.maxDotDps.total.toFixed(1)}</div>
+                  </div>
+                </div>
+              )}
+
+              {!result.enemyAilmentSummary && (result.enemyDebuffEvents?.length ?? 0) > 0 && (
+                <ul className="space-y-1 text-xs font-mono text-violet-100/95">
+                  {result.enemyDebuffEvents!.map((e, i) => (
+                    <li key={i}>
+                      <span className="text-zinc-500">{e.t.toFixed(2)}s</span>{" "}
+                      {e.kind === "shock" ? (
+                        <span>
+                          Shock ailment — +{e.magnitudePct.toFixed(0)}% damage you deal for {e.durationSec.toFixed(1)}s
+                        </span>
+                      ) : (
+                        <span>
+                          Chill ailment — {e.magnitudePct.toFixed(0)}% slower enemy attacks for {e.durationSec.toFixed(1)}s
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {result.logTruncated && (
+            <div className="mb-3 text-xs text-zinc-500">
+              Combat log was truncated; increase <code className="text-zinc-400">maxLogEntries</code> to see more.
             </div>
           )}
           <div className="max-h-72 overflow-y-auto font-mono text-xs text-zinc-300 space-y-1 border border-zinc-800 rounded-lg p-2 bg-black/30">

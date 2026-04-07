@@ -1,8 +1,13 @@
 /**
  * Enemy modifier list from `formulas.csv` (enemy mods) — values from {@link FORMULA_CONSTANTS}.
  * Each enemy can have up to three modifiers; they stack additively where noted in the sheet.
+ *
+ * Flat mods (Vital, Plated, …) apply to **enemy base stats** (life 40, armour 1, …) *before*
+ * level / nexus / crucible scaling — see formulas.csv notes. For already-scaled demo enemies,
+ * that is modeled by multiplying the scaled stat by `(base + ΣΔ) / base`.
  */
 
+import type { DemoEnemyDef } from "../battle/types";
 import type { NexusTierRow } from "./nexusEnemyScaling";
 import { FORMULA_CONSTANTS } from "./formulaConstants";
 
@@ -204,6 +209,249 @@ export interface NexusTierRowWithModifiers extends NexusTierRow {
   esRegenPerSecond: number;
 }
 
+/** Raw additive contributions to formula enemy bases + multiplicative damage + direct % effects. */
+export interface EnemyModifierBaseDeltas {
+  life: number;
+  armour: number;
+  evasion: number;
+  accuracy: number;
+  speed: number;
+  es: number;
+  lifeRegenRaw: number;
+  esRegenRaw: number;
+  eleRes: number;
+  chaosRes: number;
+  damageMult: number;
+  block: number;
+  dodge: number;
+  crit: number;
+  sunderArmourIgnore: number;
+  sunderPen: number;
+  lifeLeechPct: number;
+  esLeechPct: number;
+}
+
+/** Dedupe by modifier id (first wins), cap count, normalize tier. */
+export function normalizeEnemyModsWithTiers(
+  raw: ReadonlyArray<{ id: EnemyModifierId; tier?: 1 | 2 | 3 }>
+): Array<{ id: EnemyModifierId; tier: 1 | 2 | 3 }> {
+  const seen = new Set<EnemyModifierId>();
+  const out: Array<{ id: EnemyModifierId; tier: 1 | 2 | 3 }> = [];
+  for (const m of raw) {
+    if (seen.has(m.id)) continue;
+    seen.add(m.id);
+    const tier = (m.tier ?? 1) as 1 | 2 | 3;
+    out.push({ id: m.id, tier: tier === 2 || tier === 3 ? tier : 1 });
+    if (out.length >= MAX_ENEMY_MODIFIERS) break;
+  }
+  return out;
+}
+
+export function computeEnemyModifierBaseDeltas(
+  mods: ReadonlyArray<{ id: EnemyModifierId; tier: 1 | 2 | 3 }>
+): EnemyModifierBaseDeltas {
+  const k = C();
+  const out: EnemyModifierBaseDeltas = {
+    life: 0,
+    armour: 0,
+    evasion: 0,
+    accuracy: 0,
+    speed: 0,
+    es: 0,
+    lifeRegenRaw: 0,
+    esRegenRaw: 0,
+    eleRes: 0,
+    chaosRes: 0,
+    damageMult: 1,
+    block: 0,
+    dodge: 0,
+    crit: 0,
+    sunderArmourIgnore: 0,
+    sunderPen: 0,
+    lifeLeechPct: 0,
+    esLeechPct: 0,
+  };
+  for (const m of mods) {
+    const t = m.tier;
+    switch (m.id) {
+      case "vital":
+        out.life += k.modVitalLife * t;
+        break;
+      case "fragile":
+        out.life += k.modFragileLife * t;
+        break;
+      case "plated":
+        out.armour += k.modPlatedArmour * t;
+        break;
+      case "elusive":
+        out.evasion += k.modElusiveEvasion * t;
+        break;
+      case "deadeye":
+        out.accuracy += k.modDeadeyeAccuracy * t;
+        break;
+      case "swift":
+        out.speed += k.modSwiftSpeed * t;
+        break;
+      case "slow":
+        out.speed += k.modSlowSpeed * t;
+        break;
+      case "powerful":
+        out.damageMult *= Math.pow(k.modPowerfulDamageMult, t);
+        break;
+      case "weak":
+        out.damageMult *= Math.pow(k.modWeakDamageMult, t);
+        break;
+      case "warded":
+        out.eleRes += k.modWardedEleRes * t;
+        break;
+      case "hallowed":
+        out.chaosRes += k.modHallowedChaosRes * t;
+        break;
+      case "barrier":
+        out.es += k.modBarrierEs * t;
+        break;
+      case "defender":
+        out.block = Math.max(out.block, k.modDefenderBlock * t);
+        break;
+      case "phasing":
+        out.dodge = Math.max(out.dodge, k.modPhasingDodge * t);
+        break;
+      case "assassin":
+        out.crit = Math.max(out.crit, k.modAssassinCritChance * t);
+        break;
+      case "regenerating":
+        out.lifeRegenRaw += k.modRegeneratingLifeRegen * t;
+        break;
+      case "replenishing":
+        out.esRegenRaw += k.modReplenishingEsRegen * t;
+        break;
+      case "vampiric":
+        out.lifeLeechPct = Math.max(out.lifeLeechPct, k.modVampiricLifeLeech * t);
+        break;
+      case "soul_eater":
+        out.esLeechPct = Math.max(out.esLeechPct, k.modSoulEaterEsLeech * t);
+        break;
+      case "sundering":
+        out.sunderArmourIgnore = Math.max(out.sunderArmourIgnore, k.modSunderingArmourIgnore * t);
+        out.sunderPen = Math.max(out.sunderPen, k.modSunderingPen * t);
+        break;
+      default:
+        break;
+    }
+  }
+  return out;
+}
+
+/**
+ * Apply modifier base deltas to an enemy whose numeric stats are already fully scaled
+ * (level / nexus / crucible). Flat bases use ratios `(enemyBase + Δ) / enemyBase` from formulas.csv.
+ */
+export function applyEnemyModifierDeltasToScaledEnemy(
+  enemy: DemoEnemyDef,
+  deltas: EnemyModifierBaseDeltas
+): DemoEnemyDef {
+  const k = C();
+  const lifeBase = Math.max(1, k.enemyBaseLife + deltas.life);
+  const lifeMult = lifeBase / k.enemyBaseLife;
+  const armourMult = (k.enemyBaseArmour + deltas.armour) / k.enemyBaseArmour;
+  const evasionMult = (k.enemyBaseEvasion + deltas.evasion) / k.enemyBaseEvasion;
+  const accuracyMult = (k.enemyBaseAccuracy + deltas.accuracy) / k.enemyBaseAccuracy;
+  const speedBase = Math.max(0.05, k.enemyBaseSpeed + deltas.speed);
+  const speedMult = speedBase / k.enemyBaseSpeed;
+  const dmgMult = deltas.damageMult;
+
+  const next: DemoEnemyDef = {
+    ...enemy,
+    maxLife: Math.max(1, Math.round(enemy.maxLife * lifeMult)),
+    armour: Math.max(0, Math.round(enemy.armour * armourMult)),
+    evasionRating: Math.max(0, Math.round(enemy.evasionRating * evasionMult)),
+    accuracy: Math.max(0, Math.round(enemy.accuracy * accuracyMult)),
+    aps: Math.max(0.05, Number((enemy.aps * speedMult).toFixed(3))),
+    damageMin: Math.max(0, Math.round(enemy.damageMin * dmgMult)),
+    damageMax: Math.max(0, Math.round(enemy.damageMax * dmgMult)),
+  };
+  if (enemy.physicalDamageMin != null) {
+    next.physicalDamageMin = Math.max(0, Math.round(enemy.physicalDamageMin * dmgMult));
+    next.physicalDamageMax = Math.max(0, Math.round((enemy.physicalDamageMax ?? 0) * dmgMult));
+  }
+  if (enemy.elementalDamageMin != null) {
+    next.elementalDamageMin = Math.max(0, Math.round(enemy.elementalDamageMin * dmgMult));
+    next.elementalDamageMax = Math.max(0, Math.round((enemy.elementalDamageMax ?? 0) * dmgMult));
+  }
+  if (enemy.chaosDamageMin != null) {
+    next.chaosDamageMin = Math.max(0, Math.round(enemy.chaosDamageMin * dmgMult));
+    next.chaosDamageMax = Math.max(0, Math.round((enemy.chaosDamageMax ?? 0) * dmgMult));
+  }
+
+  // ES scaling note in formulas.csv: life scaling also applies to energy shield if present.
+  // Model: existing ES pool is scaled by the same base-life ratio; Barrier ES adds +20 ES to base,
+  // which corresponds to (20 / 40) of base life, so it becomes `(scaledLife * 20/40)` at the target scale.
+  {
+    const scaledExistingEs = Math.round((enemy.maxEnergyShield ?? 0) * lifeMult);
+    const scaledBarrierEsAdd = deltas.es !== 0 ? Math.round(next.maxLife * (deltas.es / k.enemyBaseLife)) : 0;
+    const totalEs = scaledExistingEs + scaledBarrierEsAdd;
+    if (totalEs > 0 || (enemy.maxEnergyShield ?? 0) > 0 || deltas.es !== 0) {
+      next.maxEnergyShield = Math.max(0, totalEs);
+    }
+  }
+
+  next.fireResistancePercent = (enemy.fireResistancePercent ?? 0) + deltas.eleRes;
+  next.coldResistancePercent = (enemy.coldResistancePercent ?? 0) + deltas.eleRes;
+  next.lightningResistancePercent = (enemy.lightningResistancePercent ?? 0) + deltas.eleRes;
+  next.chaosResistancePercent = (enemy.chaosResistancePercent ?? 0) + deltas.chaosRes;
+
+  next.blockChance = Math.min(100, (enemy.blockChance ?? 0) + deltas.block);
+  next.dodgeChance = Math.min(100, (enemy.dodgeChance ?? 0) + deltas.dodge);
+  next.critChance = Math.max(enemy.critChance ?? 0, deltas.crit);
+
+  next.armourIgnorePercent = Math.max(enemy.armourIgnorePercent ?? 0, deltas.sunderArmourIgnore);
+  next.resistancePenetrationPercent = Math.max(enemy.resistancePenetrationPercent ?? 0, deltas.sunderPen);
+
+  return next;
+}
+
+export function applyEnemyModifierBaseRatiosToScaledEnemy(
+  enemy: DemoEnemyDef,
+  mods: ReadonlyArray<{ id: EnemyModifierId; tier: 1 | 2 | 3 }>
+): DemoEnemyDef {
+  const normalized = normalizeEnemyModsWithTiers(mods);
+  return applyEnemyModifierDeltasToScaledEnemy(enemy, computeEnemyModifierBaseDeltas(normalized));
+}
+
+export function applyEnemyModifiersWithTiersToScaledEnemy(
+  rawEnemy: DemoEnemyDef,
+  mods: ReadonlyArray<{ id: EnemyModifierId; tier: 1 | 2 | 3 }>
+): { enemy: DemoEnemyDef; deltas: EnemyModifierBaseDeltas } {
+  const normalized = normalizeEnemyModsWithTiers(mods);
+  const deltas = computeEnemyModifierBaseDeltas(normalized);
+  return { enemy: applyEnemyModifierDeltasToScaledEnemy(rawEnemy, deltas), deltas };
+}
+
+function nexusTierRowToDemoEnemy(row: NexusTierRow): DemoEnemyDef {
+  return {
+    id: "nexus-row",
+    name: `Nexus ${row.tier}`,
+    maxLife: row.health,
+    maxEnergyShield: 0,
+    armour: row.armour,
+    evasionRating: row.evasion,
+    accuracy: row.accuracy,
+    damageMin: row.physMin,
+    damageMax: row.physMax,
+    physicalDamageMin: row.physMin,
+    physicalDamageMax: row.physMax,
+    elementalDamageMin: row.elementalMin,
+    elementalDamageMax: row.elementalMax,
+    chaosDamageMin: row.chaosMin,
+    chaosDamageMax: row.chaosMax,
+    aps: row.attacksPerSecond,
+    fireResistancePercent: row.elementalResPercent,
+    coldResistancePercent: row.elementalResPercent,
+    lightningResistancePercent: row.elementalResPercent,
+    chaosResistancePercent: row.chaosResPercent,
+  };
+}
+
 /**
  * Apply up to {@link MAX_ENEMY_MODIFIERS} modifiers on top of a nexus tier row.
  * Warded increases **elemental** resistance only (fire/cold/lightning); Hallowed increases **chaos** res only.
@@ -212,131 +460,42 @@ export function applyEnemyModifiersToNexusRow(
   row: NexusTierRow,
   mods: readonly EnemyModifierId[]
 ): NexusTierRowWithModifiers {
-  const unique = [...new Set(mods)].slice(0, MAX_ENEMY_MODIFIERS);
-  let health = row.health;
-  let armour = row.armour;
-  let evasion = row.evasion;
-  let accuracy = row.accuracy;
-  let attacksPerSecond = row.attacksPerSecond;
-  let physMin = row.physMin;
-  let physMax = row.physMax;
-  let elementalMin = row.elementalMin;
-  let elementalMax = row.elementalMax;
-  let chaosMin = row.chaosMin;
-  let chaosMax = row.chaosMax;
-  let elementalResPercent = row.elementalResPercent;
-  let chaosResPercent = row.chaosResPercent;
-  let energyShieldFromMods = 0;
-  let sunderingArmourIgnorePercent = 0;
-  let sunderingResistancePenPercent = 0;
-  let blockChancePercent = 0;
-  let dodgeChancePercent = 0;
-  let critChancePercent = 0;
-  let lifeRegenPerSecond = 0;
-  let esRegenPerSecond = 0;
-
-  const k = C();
-  let damageMult = 1;
-
-  for (const id of unique) {
-    switch (id) {
-      case "vital":
-        health += k.modVitalLife;
-        break;
-      case "fragile":
-        health += k.modFragileLife;
-        break;
-      case "plated":
-        armour += k.modPlatedArmour;
-        break;
-      case "elusive":
-        evasion += k.modElusiveEvasion;
-        break;
-      case "barrier":
-        energyShieldFromMods += k.modBarrierEs;
-        break;
-      case "hallowed":
-        chaosResPercent += k.modHallowedChaosRes;
-        break;
-      case "warded":
-        elementalResPercent += k.modWardedEleRes;
-        break;
-      case "regenerating":
-        lifeRegenPerSecond += k.modRegeneratingLifeRegen;
-        break;
-      case "replenishing":
-        esRegenPerSecond += k.modReplenishingEsRegen;
-        break;
-      case "powerful":
-        damageMult *= k.modPowerfulDamageMult;
-        break;
-      case "weak":
-        damageMult *= k.modWeakDamageMult;
-        break;
-      case "swift":
-        attacksPerSecond += k.modSwiftSpeed;
-        break;
-      case "slow":
-        attacksPerSecond += k.modSlowSpeed;
-        break;
-      case "deadeye":
-        accuracy += k.modDeadeyeAccuracy;
-        break;
-      case "assassin":
-        critChancePercent = Math.max(critChancePercent, k.modAssassinCritChance);
-        break;
-      case "sundering":
-        sunderingArmourIgnorePercent = Math.max(sunderingArmourIgnorePercent, k.modSunderingArmourIgnore);
-        sunderingResistancePenPercent = Math.max(sunderingResistancePenPercent, k.modSunderingPen);
-        break;
-      case "defender":
-        blockChancePercent = Math.max(blockChancePercent, k.modDefenderBlock);
-        break;
-      case "phasing":
-        dodgeChancePercent = Math.max(dodgeChancePercent, k.modPhasingDodge);
-        break;
-      case "vampiric":
-      case "soul_eater":
-      case "rending":
-      case "electrifying":
-      case "freezing":
-      case "burning":
-      case "toxic":
-        // Tier row preview does not model ailment-tier II branches; keep for list completeness.
-        break;
-      default:
-        break;
-    }
-  }
-
-  physMin = Math.round(physMin * damageMult);
-  physMax = Math.round(physMax * damageMult);
-  elementalMin = Math.round(elementalMin * damageMult);
-  elementalMax = Math.round(elementalMax * damageMult);
-  chaosMin = Math.round(chaosMin * damageMult);
-  chaosMax = Math.round(chaosMax * damageMult);
+  const withTiers = normalizeEnemyModsWithTiers(mods.map((id) => ({ id, tier: 1 as const })));
+  const deltas = computeEnemyModifierBaseDeltas(withTiers);
+  const demo = nexusTierRowToDemoEnemy(row);
+  const out = applyEnemyModifierDeltasToScaledEnemy(demo, deltas);
+  const fc = FORMULA_CONSTANTS;
+  // Regen is defined as "+2 per second to base before scaling", and sheet notes say life scaling applies to regen.
+  // Model regen off scaled life (even for ES regen), matching the same base-life ratio approach.
+  const lifeRegenPerSecond =
+    deltas.lifeRegenRaw !== 0 ? (deltas.lifeRegenRaw * out.maxLife) / fc.enemyBaseLife : 0;
+  const esRegenPerSecond =
+    deltas.esRegenRaw !== 0 ? (deltas.esRegenRaw * out.maxLife) / fc.enemyBaseLife : 0;
 
   return {
     ...row,
-    health,
-    armour,
-    evasion,
-    accuracy,
-    attacksPerSecond: Math.max(0.05, attacksPerSecond),
-    physMin,
-    physMax,
-    elementalMin,
-    elementalMax,
-    chaosMin,
-    chaosMax,
-    elementalResPercent,
-    chaosResPercent,
-    energyShieldFromMods,
-    sunderingArmourIgnorePercent,
-    sunderingResistancePenPercent,
-    blockChancePercent,
-    dodgeChancePercent,
-    critChancePercent,
+    health: out.maxLife,
+    armour: out.armour,
+    evasion: out.evasionRating,
+    accuracy: out.accuracy,
+    attacksPerSecond: out.aps,
+    physMin: out.physicalDamageMin ?? out.damageMin,
+    physMax: out.physicalDamageMax ?? out.damageMax,
+    elementalMin: out.elementalDamageMin ?? row.elementalMin,
+    elementalMax: out.elementalDamageMax ?? row.elementalMax,
+    chaosMin: out.chaosDamageMin ?? row.chaosMin,
+    chaosMax: out.chaosDamageMax ?? row.chaosMax,
+    elementalResPercent: out.fireResistancePercent ?? row.elementalResPercent,
+    chaosResPercent: out.chaosResistancePercent ?? row.chaosResPercent,
+    physDps: Math.round(row.physDps * deltas.damageMult),
+    eleDps: Math.round(row.eleDps * deltas.damageMult),
+    chaosDps: Math.round(row.chaosDps * deltas.damageMult),
+    energyShieldFromMods: Math.max(0, out.maxEnergyShield ?? 0),
+    sunderingArmourIgnorePercent: out.armourIgnorePercent ?? 0,
+    sunderingResistancePenPercent: out.resistancePenetrationPercent ?? 0,
+    blockChancePercent: out.blockChance ?? 0,
+    dodgeChancePercent: out.dodgeChance ?? 0,
+    critChancePercent: out.critChance ?? 0,
     lifeRegenPerSecond,
     esRegenPerSecond,
   };
