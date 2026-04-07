@@ -7,22 +7,38 @@ export interface DemoEnemyDef {
   id: string
   name: string
   maxLife: number
+  /** Optional extra pool (e.g. Barrier enemy mod). Damage is applied to ES before life. */
+  maxEnergyShield?: number
   armour: number
   evasionRating: number
   accuracy: number
+  /** Default physical hit range when per-type ranges are not provided. */
   damageMin: number
   damageMax: number
+  /** Optional per-type hit ranges (for multi-type armour splitting). */
+  physicalDamageMin?: number
+  physicalDamageMax?: number
+  elementalDamageMin?: number
+  elementalDamageMax?: number
+  chaosDamageMin?: number
+  chaosDamageMax?: number
   aps: number
   /** 0–100; default enemy has no block */
   blockChance?: number
   dodgeChance?: number
   critChance?: number
   critMultiplier?: number
+  /** 0–100; attacker armour ignore (e.g. Sundering mod). */
+  armourIgnorePercent?: number
+  /** 0–100; attacker elemental/chaos resistance penetration (e.g. Sundering mod). */
+  resistancePenetrationPercent?: number
   /** 0–100; optional — lightning portion of player hits is reduced by this minus player penetration. */
   lightningResistancePercent?: number
   fireResistancePercent?: number
   coldResistancePercent?: number
   chaosResistancePercent?: number
+  /** Optional zone for formulas.csv elemental resistance scaling. */
+  zone?: number
 }
 
 export interface BattleParticipantState {
@@ -73,5 +89,7 @@ export interface EncounterOptions {
 export interface BattleContext {
   stats: ComputedBuildStats
   enemy: DemoEnemyDef
+  /** Optional formulas.csv enemy mods applied in combat. */
+  enemyMods?: import('../data/enemyModifiers').EnemyModifierId[]
   options?: EncounterOptions
 }

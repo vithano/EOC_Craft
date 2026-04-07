@@ -7,6 +7,7 @@ import {
 } from '../data/eocFormulas'
 import { FORMULA_CONSTANTS } from '../data/formulaConstants'
 import type { ComputedBuildStats } from '../data/gameStats'
+import type { EnemyModifierId } from '../data/enemyModifiers'
 import {
   DEFAULT_BLOCK_DAMAGE_TAKEN_MULT,
   type BattleContext,
@@ -47,6 +48,33 @@ interface PlayerAilmentRuntime {
   igniteUntil: number
   shock: NonDotAilmentInstance | null
   chill: NonDotAilmentInstance | null
+}
+
+function applyDamageToEnemyPools(
+  enemyState: { life: number; energyShield: number },
+  amount: number
+): number {
+  if (amount <= 0) return 0
+  let remaining = amount
+  if (enemyState.energyShield > 0) {
+    const takenEs = Math.min(enemyState.energyShield, remaining)
+    enemyState.energyShield -= takenEs
+    remaining -= takenEs
+  }
+  if (remaining > 0) {
+    const takenLife = Math.min(enemyState.life, remaining)
+    enemyState.life -= takenLife
+    remaining -= takenLife
+  }
+  return amount - remaining
+}
+
+function roundTo2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+function discardBelow001(n: number): number {
+  return n < 0.01 ? 0 : n
 }
 
 function avgHitByDamageType(stats: ComputedBuildStats): {
@@ -114,6 +142,8 @@ function mitigatedPlayerHitVsArmour(enemy: DemoEnemyDef, stats: ComputedBuildSta
   const armourIgnoredFrac = stats.armourIgnorePercent / 100
   const baseArmour = enemy.armour
   const elePen = stats.elementalPenetrationPercent ?? 0
+  const zone = Math.max(1, Math.floor(enemy.zone ?? 1))
+  const zoneEleResBonus = Math.min(15, Math.max(0, (zone - 1) * 3))
 
   // Split raw hit into per-type amounts using current fractions
   const a = avgHitByDamageType(stats)
@@ -138,9 +168,9 @@ function mitigatedPlayerHitVsArmour(enemy: DemoEnemyDef, stats: ComputedBuildSta
   let chaosOut = afterArmour(chaosAmt, 'chaos')
 
   // Apply resistances (optionally mirrored to player resists)
-  const enemyFire = stats.enemyResistancesEqualToYours ? stats.fireRes : (enemy.fireResistancePercent ?? 0)
-  const enemyCold = stats.enemyResistancesEqualToYours ? stats.coldRes : (enemy.coldResistancePercent ?? 0)
-  const enemyLight = stats.enemyResistancesEqualToYours ? stats.lightningRes : (enemy.lightningResistancePercent ?? 0)
+  const enemyFire = stats.enemyResistancesEqualToYours ? stats.fireRes : (enemy.fireResistancePercent ?? 0) + zoneEleResBonus
+  const enemyCold = stats.enemyResistancesEqualToYours ? stats.coldRes : (enemy.coldResistancePercent ?? 0) + zoneEleResBonus
+  const enemyLight = stats.enemyResistancesEqualToYours ? stats.lightningRes : (enemy.lightningResistancePercent ?? 0) + zoneEleResBonus
   const enemyChaos = stats.enemyResistancesEqualToYours ? stats.chaosRes : (enemy.chaosResistancePercent ?? 0)
 
   const fr = Math.max(0, enemyFire - (stats.firePenetrationPercent ?? 0) - elePen)
@@ -542,6 +572,7 @@ function applyPlayerAilmentsOnHit(
   const ndMult = 1 + (stats.nonDamagingAilmentEffectIncreasedPercent ?? 0) / 100
   const chillOutMult = stats.chillInflictEffectMult ?? 1
   const fx = stats.abilityLineEffects
+  const C = FORMULA_CONSTANTS
 
   const canIgniteFromElement = portions.fire > 0.01
     || (stats.allElementalDamageTypesCanIgnite && (portions.cold + portions.lightning) > 0.01)
@@ -600,7 +631,15 @@ function applyPlayerAilmentsOnHit(
     if (Math.random() * 100 < pShock) {
       const asThoughMore = Math.max(0, stats.hitsInflictShockAsThoughDealingMoreDamagePct ?? 0)
       const shockDamageForEffect = portions.lightning * (1 + asThoughMore / 100)
-      const effectPct = computeNonDamagingAilmentEffectPercent(shockDamageForEffect, enemyMaxLife, 0)
+      const effectPctRaw = computeNonDamagingAilmentEffectPercent(
+        shockDamageForEffect,
+        enemyMaxLife,
+        0,
+        C.enemyShockChillEffect,
+        1,
+        1
+      )
+      const effectPct = discardBelow001(roundTo2(effectPctRaw))
       const shockCap = (stats.ignoreMaxShockEffect ?? false) ? Number.POSITIVE_INFINITY : (stats.maxShockEffect ?? 50)
       const shockIncMult = 1 + (stats.increasedShockEffect ?? 0) / 100
       const computedShock = Math.max(5, effectPct * 1.15 * ndMult * shockIncMult)
@@ -640,7 +679,15 @@ function applyPlayerAilmentsOnHit(
     if (Math.random() * 100 < pChill) {
       const asThoughMore = Math.max(0, stats.hitsInflictChillAsThoughDealingMoreDamagePct ?? 0)
       const chillDamageForEffect = portions.cold * (1 + asThoughMore / 100)
-      const effectPct = computeNonDamagingAilmentEffectPercent(chillDamageForEffect, enemyMaxLife, 0)
+      const effectPctRaw = computeNonDamagingAilmentEffectPercent(
+        chillDamageForEffect,
+        enemyMaxLife,
+        0,
+        C.enemyShockChillEffect,
+        1,
+        C.chillSpecialMult as 0.7
+      )
+      const effectPct = discardBelow001(roundTo2(effectPctRaw))
       if (stats.enemiesUnaffectedByChill) {
         // modeled: some uniques make enemies immune to chill
         tryLogAilment(`Ailment — Chill prevented (enemy unaffected by chill)`)
@@ -797,7 +844,7 @@ function resolveEnemyAttack(
     }
   }
 
-  // Demo enemy uses physical hits only → full armour effectiveness (armourVsPhysical = 1.0).
+  // Enemy hit: allow multi-type armour split per formulas.csv.
   let armour = stats.armour
   if (stats.armourNoEffectVsPhysical ?? false) armour = 0
   if (
@@ -806,9 +853,38 @@ function resolveEnemyAttack(
   ) {
     armour = 0
   }
-  const red = computeArmourDRSingleType(armour, afterPath, 'physical')
-  const afterArmour = afterPath * (1 - red)
-  const afterConversion = mitigatedPhysicalDamageAfterConversion(stats, afterArmour)
+  const physMin = enemy.physicalDamageMin ?? enemy.damageMin
+  const physMax = enemy.physicalDamageMax ?? enemy.damageMax
+  const eleMin = enemy.elementalDamageMin ?? 0
+  const eleMax = enemy.elementalDamageMax ?? 0
+  const chaosMin = enemy.chaosDamageMin ?? 0
+  const chaosMax = enemy.chaosDamageMax ?? 0
+
+  const physRoll = physMin + Math.random() * Math.max(0, physMax - physMin)
+  const eleRoll = eleMin + Math.random() * Math.max(0, eleMax - eleMin)
+  const chaosRoll = chaosMin + Math.random() * Math.max(0, chaosMax - chaosMin)
+  const rollTotal = Math.max(1e-9, physRoll + eleRoll + chaosRoll)
+  const physAmt = afterPath * (physRoll / rollTotal)
+  const eleAmt = afterPath * (eleRoll / rollTotal)
+  const chaosAmt = afterPath * (chaosRoll / rollTotal)
+
+  const totalAllTypes = physAmt + eleAmt + chaosAmt
+  const armourIgnoredFrac = Math.min(1, Math.max(0, (enemy.armourIgnorePercent ?? 0) / 100))
+  const afterArmourPhys = physAmt * (1 - computeArmourDR(armour, physAmt, totalAllTypes, 'physical', armourIgnoredFrac))
+  const afterArmourEle = eleAmt * (1 - computeArmourDR(armour, eleAmt, totalAllTypes, 'fire', armourIgnoredFrac))
+  const afterArmourChaos = chaosAmt * (1 - computeArmourDR(armour, chaosAmt, totalAllTypes, 'chaos', armourIgnoredFrac))
+
+  const resCap = (r: number, max: number) => Math.max(-0.9, Math.min(0.9, Math.min(r / 100, max / 100)))
+  const eleEach = afterArmourEle / 3
+  const pen = Math.max(0, (enemy.resistancePenetrationPercent ?? 0) / 100)
+  const eleMit =
+    eleEach * (1 - resCap(stats.fireRes * (1 - pen), stats.maxFireRes))
+    + eleEach * (1 - resCap(stats.coldRes * (1 - pen), stats.maxColdRes))
+    + eleEach * (1 - resCap(stats.lightningRes * (1 - pen), stats.maxLightningRes))
+  const chaosMit = afterArmourChaos * (1 - resCap(stats.chaosRes * (1 - pen), stats.maxChaosRes))
+  const afterConversion = afterArmourPhys + eleMit + chaosMit
+
+  const afterArmour = afterArmourPhys + afterArmourEle + afterArmourChaos
 
   const prevented = Math.max(0, afterPath - afterArmour)
   if (blocked && stats.classBonusesActive.includes('templar')) {
@@ -851,6 +927,56 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   const dt = options.dt ?? 0.05
   const maxLog = options.maxLogEntries ?? 80
 
+  const k = FORMULA_CONSTANTS
+  const mods: EnemyModifierId[] = [...new Set(ctx.enemyMods ?? [])].slice(0, 3) as EnemyModifierId[]
+  let enemyModLifeAdd = 0
+  let enemyModArmourAdd = 0
+  let enemyModEvasionAdd = 0
+  let enemyModAccuracyAdd = 0
+  let enemyModApsAdd = 0
+  let enemyModDamageMult = 1
+  let enemyModEleResAdd = 0
+  let enemyModChaosResAdd = 0
+  let enemyModEsAdd = 0
+  let enemyModBlock = 0
+  let enemyModDodge = 0
+  let enemyModCrit = 0
+  let enemyModLifeRegen = 0
+  let enemyModEsRegen = 0
+  let enemyLifeLeechPct = 0
+  let enemyEsLeechPct = 0
+  let enemySunderingArmourIgnorePct = 0
+  let enemySunderingPenPct = 0
+  for (const id of mods) {
+    switch (id) {
+      case 'vital': enemyModLifeAdd += k.modVitalLife; break
+      case 'fragile': enemyModLifeAdd += k.modFragileLife; break
+      case 'plated': enemyModArmourAdd += k.modPlatedArmour; break
+      case 'elusive': enemyModEvasionAdd += k.modElusiveEvasion; break
+      case 'deadeye': enemyModAccuracyAdd += k.modDeadeyeAccuracy; break
+      case 'swift': enemyModApsAdd += k.modSwiftSpeed; break
+      case 'slow': enemyModApsAdd += k.modSlowSpeed; break
+      case 'powerful': enemyModDamageMult *= k.modPowerfulDamageMult; break
+      case 'weak': enemyModDamageMult *= k.modWeakDamageMult; break
+      case 'warded': enemyModEleResAdd += k.modWardedEleRes; break
+      case 'hallowed': enemyModChaosResAdd += k.modHallowedChaosRes; break
+      case 'barrier': enemyModEsAdd += k.modBarrierEs; break
+      case 'defender': enemyModBlock = Math.max(enemyModBlock, k.modDefenderBlock); break
+      case 'phasing': enemyModDodge = Math.max(enemyModDodge, k.modPhasingDodge); break
+      case 'assassin': enemyModCrit = Math.max(enemyModCrit, k.modAssassinCritChance); break
+      case 'regenerating': enemyModLifeRegen += k.modRegeneratingLifeRegen; break
+      case 'replenishing': enemyModEsRegen += k.modReplenishingEsRegen; break
+      case 'vampiric': enemyLifeLeechPct = Math.max(enemyLifeLeechPct, k.modVampiricLifeLeech); break
+      case 'soul_eater': enemyEsLeechPct = Math.max(enemyEsLeechPct, k.modSoulEaterEsLeech); break
+      case 'sundering':
+        enemySunderingArmourIgnorePct = Math.max(enemySunderingArmourIgnorePct, k.modSunderingArmourIgnore)
+        enemySunderingPenPct = Math.max(enemySunderingPenPct, k.modSunderingPen)
+        break
+      default:
+        break
+    }
+  }
+
   let runtimeMaxLife = stats.maxLife
   let deathPreventUsed = false
   const player: BattleParticipantState = {
@@ -859,15 +985,20 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     mana: stats.maxMana,
   }
 
-  let enemyLife = enemy.maxLife
+  const enemyState = {
+    life: Math.max(1, enemy.maxLife + enemyModLifeAdd),
+    energyShield: Math.max(0, (enemy.maxEnergyShield ?? 0) + enemyModEsAdd),
+  }
+  let enemyLife = enemyState.life
   const startLosePct = Math.min(100, Math.max(0, stats.enemyLoseMaxLifeAtStartPercent ?? 0))
   if (startLosePct > 0) {
-    enemyLife = Math.max(0, enemyLife - enemy.maxLife * (startLosePct / 100))
+    enemyState.life = Math.max(0, enemyState.life - enemy.maxLife * (startLosePct / 100))
+    enemyLife = enemyState.life
   }
   let t = 0
   let nextPlayer = 0
   let nextEnemy = 0
-  const apsEnemy = enemy.aps * enemyApsMultiplier(stats)
+  const apsEnemy = Math.max(0.05, (enemy.aps + enemyModApsAdd) * enemyApsMultiplier(stats))
   const firstHitFlag = { used: false }
 
   const ailmentState: EnemyAilmentRuntime = {
@@ -950,7 +1081,8 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           .reduce((sum, d) => sum + (d.burstDamageOnExpire ?? 0), 0)
         if (totalStored > 0) {
           const enemyLifeBefore = enemyLife
-          enemyLife -= totalStored
+          applyDamageToEnemyPools(enemyState, totalStored)
+          enemyLife = enemyState.life
           totalDotDamage += totalStored
           if (enemyLifeBefore > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
         }
@@ -960,7 +1092,8 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           const burst = d.burstDamageOnExpire ?? 0
           if (burst > 0) {
             const enemyLifeBefore = enemyLife
-            enemyLife -= burst
+            applyDamageToEnemyPools(enemyState, burst)
+            enemyLife = enemyState.life
             totalDotDamage += burst
             if (enemyLifeBefore > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
           }
@@ -987,7 +1120,8 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     if (dotDpsTotal > 0) {
       const tick = dotDpsTotal * dt
       const enemyLifeBeforeDot = enemyLife
-      enemyLife -= tick
+      applyDamageToEnemyPools(enemyState, tick)
+      enemyLife = enemyState.life
       if (enemyLifeBeforeDot > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
       totalDotDamage += tick
       dotLogAcc.bleed += dotDpsBleed * dt
@@ -1099,7 +1233,8 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           targetTakesIncreasedDamagePct: shockNow,
           extraTargetTakesIncreasedDamagePct: extraInc,
         })
-        enemyLife -= damage
+        applyDamageToEnemyPools(enemyState, damage)
+        enemyLife = enemyState.life
         if (enemyLifeBeforeHit > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
         if (damage > 0 || damageForAilments > 0) {
           hitsPlayer++
@@ -1162,6 +1297,8 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
               : 0
             const execPct = Math.max(fixedExec, chillExec)
             if (execPct > 0 && enemyLife <= enemy.maxLife * (execPct / 100)) {
+              enemyState.life = 0
+              enemyState.energyShield = 0
               enemyLife = 0
             }
           }
@@ -1186,7 +1323,35 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
 
     const chillMult = activeChillMult(ailmentState, t)
     if (t + 1e-9 >= nextEnemy) {
-      const r = resolveEnemyAttack(enemy, stats, player, firstHitFlag, runtimeMaxLife)
+      const enemyWithMods: DemoEnemyDef = {
+        ...enemy,
+        maxLife: enemyState.life,
+        maxEnergyShield: enemyState.energyShield,
+        armour: enemy.armour + enemyModArmourAdd,
+        evasionRating: enemy.evasionRating + enemyModEvasionAdd,
+        accuracy: enemy.accuracy + enemyModAccuracyAdd,
+        blockChance: (enemy.blockChance ?? 0) + enemyModBlock,
+        dodgeChance: (enemy.dodgeChance ?? 0) + enemyModDodge,
+        critChance: Math.max(enemy.critChance ?? 0, enemyModCrit),
+        armourIgnorePercent: Math.max(enemy.armourIgnorePercent ?? 0, enemySunderingArmourIgnorePct),
+        resistancePenetrationPercent: Math.max(enemy.resistancePenetrationPercent ?? 0, enemySunderingPenPct),
+        // Enemy resist bonuses from mods (for player hit mitigation).
+        fireResistancePercent: (enemy.fireResistancePercent ?? 0) + enemyModEleResAdd,
+        coldResistancePercent: (enemy.coldResistancePercent ?? 0) + enemyModEleResAdd,
+        lightningResistancePercent: (enemy.lightningResistancePercent ?? 0) + enemyModEleResAdd,
+        chaosResistancePercent: (enemy.chaosResistancePercent ?? 0) + enemyModChaosResAdd,
+      }
+      // Enemy damage scaling mods.
+      enemyWithMods.damageMin *= enemyModDamageMult
+      enemyWithMods.damageMax *= enemyModDamageMult
+      if (enemyWithMods.physicalDamageMin != null) enemyWithMods.physicalDamageMin *= enemyModDamageMult
+      if (enemyWithMods.physicalDamageMax != null) enemyWithMods.physicalDamageMax *= enemyModDamageMult
+      if (enemyWithMods.elementalDamageMin != null) enemyWithMods.elementalDamageMin *= enemyModDamageMult
+      if (enemyWithMods.elementalDamageMax != null) enemyWithMods.elementalDamageMax *= enemyModDamageMult
+      if (enemyWithMods.chaosDamageMin != null) enemyWithMods.chaosDamageMin *= enemyModDamageMult
+      if (enemyWithMods.chaosDamageMax != null) enemyWithMods.chaosDamageMax *= enemyModDamageMult
+
+      const r = resolveEnemyAttack(enemyWithMods, stats, player, firstHitFlag, runtimeMaxLife)
       if (r.blocked) {
         const fill = stats.actionBarFilledByPercentOnBlock ?? 0
         if (fill > 0) actionBar = Math.min(1, actionBar + fill / 100)
@@ -1204,6 +1369,20 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           })
         }
       }
+
+      // Enemy leech from damage dealt (post-mitigation value).
+      if (r.damageToDisplay > 0 && (enemyLifeLeechPct > 0 || enemyEsLeechPct > 0)) {
+        const leeched = r.damageToDisplay
+        if (enemyLifeLeechPct > 0) {
+          enemyState.life = Math.min(enemyWithMods.maxLife, enemyState.life + leeched * (enemyLifeLeechPct / 100))
+        }
+        if (enemyEsLeechPct > 0) {
+          const maxEs = Math.max(enemyState.energyShield, enemyWithMods.maxEnergyShield ?? 0)
+          enemyState.energyShield = Math.min(maxEs, enemyState.energyShield + leeched * (enemyEsLeechPct / 100))
+        }
+        enemyLife = enemyState.life
+      }
+
       nextEnemy = t + 1 / Math.max(0.15, apsEnemy * chillMult)
     }
 

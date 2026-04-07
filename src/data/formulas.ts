@@ -13,7 +13,7 @@ import {
   LEVEL_100_ENEMY_EVASION,
   LEVEL_100_PLAYER_ACCURACY,
 } from './eocFormulas';
-import { getNexusTierRow } from './nexusEnemyScaling';
+import { getCrucibleTierRow, getNexusTierRow } from './nexusEnemyScaling';
 import { FORMULA_CONSTANTS } from './formulaConstants';
 
 export interface ComputedStats {
@@ -112,6 +112,7 @@ export interface FormulaContext {
   ailmentExtraEffectMultiplier?: 1 | 1.4;
   /** If set, Nexus tier overrides enemy accuracy / evasion from table for evasion + hit chance. */
   nexusTier?: number | null;
+  crucibleTier?: number | null;
 }
 
 function clamp(n: number, min: number, max: number) {
@@ -197,7 +198,10 @@ export function computeStats(
     maxDamageReduction
   );
 
-  const nexus = ctx.nexusTier != null ? getNexusTierRow(ctx.nexusTier) : undefined;
+  const nexus =
+    ctx.crucibleTier != null ? getCrucibleTierRow(ctx.crucibleTier)
+      : ctx.nexusTier != null ? getNexusTierRow(ctx.nexusTier)
+        : undefined;
   const enemyAccuracy = nexus?.accuracy ?? ctx.enemyAccuracy ?? LEVEL_100_ENEMY_ACCURACY;
   const enemyEvasion = nexus?.evasion ?? ctx.enemyEvasion ?? LEVEL_100_ENEMY_EVASION;
   const playerAccuracy = ctx.playerAccuracy ?? LEVEL_100_PLAYER_ACCURACY;

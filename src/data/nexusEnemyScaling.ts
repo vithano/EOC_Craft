@@ -3,6 +3,8 @@
  * Notes in sheet: base enemy damage ~286–400 at level 100; each tier above 0 scales by ~×1.2589 (use table for exact values).
  */
 
+import { FORMULA_CONSTANTS } from './formulaConstants'
+
 export interface NexusTierRow {
   tier: number;
   physMin: number;
@@ -105,4 +107,48 @@ export function updateNexusTierRows(rows: NexusTierRow[]): void {
 
 export function getNexusTierRow(tier: number): NexusTierRow | undefined {
   return NEXUS_TIER_ROWS.find((r) => r.tier === tier);
+}
+
+/**
+ * Crucible scaling per formulas.csv: "nexus scaling divided into five steps".
+ * Crucible 5 == Nexus 1, Crucible 10 == Nexus 2, etc.
+ *
+ * This returns a *modeled* row derived from tier-0 and the nexus multipliers,
+ * and does not require a dedicated crucible CSV.
+ */
+export function getCrucibleTierRow(crucibleTier: number): NexusTierRow | undefined {
+  const t0 = getNexusTierRow(0)
+  if (!t0) return undefined
+  const ct = Math.max(0, Math.floor(crucibleTier))
+  const steps = ct / 5
+  // Note: formulas.csv defines these as multiplicative per Nexus tier.
+  // For crucible, apply fractional exponent (5 steps per tier).
+  // Life & regen use nexusLifeMult; damage uses nexusDamageMult (speed scaling removed already).
+  // Speed itself is represented as APS in the nexus table; we scale APS by (1 + speedPerTier)^(steps).
+  // In the tier CSV, APS is already tiered, so we model it similarly here.
+  // (This keeps DPS roughly consistent with the note in formulas.csv.)
+  const C = FORMULA_CONSTANTS
+  const lifeMult = Math.pow(C.nexusLifeMult, steps)
+  const dmgMult = Math.pow(C.nexusDamageMult, steps)
+  const speedMult = Math.pow(1 + C.nexusSpeedPerTierPct / 100, steps)
+
+  return {
+    tier: ct,
+    physMin: Math.round(t0.physMin * dmgMult),
+    physMax: Math.round(t0.physMax * dmgMult),
+    elementalMin: Math.round(t0.elementalMin * dmgMult),
+    elementalMax: Math.round(t0.elementalMax * dmgMult),
+    chaosMin: Math.round(t0.chaosMin * dmgMult),
+    chaosMax: Math.round(t0.chaosMax * dmgMult),
+    health: Math.round(t0.health * lifeMult),
+    attacksPerSecond: Number((t0.attacksPerSecond * speedMult).toFixed(3)),
+    accuracy: t0.accuracy,
+    evasion: t0.evasion,
+    armour: t0.armour,
+    elementalResPercent: t0.elementalResPercent,
+    chaosResPercent: t0.chaosResPercent,
+    physDps: Math.round(t0.physDps * dmgMult),
+    eleDps: Math.round(t0.eleDps * dmgMult),
+    chaosDps: Math.round(t0.chaosDps * dmgMult),
+  }
 }

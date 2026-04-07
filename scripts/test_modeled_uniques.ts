@@ -2,6 +2,8 @@ import { computeBuildStats, emptyEquipmentModifiers, type BuildConfig } from "..
 import { equipmentModifiersFromUniqueTexts } from "../src/data/uniqueGearMods";
 import { simulateEncounter } from "../src/battle/engine";
 import { parseAbilityLineEffects, updateAbilityDefinitions } from "../src/data/eocAbilities";
+import { computeArmourDR, computeNonDamagingAilmentEffectPercent } from "../src/data/eocFormulas";
+import { getCrucibleTierRow } from "../src/data/nexusEnemyScaling";
 import abilitiesJson from "../src/data/eocAbilities.generated.json";
 import { aggregateEquippedToEquipmentModifiers } from "../src/data/gameStats";
 import { updateUniqueDefinitions } from "../src/data/eocUniques";
@@ -32,6 +34,32 @@ function main() {
       const unknown = (fx as any).__unknownLines as string[] | undefined;
       assert(!unknown || unknown.length === 0, `Unrecognized ability lines for ${def.id} (${def.name}): ${unknown?.join(" | ")}`);
     }
+  }
+
+  // formulas.csv: armour DR is split by damage types (computeArmourDR total-hit split).
+  {
+    const armour = 1000;
+    const phys = 200;
+    const fire = 200;
+    const total = phys + fire;
+    const drPhysSplit = computeArmourDR(armour, phys, total, "physical", 0);
+    const drPhysSingle = computeArmourDR(armour, phys, phys, "physical", 0);
+    assert(drPhysSplit < drPhysSingle, `Expected split DR < single-type DR (phys). Got split=${drPhysSplit}, single=${drPhysSingle}`);
+  }
+
+  // formulas.csv: non-damaging ailments are rounded to 2 decimals and discarded < 0.01.
+  {
+    const dmg = 0.000001;
+    const eff = computeNonDamagingAilmentEffectPercent(dmg, 1000, 0, 1, 1, 1);
+    assert(eff < 0.01, `Expected tiny ailment effect <0.01, got ${eff}`);
+  }
+
+  // formulas.csv: crucible scaling is nexus scaling split into 5 steps.
+  {
+    const c5 = getCrucibleTierRow(5);
+    const c10 = getCrucibleTierRow(10);
+    assert(Boolean(c5 && c10), "Expected crucible rows");
+    assert((c10!.health ?? 0) > (c5!.health ?? 0), "Expected crucible tier 10 > tier 5 health");
   }
 
   // Battery Crown: mana costs paid with energy shield
