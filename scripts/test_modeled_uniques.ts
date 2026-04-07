@@ -705,6 +705,45 @@ function main() {
     assert(withAscetic.maxLife > base.maxLife, `Expected class passive effect scaling increased maxLife, got ${withAscetic.maxLife} vs ${base.maxLife}`);
   }
 
+  // The Hollow Revenant: death prevention once per stage + conditional more speed + conditional chaos DoT
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      [
+        "Once per stage, if you would die, your maximum life is halved, then recover all life",
+        "If your death was prevented during the current stage, gain 40% more speed and take 1.000 chaos damage per second",
+      ],
+      { isWeapon: false }
+    );
+    assert(Boolean(patch.preventDeathOncePerStageFromGear), "Expected preventDeathOncePerStageFromGear true");
+    assert(
+      patch.moreSpeedIfDeathPreventedThisStagePercentFromGear === 40,
+      `Expected moreSpeedIfDeathPreventedThisStagePercentFromGear=40, got ${patch.moreSpeedIfDeathPreventedThisStagePercentFromGear}`
+    );
+    assert(
+      patch.takeChaosDamagePerSecondIfDeathPreventedFromGear === 1,
+      `Expected takeChaosDamagePerSecondIfDeathPreventedFromGear=1, got ${patch.takeChaosDamagePerSecondIfDeathPreventedFromGear}`
+    );
+
+    const eq = emptyEquipmentModifiers();
+    eq.preventDeathOncePerStageFromGear = true;
+    eq.moreSpeedIfDeathPreventedThisStagePercentFromGear = 40;
+    eq.takeChaosDamagePerSecondIfDeathPreventedFromGear = 10_000; // make it obvious after prevent
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    const enemy = {
+      id: "killer",
+      name: "Killer",
+      maxLife: 1_000_000,
+      armour: 0,
+      evasionRating: 0,
+      accuracy: 10_000,
+      damageMin: stats.maxLife * 2,
+      damageMax: stats.maxLife * 2,
+      aps: 0.2,
+    };
+    const res = simulateEncounter({ stats, enemy, options: { maxDurationSeconds: 1.0, dt: 0.02, maxLogEntries: 200 } });
+    assert(res.log.some((e) => (e as any).message?.includes?.("Death prevented")), "Expected death prevented log entry");
+  }
+
   // Broken Legacy: fixed crit chance = 50%
   {
     const patch = equipmentModifiersFromUniqueTexts(

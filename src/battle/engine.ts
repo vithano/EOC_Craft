@@ -221,24 +221,24 @@ function mitigatedPhysicalDamageAfterConversion(
   return physRem + chaosMitigated + fireMitigated + coldMitigated + lightMitigated
 }
 
-function lifeRecoveryAllowed(player: BattleParticipantState, stats: ComputedBuildStats): boolean {
+function lifeRecoveryAllowed(player: BattleParticipantState, stats: ComputedBuildStats, maxLife: number): boolean {
   if (!(stats.cannotRecoverLifeWhileAboveHalfLife ?? false)) return true
-  return player.life <= stats.maxLife * 0.5
+  return player.life <= maxLife * 0.5
 }
 
-function applyOnKillRecovery(player: BattleParticipantState, stats: ComputedBuildStats): void {
+function applyOnKillRecovery(player: BattleParticipantState, stats: ComputedBuildStats, maxLife: number): void {
   const rec = stats.lifeRecoveryRateMult ?? 1
-  if (lifeRecoveryAllowed(player, stats)) {
+  if (lifeRecoveryAllowed(player, stats, maxLife)) {
     const pct = stats.lifeRecoveredOnKillPercent ?? 0
     if (pct > 0) {
       player.life = Math.min(
-        stats.maxLife,
-        player.life + stats.maxLife * (pct / 100) * rec
+        maxLife,
+        player.life + maxLife * (pct / 100) * rec
       )
     }
     const flatLife = stats.flatLifeOnKill ?? 0
     if (flatLife > 0) {
-      player.life = Math.min(stats.maxLife, player.life + flatLife * rec)
+      player.life = Math.min(maxLife, player.life + flatLife * rec)
     }
   }
   const flatMana = stats.flatManaOnKill ?? 0
@@ -254,21 +254,22 @@ function applyOnKillRecovery(player: BattleParticipantState, stats: ComputedBuil
 function applyBlockRecovery(
   player: BattleParticipantState,
   stats: ComputedBuildStats,
-  blocked: boolean
+  blocked: boolean,
+  maxLife: number
 ): void {
   if (!blocked) return
   const rec = stats.lifeRecoveryRateMult ?? 1
-  if (lifeRecoveryAllowed(player, stats)) {
+  if (lifeRecoveryAllowed(player, stats, maxLife)) {
     const lp = stats.lifeRecoveredOnBlockPercent ?? 0
     if (lp > 0) {
       player.life = Math.min(
-        stats.maxLife,
-        player.life + stats.maxLife * (lp / 100) * rec
+        maxLife,
+        player.life + maxLife * (lp / 100) * rec
       )
     }
     const flatL = stats.flatLifeOnBlock ?? 0
     if (flatL > 0) {
-      player.life = Math.min(stats.maxLife, player.life + flatL * rec)
+      player.life = Math.min(maxLife, player.life + flatL * rec)
     }
   }
   const mp = stats.manaRecoveredOnBlockPercent ?? 0
@@ -640,7 +641,8 @@ function resolveEnemyAttack(
   enemy: DemoEnemyDef,
   stats: ComputedBuildStats,
   playerState: BattleParticipantState,
-  firstHitThisEncounter: { used: boolean }
+  firstHitThisEncounter: { used: boolean },
+  maxLife: number
 ): { damageToDisplay: number; fullBeforeArmour: number; mitigatedByArmour: number; evaded: boolean; dodged: boolean; blocked: boolean } {
   const acc = enemy.accuracy
   let eva = stats.evasionRating
@@ -650,7 +652,7 @@ function resolveEnemyAttack(
   }
   if (
     (stats.cannotEvadeWhileAboveHalfLife ?? false) &&
-    playerState.life > stats.maxLife * 0.5
+    playerState.life > maxLife * 0.5
   ) {
     eva = 0
   }
@@ -667,8 +669,8 @@ function resolveEnemyAttack(
   }
 
   const dodgeBase = stats.dodgeChance
-  const atMax = playerState.life >= stats.maxLife - 1e-9
-  const belowMax = playerState.life < stats.maxLife - 1e-9
+  const atMax = playerState.life >= maxLife - 1e-9
+  const belowMax = playerState.life < maxLife - 1e-9
   const betterTwice = (stats.dodgeRolledTwiceAtMaxLifeBetter ?? false) && atMax
   const worseTwice = (stats.dodgeRolledTwiceBelowMaxLifeWorse ?? false) && belowMax
   const dodgePass = () => Math.random() * 100 < dodgeBase
@@ -750,7 +752,7 @@ function resolveEnemyAttack(
   if (stats.armourNoEffectVsPhysical ?? false) armour = 0
   if (
     (stats.armourHasNoEffectWhileBelowHalfLife ?? false) &&
-    playerState.life < stats.maxLife * 0.5
+    playerState.life < maxLife * 0.5
   ) {
     armour = 0
   }
@@ -766,15 +768,15 @@ function resolveEnemyAttack(
     }
   }
   if (stats.classBonusesActive.includes('juggernaut') && prevented > 0) {
-    if (lifeRecoveryAllowed(playerState, stats)) {
+    if (lifeRecoveryAllowed(playerState, stats, maxLife)) {
       playerState.life += prevented * 0.04
-      if (playerState.life > stats.maxLife) playerState.life = stats.maxLife
+      if (playerState.life > maxLife) playerState.life = maxLife
     }
   }
 
   const dealt = applyDamageToPools(playerState, afterConversion, stats, stats.maxMana)
 
-  applyBlockRecovery(playerState, stats, blocked)
+  applyBlockRecovery(playerState, stats, blocked, maxLife)
 
   if (dealt > 0 && (stats.energyShieldOnHit ?? 0) > 0 && stats.maxEnergyShield > 0) {
     playerState.energyShield = Math.min(
@@ -799,8 +801,10 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   const dt = options.dt ?? 0.05
   const maxLog = options.maxLogEntries ?? 80
 
+  let runtimeMaxLife = stats.maxLife
+  let deathPreventUsed = false
   const player: BattleParticipantState = {
-    life: stats.maxLife,
+    life: runtimeMaxLife,
     energyShield: stats.maxEnergyShield,
     mana: stats.maxMana,
   }
@@ -877,10 +881,10 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       }
       if (t < periodicLifeRegenActiveUntil && player.life > 0) {
         const rec = stats.lifeRecoveryRateMult ?? 1
-        if (lifeRecoveryAllowed(player, stats)) {
+        if (lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
           const d = stats.periodicLifeRegenDurationSec
           const pctPerSec = stats.periodicLifeRegenPct / d
-          player.life = Math.min(stats.maxLife, player.life + stats.maxLife * (pctPerSec / 100) * dt * rec)
+          player.life = Math.min(runtimeMaxLife, player.life + runtimeMaxLife * (pctPerSec / 100) * dt * rec)
         }
       }
     }
@@ -906,7 +910,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       const tick = dotDpsTotal * dt
       const enemyLifeBeforeDot = enemyLife
       enemyLife -= tick
-      if (enemyLifeBeforeDot > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats)
+      if (enemyLifeBeforeDot > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
       totalDotDamage += tick
       dotLogAcc.bleed += dotDpsBleed * dt
       dotLogAcc.poison += dotDpsPoison * dt
@@ -915,10 +919,10 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       // "Your leech effects also apply to damage over time inflicted through bleeding"
       if ((stats.leechAppliesToBleedDot ?? false) && dotDpsBleed > 0) {
         const leechPct = stats.lifeLeechFromPhysicalHitPercent ?? 0
-        if (leechPct > 0 && lifeRecoveryAllowed(player, stats)) {
+        if (leechPct > 0 && lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
           const rec = stats.lifeRecoveryRateMult ?? 1
           const gain = dotDpsBleed * dt * (leechPct / 100) * rec
-          if (gain > 0) player.life = Math.min(stats.maxLife, player.life + gain)
+          if (gain > 0) player.life = Math.min(runtimeMaxLife, player.life + gain)
         }
       }
       if (t - lastDotLogT + 1e-9 >= DOT_LOG_INTERVAL && log.length < maxLog) {
@@ -966,6 +970,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     const chillSelfMult = Math.max(0.05, 1 - chillOnYou / 100)
 
     let speedMult = chillSelfMult
+    if (deathPreventUsed && (stats.moreSpeedIfDeathPreventedThisStagePercent ?? 0) > 0) {
+      speedMult *= 1 + (stats.moreSpeedIfDeathPreventedThisStagePercent / 100)
+    }
     const morePerPoison = stats.moreSpeedPerPoisonOnYouPercent ?? 0
     if (morePerPoison > 0 && poisonCount > 0) speedMult *= 1 + (morePerPoison * poisonCount) / 100
     const morePerShockPct = stats.moreSpeedPerShockEffectOnYouPerPct ?? 0
@@ -994,7 +1001,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         else player.mana -= cost
         const selfPhysPct = stats.takePhysicalDamagePercentOfMaxLifeWhenYouAttack ?? 0
         if (selfPhysPct > 0) {
-          player.life = Math.max(0, player.life - stats.maxLife * (selfPhysPct / 100))
+          player.life = Math.max(0, player.life - runtimeMaxLife * (selfPhysPct / 100))
         }
         const shockNow = activeShockPct(ailmentState, t)
         const enemyLifeBeforeHit = enemyLife
@@ -1002,7 +1009,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           targetTakesIncreasedDamagePct: shockNow,
         })
         enemyLife -= damage
-        if (enemyLifeBeforeHit > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats)
+        if (enemyLifeBeforeHit > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
         if (damage > 0) {
           hitsPlayer++
           const rec = stats.lifeRecoveryRateMult ?? 1
@@ -1011,9 +1018,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
             + (damage * ((stats.lifeLeechFromHitDamagePercent ?? 0) / 100)
               + damagePortionsFromHit(stats, damage).physical
                 * ((stats.lifeLeechFromPhysicalHitPercent ?? 0) / 100)) * rec
-          if (gainOnHit !== 0 && lifeRecoveryAllowed(player, stats)) {
+          if (gainOnHit !== 0 && lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
             player.life = Math.min(
-              stats.maxLife,
+              runtimeMaxLife,
               Math.max(0, player.life + gainOnHit)
             )
           }
@@ -1088,7 +1095,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
 
     const chillMult = activeChillMult(ailmentState, t)
     if (t + 1e-9 >= nextEnemy) {
-      const r = resolveEnemyAttack(enemy, stats, player, firstHitFlag)
+      const r = resolveEnemyAttack(enemy, stats, player, firstHitFlag, runtimeMaxLife)
       if (r.blocked) {
         const fill = stats.actionBarFilledByPercentOnBlock ?? 0
         if (fill > 0) actionBar = Math.min(1, actionBar + fill / 100)
@@ -1129,17 +1136,17 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     const lifeRegenPct = baseLifeRegenPct + ignitedBonus
     if (lifeRegenPct > 0 && player.life > 0) {
       const rec = stats.lifeRecoveryRateMult ?? 1
-      if (lifeRecoveryAllowed(player, stats)) {
+      if (lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
         player.life = Math.min(
-          stats.maxLife,
-          player.life + stats.maxLife * (lifeRegenPct / 100) * dt * rec
+          runtimeMaxLife,
+          player.life + runtimeMaxLife * (lifeRegenPct / 100) * dt * rec
         )
       }
     }
     const flatLifeRegen = stats.flatLifeRegenPerSecond ?? 0
-    if (flatLifeRegen > 0 && player.life > 0 && lifeRecoveryAllowed(player, stats)) {
+    if (flatLifeRegen > 0 && player.life > 0 && lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
       const rec = stats.lifeRecoveryRateMult ?? 1
-      player.life = Math.min(stats.maxLife, player.life + flatLifeRegen * dt * rec)
+      player.life = Math.min(runtimeMaxLife, player.life + flatLifeRegen * dt * rec)
     }
 
     // Poison damage on player (currently only sourced from reflected poison in this demo model)
@@ -1168,6 +1175,19 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       player.life = Math.max(0, player.life - chaosDps * dt)
       if (log.length < maxLog && chaosDps * dt > 0.01) {
         log.push({ t, kind: 'dot_tick', message: `DoT — You take ${chaosDps.toFixed(0)} chaos damage/s`, damage: chaosDps * dt })
+      }
+    }
+    const chaosDpsAfterPrevent = deathPreventUsed ? (stats.takeChaosDamagePerSecondIfDeathPrevented ?? 0) : 0
+    if (chaosDpsAfterPrevent > 0) {
+      player.life = Math.max(0, player.life - chaosDpsAfterPrevent * dt)
+    }
+
+    if (player.life <= 0 && (stats.preventDeathOncePerStage ?? false) && !deathPreventUsed) {
+      deathPreventUsed = true
+      runtimeMaxLife = Math.max(1, runtimeMaxLife * 0.5)
+      player.life = runtimeMaxLife
+      if (log.length < maxLog) {
+        log.push({ t, kind: 'phase', message: `Death prevented — max life halved to ${runtimeMaxLife.toFixed(0)} and life restored` })
       }
     }
     const esRegenPct = stats.esRegenPercentOfMaxPerSecond ?? 0

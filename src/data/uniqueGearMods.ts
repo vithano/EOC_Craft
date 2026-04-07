@@ -127,6 +127,25 @@ export interface UniqueGearStatPatch {
   /** "X% increased effect of modifiers gained from class passives ..." */
   classPassivesEffectIncreasedPercentFromGear?: number;
 
+  /** "% increased experience gain" (meta; shown in breakdown). */
+  pctIncreasedExperienceGainFromGear?: number;
+
+  /** "% chance to skip non-elite enemy encounters" (meta; shown in breakdown). */
+  skipNonEliteEnemyEncountersChanceFromGear?: number;
+
+  /** "Ignite/Chill effects carry on to subsequent enemies" (meta / multi-encounter). */
+  igniteCarryToSubsequentEnemiesFromGear?: boolean;
+  chillCarryToSubsequentEnemiesFromGear?: boolean;
+
+  /** "Once per stage, if you would die..." (modeled in sim as once per encounter). */
+  preventDeathOncePerStageFromGear?: boolean;
+
+  /** "If your death was prevented..., gain X% more speed ..." */
+  moreSpeedIfDeathPreventedThisStagePercentFromGear?: number;
+
+  /** "If your death was prevented..., take X chaos damage per second" */
+  takeChaosDamagePerSecondIfDeathPreventedFromGear?: number;
+
   /** When you deal a critical hit, perform an additional hit with X% chance. */
   extraHitOnCritChanceFromGear?: number;
   /** When you would block, dodge instead. */
@@ -1076,9 +1095,11 @@ export function equipmentModifiersFromUniqueTexts(
 
     if (/^can be enhanced up to enhancement tier \d+\b/i.test(low)) mark();
     if (/increased effect of other explicit modifiers on this item per enhancement tier\b/i.test(low)) mark();
-    if (/increased experience gain\b/i.test(low)) mark();
+    m = l.match(/([\d.]+)%\s+increased\s+experience\s+gain\b/i);
+    if (m) add({ pctIncreasedExperienceGainFromGear: num(m)! });
     if (/increased attribute requirements\b/i.test(low)) mark();
-    if (/skip non-elite enemy encounters\b/i.test(low)) mark();
+    m = l.match(/([\d.]+)%\s+chance\s+to\s+skip\s+non-elite\s+enemy\s+encounters\b/i);
+    if (m) add({ skipNonEliteEnemyEncountersChanceFromGear: num(m)! });
     m = l.match(/([\d.]+)\s+life\s+per\s+magic\s+item\s+equipped\b/i);
     if (m) {
       const v = num(m)
@@ -1106,9 +1127,22 @@ export function equipmentModifiersFromUniqueTexts(
       // Loose audit catch-all for this family of lines (e.g. Woe Touch).
       add({})
     }
-    if (/carry on to subsequent enemies\b/i.test(low)) mark();
-    if (/^once per stage,/i.test(low)) mark();
-    if (/^if your death was prevented/i.test(low)) mark();
+    if (/ignite effects carry on to subsequent enemies\b/i.test(low)) {
+      acc.igniteCarryToSubsequentEnemiesFromGear = true
+      mark()
+    }
+    if (/chill effects carry on to subsequent enemies\b/i.test(low)) {
+      acc.chillCarryToSubsequentEnemiesFromGear = true
+      mark()
+    }
+    if (/^once per stage,\s*if you would die\b/i.test(low)) {
+      acc.preventDeathOncePerStageFromGear = true
+      mark()
+    }
+    m = l.match(/if your death was prevented during the current stage,\s+gain\s+([\d.]+)%\s+more\s+speed\b/i)
+    if (m) add({ moreSpeedIfDeathPreventedThisStagePercentFromGear: num(m)! })
+    m = l.match(/if your death was prevented during the current stage,.*take\s+([\d.]+)\s+chaos\s+damage\s+per\s+second\b/i)
+    if (m) add({ takeChaosDamagePerSecondIfDeathPreventedFromGear: num(m)! })
     if (/^every \d+ seconds?,/i.test(low)) mark();
     if (/^after you cast a spell,/i.test(low)) mark();
     if (/^when you cast a spell,/i.test(low)) mark();
@@ -1197,8 +1231,10 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/lose\s+([\d.]+)\s+life\s+per\s+second\b/i);
     if (m) add({ loseLifePerSecondFromGear: num(m)! });
 
-    m = l.match(/take\s+([\d.]+)\s+chaos\s+damage\s+per\s+second\b/i);
-    if (m) add({ takeChaosDamagePerSecondFromGear: num(m)! });
+    if (!/^if your death was prevented\b/i.test(low)) {
+      m = l.match(/take\s+([\d.]+)\s+chaos\s+damage\s+per\s+second\b/i);
+      if (m) add({ takeChaosDamagePerSecondFromGear: num(m)! });
+    }
 
     m = l.match(/([\d.]+)%\s+of\s+your\s+dexterity\s+and\s+intelligence\s+is\s+converted\s+to\s+strength\b/i);
     if (m) add({ pctDexIntConvertedToStrFromGear: num(m)! });

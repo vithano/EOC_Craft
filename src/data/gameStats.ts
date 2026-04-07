@@ -447,6 +447,13 @@ export interface EquipmentModifiers {
   leechAppliesToBleedDotFromGear: boolean
   classPassivesEffectIncreasedPercentFromGear: number
   classPassivesEffectConditionMetFromGear: boolean
+  pctIncreasedExperienceGainFromGear: number
+  skipNonEliteEnemyEncountersChanceFromGear: number
+  igniteCarryToSubsequentEnemiesFromGear: boolean
+  chillCarryToSubsequentEnemiesFromGear: boolean
+  preventDeathOncePerStageFromGear: boolean
+  moreSpeedIfDeathPreventedThisStagePercentFromGear: number
+  takeChaosDamagePerSecondIfDeathPreventedFromGear: number
   extraHitOnCritChanceFromGear: number
   blockReplacedByDodgeFromGear: boolean
   dodgeRolledTwiceAtMaxLifeBetterFromGear: boolean
@@ -804,6 +811,13 @@ export interface ComputedBuildStats {
   meleeCritChanceIncPctPer10Int: number
   hitsInflictChillAsThoughDealingMoreDamagePct: number
   leechAppliesToBleedDot: boolean
+  pctIncreasedExperienceGain: number
+  skipNonEliteEnemyEncountersChance: number
+  igniteCarryToSubsequentEnemies: boolean
+  chillCarryToSubsequentEnemies: boolean
+  preventDeathOncePerStage: boolean
+  moreSpeedIfDeathPreventedThisStagePercent: number
+  takeChaosDamagePerSecondIfDeathPrevented: number
   extraHitOnCritChance: number
   blockReplacedByDodge: boolean
   dodgeRolledTwiceAtMaxLifeBetter: boolean
@@ -1014,6 +1028,13 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     leechAppliesToBleedDotFromGear: false,
     classPassivesEffectIncreasedPercentFromGear: 0,
     classPassivesEffectConditionMetFromGear: false,
+    pctIncreasedExperienceGainFromGear: 0,
+    skipNonEliteEnemyEncountersChanceFromGear: 0,
+    igniteCarryToSubsequentEnemiesFromGear: false,
+    chillCarryToSubsequentEnemiesFromGear: false,
+    preventDeathOncePerStageFromGear: false,
+    moreSpeedIfDeathPreventedThisStagePercentFromGear: 0,
+    takeChaosDamagePerSecondIfDeathPreventedFromGear: 0,
     extraHitOnCritChanceFromGear: 0,
     blockReplacedByDodgeFromGear: false,
     dodgeRolledTwiceAtMaxLifeBetterFromGear: false,
@@ -1367,6 +1388,19 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.leechAppliesToBleedDotFromGear) eq.leechAppliesToBleedDotFromGear = true
   if (p.classPassivesEffectIncreasedPercentFromGear !== undefined) {
     addNum('classPassivesEffectIncreasedPercentFromGear', p.classPassivesEffectIncreasedPercentFromGear)
+  }
+  if (p.pctIncreasedExperienceGainFromGear !== undefined) addNum('pctIncreasedExperienceGainFromGear', p.pctIncreasedExperienceGainFromGear)
+  if (p.skipNonEliteEnemyEncountersChanceFromGear !== undefined) {
+    addNum('skipNonEliteEnemyEncountersChanceFromGear', p.skipNonEliteEnemyEncountersChanceFromGear)
+  }
+  if (p.igniteCarryToSubsequentEnemiesFromGear) eq.igniteCarryToSubsequentEnemiesFromGear = true
+  if (p.chillCarryToSubsequentEnemiesFromGear) eq.chillCarryToSubsequentEnemiesFromGear = true
+  if (p.preventDeathOncePerStageFromGear) eq.preventDeathOncePerStageFromGear = true
+  if (p.moreSpeedIfDeathPreventedThisStagePercentFromGear !== undefined) {
+    addNum('moreSpeedIfDeathPreventedThisStagePercentFromGear', p.moreSpeedIfDeathPreventedThisStagePercentFromGear)
+  }
+  if (p.takeChaosDamagePerSecondIfDeathPreventedFromGear !== undefined) {
+    addNum('takeChaosDamagePerSecondIfDeathPreventedFromGear', p.takeChaosDamagePerSecondIfDeathPreventedFromGear)
   }
   if (p.extraHitOnCritChanceFromGear !== undefined) addNum('extraHitOnCritChanceFromGear', p.extraHitOnCritChanceFromGear)
   if (p.blockReplacedByDodgeFromGear) eq.blockReplacedByDodgeFromGear = true
@@ -3379,6 +3413,22 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     eq.hitsInflictChillAsThoughDealingMoreDamagePctFromGear
   )
   const leechAppliesToBleedDot = eq.leechAppliesToBleedDotFromGear
+  const pctIncreasedExperienceGain = Math.max(0, eq.pctIncreasedExperienceGainFromGear)
+  const skipNonEliteEnemyEncountersChance = Math.min(
+    100,
+    Math.max(0, eq.skipNonEliteEnemyEncountersChanceFromGear)
+  )
+  const igniteCarryToSubsequentEnemies = eq.igniteCarryToSubsequentEnemiesFromGear
+  const chillCarryToSubsequentEnemies = eq.chillCarryToSubsequentEnemiesFromGear
+  const preventDeathOncePerStage = eq.preventDeathOncePerStageFromGear
+  const moreSpeedIfDeathPreventedThisStagePercent = Math.max(
+    0,
+    eq.moreSpeedIfDeathPreventedThisStagePercentFromGear
+  )
+  const takeChaosDamagePerSecondIfDeathPrevented = Math.max(
+    0,
+    eq.takeChaosDamagePerSecondIfDeathPreventedFromGear
+  )
   const extraHitOnCritChance = Math.min(100, Math.max(0, eq.extraHitOnCritChanceFromGear))
   const blockReplacedByDodge = eq.blockReplacedByDodgeFromGear
   const dodgeRolledTwiceAtMaxLifeBetter = eq.dodgeRolledTwiceAtMaxLifeBetterFromGear
@@ -4238,6 +4288,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     meleeCritChanceIncPctPer10Int,
     hitsInflictChillAsThoughDealingMoreDamagePct,
     leechAppliesToBleedDot,
+    pctIncreasedExperienceGain,
+    skipNonEliteEnemyEncountersChance,
+    igniteCarryToSubsequentEnemies,
+    chillCarryToSubsequentEnemies,
+    preventDeathOncePerStage,
+    moreSpeedIfDeathPreventedThisStagePercent,
+    takeChaosDamagePerSecondIfDeathPrevented,
     extraHitOnCritChance,
     blockReplacedByDodge,
     dodgeRolledTwiceAtMaxLifeBetter,
