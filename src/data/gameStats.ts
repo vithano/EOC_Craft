@@ -441,6 +441,10 @@ export interface EquipmentModifiers {
   actionBarSetToPercentAtStartFromGear: number
   additionalBaseManaCostPctOfMaxEnergyShieldFromGear: number
   weaponLocalDamageAppliesToSpellsFromGear: boolean
+  meleeCritChanceIncPctPer10IntFromGear: number
+  flatLifePerMagicItemEquippedFromGear: number
+  hitsInflictChillAsThoughDealingMoreDamagePctFromGear: number
+  leechAppliesToBleedDotFromGear: boolean
   extraHitOnCritChanceFromGear: number
   blockReplacedByDodgeFromGear: boolean
   dodgeRolledTwiceAtMaxLifeBetterFromGear: boolean
@@ -795,6 +799,9 @@ export interface ComputedBuildStats {
   actionBarSetToPercentAtStart: number
   additionalBaseManaCostPctOfMaxEnergyShield: number
   weaponLocalDamageAppliesToSpells: boolean
+  meleeCritChanceIncPctPer10Int: number
+  hitsInflictChillAsThoughDealingMoreDamagePct: number
+  leechAppliesToBleedDot: boolean
   extraHitOnCritChance: number
   blockReplacedByDodge: boolean
   dodgeRolledTwiceAtMaxLifeBetter: boolean
@@ -999,6 +1006,10 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     actionBarSetToPercentAtStartFromGear: 0,
     additionalBaseManaCostPctOfMaxEnergyShieldFromGear: 0,
     weaponLocalDamageAppliesToSpellsFromGear: false,
+    meleeCritChanceIncPctPer10IntFromGear: 0,
+    flatLifePerMagicItemEquippedFromGear: 0,
+    hitsInflictChillAsThoughDealingMoreDamagePctFromGear: 0,
+    leechAppliesToBleedDotFromGear: false,
     extraHitOnCritChanceFromGear: 0,
     blockReplacedByDodgeFromGear: false,
     dodgeRolledTwiceAtMaxLifeBetterFromGear: false,
@@ -1340,6 +1351,16 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
     addNum('additionalBaseManaCostPctOfMaxEnergyShieldFromGear', p.additionalBaseManaCostPctOfMaxEnergyShieldFromGear)
   }
   if (p.weaponLocalDamageAppliesToSpellsFromGear) eq.weaponLocalDamageAppliesToSpellsFromGear = true
+  if (p.meleeCritChanceIncPctPer10IntFromGear !== undefined) {
+    addNum('meleeCritChanceIncPctPer10IntFromGear', p.meleeCritChanceIncPctPer10IntFromGear)
+  }
+  if (p.flatLifePerMagicItemEquippedFromGear !== undefined) {
+    addNum('flatLifePerMagicItemEquippedFromGear', p.flatLifePerMagicItemEquippedFromGear)
+  }
+  if (p.hitsInflictChillAsThoughDealingMoreDamagePctFromGear !== undefined) {
+    addNum('hitsInflictChillAsThoughDealingMoreDamagePctFromGear', p.hitsInflictChillAsThoughDealingMoreDamagePctFromGear)
+  }
+  if (p.leechAppliesToBleedDotFromGear) eq.leechAppliesToBleedDotFromGear = true
   if (p.extraHitOnCritChanceFromGear !== undefined) addNum('extraHitOnCritChanceFromGear', p.extraHitOnCritChanceFromGear)
   if (p.blockReplacedByDodgeFromGear) eq.blockReplacedByDodgeFromGear = true
   if (p.dodgeRolledTwiceAtMaxLifeBetterFromGear) eq.dodgeRolledTwiceAtMaxLifeBetterFromGear = true
@@ -1789,6 +1810,7 @@ export function aggregateEquippedToEquipmentModifiers(
   getEquipped: (slot: string) => { itemId: string; rolls?: number[]; enhancement?: number; craftedPrefixes?: import('./eocModifiers').AppliedModifier[]; craftedSuffixes?: import('./eocModifiers').AppliedModifier[] } | null | undefined
 ): EquipmentModifiers {
   const eq = emptyEquipmentModifiers()
+  let magicItemCount = 0
   for (const slot of slots) {
     const entry = getEquipped(slot)
     const itemId = entry?.itemId ?? 'none'
@@ -1848,6 +1870,8 @@ export function aggregateEquippedToEquipmentModifiers(
     }
 
     if (isCraftedEquipItemId(itemId)) {
+      // Model "per magic item equipped" style lines. In this project, crafted base equipment is treated as magic.
+      magicItemCount += 1
       const def = EOC_BASE_EQUIPMENT_BY_ID[itemId]
       if (!def) continue
       const prefixes = entry?.craftedPrefixes ?? []
@@ -1896,6 +1920,10 @@ export function aggregateEquippedToEquipmentModifiers(
     const item = getItemDefinition(slot, itemId)
     if (!item) continue
     addItemModifiersToEquipment(eq, item.modifiers)
+  }
+
+  if (eq.flatLifePerMagicItemEquippedFromGear > 0 && magicItemCount > 0) {
+    eq.flatLife += eq.flatLifePerMagicItemEquippedFromGear * magicItemCount
   }
   return eq
 }
@@ -2381,11 +2409,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const baseCritChance   = eq.weaponBaseCritChance ?? BASE_GAME_STATS.baseCritChance
   const critFromDex      = (Math.floor(dex / 10) * attrCritMult * 2)
   const critFromAssassin = bonus('assassin') ? 8 : 0
+  const meleeCritFromInt = (Math.floor(int_ / 10) * eq.meleeCritChanceIncPctPer10IntFromGear)
   const critFromUpgrades =
     u('increasedCriticalHitChance')
     + u('increasedAttackCriticalHitChance')
     + eq.pctIncreasedCriticalHitChanceFromGear
     + critFromDex
+    + meleeCritFromInt
     + eq.critIncPctPerItemRarityPctFromGear * eq.increasedItemRarityFromGear
   const attackCritFlatBase =
     baseCritChance + critFromAssassin + eq.attackBaseCritChanceBonusFromGear + eq.critChanceBonus
@@ -3319,6 +3349,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const firstAttackAlwaysCrit = eq.firstAttackAlwaysCritFromGear
   const actionBarSetToPercentAtStart = Math.min(100, Math.max(0, eq.actionBarSetToPercentAtStartFromGear))
   const weaponLocalDamageAppliesToSpells = eq.weaponLocalDamageAppliesToSpellsFromGear
+  const meleeCritChanceIncPctPer10Int = eq.meleeCritChanceIncPctPer10IntFromGear
+  const hitsInflictChillAsThoughDealingMoreDamagePct = Math.max(
+    0,
+    eq.hitsInflictChillAsThoughDealingMoreDamagePctFromGear
+  )
+  const leechAppliesToBleedDot = eq.leechAppliesToBleedDotFromGear
   const extraHitOnCritChance = Math.min(100, Math.max(0, eq.extraHitOnCritChanceFromGear))
   const blockReplacedByDodge = eq.blockReplacedByDodgeFromGear
   const dodgeRolledTwiceAtMaxLifeBetter = eq.dodgeRolledTwiceAtMaxLifeBetterFromGear
@@ -3700,6 +3736,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     dmgPushIf(critChanceIncLines, 'Upgrades: increased spell critical hit chance', u('increasedSpellCriticalHitChance'))
   }
   dmgPushIf(critChanceIncLines, 'Gear: increased critical hit chance', eq.pctIncreasedCriticalHitChanceFromGear)
+  if (eq.meleeCritChanceIncPctPer10IntFromGear !== 0) {
+    critChanceIncLines.push({
+      label: 'Gear: increased melee critical hit chance per 10 intelligence',
+      value: (int_ / 10) * eq.meleeCritChanceIncPctPer10IntFromGear,
+    })
+  }
 
   const apsLines: StatContributionLine[] = []
   if (!spellCombat) {
@@ -4169,6 +4211,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     actionBarSetToPercentAtStart,
     additionalBaseManaCostPctOfMaxEnergyShield,
     weaponLocalDamageAppliesToSpells,
+    meleeCritChanceIncPctPer10Int,
+    hitsInflictChillAsThoughDealingMoreDamagePct,
+    leechAppliesToBleedDot,
     extraHitOnCritChance,
     blockReplacedByDodge,
     dodgeRolledTwiceAtMaxLifeBetter,

@@ -112,6 +112,18 @@ export interface UniqueGearStatPatch {
   /** "The local damage of your weapons applies to spells as well". */
   weaponLocalDamageAppliesToSpellsFromGear?: boolean;
 
+  /** "% increased melee critical hit chance per 10 intelligence". */
+  meleeCritChanceIncPctPer10IntFromGear?: number;
+
+  /** "+X life per magic item equipped". */
+  flatLifePerMagicItemEquippedFromGear?: number;
+
+  /** "Your hits inflict chill as though dealing X% more damage". */
+  hitsInflictChillAsThoughDealingMoreDamagePctFromGear?: number;
+
+  /** "Your leech effects also apply to damage over time inflicted through bleeding". */
+  leechAppliesToBleedDotFromGear?: boolean;
+
   /** When you deal a critical hit, perform an additional hit with X% chance. */
   extraHitOnCritChanceFromGear?: number;
   /** When you would block, dodge instead. */
@@ -1064,10 +1076,19 @@ export function equipmentModifiersFromUniqueTexts(
     if (/increased experience gain\b/i.test(low)) mark();
     if (/increased attribute requirements\b/i.test(low)) mark();
     if (/skip non-elite enemy encounters\b/i.test(low)) mark();
-    if (/life per magic item equipped\b/i.test(low)) mark();
+    m = l.match(/([\d.]+)\s+life\s+per\s+magic\s+item\s+equipped\b/i);
+    if (m) {
+      const v = num(m)
+      if (v != null) {
+        acc.flatLifePerMagicItemEquippedFromGear = v
+        mark()
+      }
+    }
     if (/increased effect of modifiers gained from class passives\b/i.test(low)) mark();
-    if (/increased melee critical hit chance per 10 intelligence\b/i.test(low)) mark();
-    if (/increased range attack damage per 10 strength\b/i.test(low)) mark();
+    m = l.match(/([\d.]+)%\s+increased\s+melee\s+critical\s+hit\s+chance\s+per\s+10\s+intelligence\b/i);
+    if (m) add({ meleeCritChanceIncPctPer10IntFromGear: num(m)! });
+    m = l.match(/([\d.]+)%\s+increased\s+range\s+attack\s+damage\s+per\s+10\s+strength\b/i);
+    if (m) add({ rangedDamageIncPctPer10StrFromGear: num(m)! });
     if (/chance to reduce no damage on block\b/i.test(low)) mark();
     m = l.match(/abilities gain additional base mana cost equal to ([\d.]+)% of maximum energy\b/i);
     if (m) add({ additionalBaseManaCostPctOfMaxEnergyShieldFromGear: num(m)! });
@@ -1102,8 +1123,12 @@ export function equipmentModifiersFromUniqueTexts(
     if (/^while your energy shield is below/i.test(low)) mark();
     if (/^while your off-hand is empty,/i.test(low)) mark();
     if (/your action bar is filled by/i.test(low)) mark();
-    if (/hits inflict chill as though dealing/i.test(low)) mark();
-    if (/leech effects also apply to damage over time/i.test(low)) mark();
+    m = l.match(/hits inflict chill as though dealing ([\d.]+)% more damage\b/i);
+    if (m) add({ hitsInflictChillAsThoughDealingMoreDamagePctFromGear: num(m)! });
+    if (/leech effects also apply to damage over time inflicted through bleeding\b/i.test(low)) {
+      acc.leechAppliesToBleedDotFromGear = true;
+      mark();
+    }
 
     // Non-standard local attack speed format (missing % sign)
     if (ctx.isWeapon) {

@@ -3,6 +3,9 @@ import { equipmentModifiersFromUniqueTexts } from "../src/data/uniqueGearMods";
 import { simulateEncounter } from "../src/battle/engine";
 import { updateAbilityDefinitions } from "../src/data/eocAbilities";
 import abilitiesJson from "../src/data/eocAbilities.generated.json";
+import { aggregateEquippedToEquipmentModifiers } from "../src/data/gameStats";
+import { updateUniqueDefinitions } from "../src/data/eocUniques";
+import uniquesJson from "../src/data/eocUniques.generated.json";
 
 function assert(cond: unknown, msg: string): void {
   if (!cond) throw new Error(msg);
@@ -20,6 +23,7 @@ function buildWithEqMods(eqMods: ReturnType<typeof emptyEquipmentModifiers>): Bu
 function main() {
   // Tests rely on ability lookups; populate from generated snapshot.
   updateAbilityDefinitions(abilitiesJson as any);
+  updateUniqueDefinitions(uniquesJson as any);
 
   // Battery Crown: mana costs paid with energy shield
   {
@@ -516,6 +520,164 @@ function main() {
     const spellMin = (stats.spellDamageComputationBreakdown as any).afterIncreasedByType
       .reduce((s: number, r: any) => s + (r?.min ?? 0), 0);
     assert(spellMin > baseSpellMin, `Expected spell damage increased by weapon local damage, got ${spellMin} vs ${baseSpellMin}`);
+  }
+
+  // Titansbane: increased range attack damage per 10 strength
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["2% increased range attack damage per 10 strength"],
+      { isWeapon: true }
+    );
+    assert(
+      patch.rangedDamageIncPctPer10StrFromGear === 2,
+      `Expected rangedDamageIncPctPer10StrFromGear=2, got ${patch.rangedDamageIncPctPer10StrFromGear}`
+    );
+  }
+
+  // Apotheosis: increased melee critical hit chance per 10 intelligence
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["12% increased melee critical hit chance per 10 intelligence"],
+      { isWeapon: false }
+    );
+    assert(
+      patch.meleeCritChanceIncPctPer10IntFromGear === 12,
+      `Expected meleeCritChanceIncPctPer10IntFromGear=12, got ${patch.meleeCritChanceIncPctPer10IntFromGear}`
+    );
+    const baseEq = emptyEquipmentModifiers();
+    baseEq.intBonus = 100;
+    const baseStats = computeBuildStats(buildWithEqMods(baseEq));
+    const eq = emptyEquipmentModifiers();
+    eq.intBonus = 100;
+    eq.meleeCritChanceIncPctPer10IntFromGear = 12;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(stats.critChance > baseStats.critChance, `Expected critChance increased, got ${stats.critChance} vs ${baseStats.critChance}`);
+  }
+
+  // Fundamentality: +150 life per magic item equipped (modeled via aggregation; crafted equip_* counts as magic)
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["+150 life per magic item equipped"],
+      { isWeapon: false },
+      {
+        onLine: (line, matched) => {
+          if (!matched) throw new Error(`Fundamentality line did not match any parser rule: "${line}"`)
+        },
+      }
+    );
+    // Debug: ensure parser actually emits the field.
+    // throw new Error(`DEBUG Fundamentality patch=${JSON.stringify(patch)}`)
+    assert(
+      patch.flatLifePerMagicItemEquippedFromGear === 150,
+      `Expected parsed flatLifePerMagicItemEquippedFromGear=150, got ${patch.flatLifePerMagicItemEquippedFromGear}`
+    );
+
+    const baseEq = aggregateEquippedToEquipmentModifiers(
+      ["Belt", "Gloves", "Boots"],
+      (slot) => {
+        if (slot === "Belt") return { itemId: "unique_fundamentality", rolls: [], enhancement: 0 };
+        return { itemId: "none" };
+      }
+    );
+    const eq = aggregateEquippedToEquipmentModifiers(
+      ["Belt", "Gloves", "Boots"],
+      (slot) => {
+        if (slot === "Belt") return { itemId: "unique_fundamentality", rolls: [], enhancement: 0 };
+        if (slot === "Gloves") return { itemId: "equip_test_gloves" };
+        if (slot === "Boots") return { itemId: "equip_test_boots" };
+        return { itemId: "none" };
+      }
+    );
+    assert(eq.flatLifePerMagicItemEquippedFromGear === 150, `Expected parsed flatLifePerMagicItemEquippedFromGear=150, got ${eq.flatLifePerMagicItemEquippedFromGear}`);
+    const deltaLife = eq.flatLife - baseEq.flatLife;
+    assert(Math.abs(deltaLife - 300) < 1e-9, `Expected +300 flatLife from 2 magic items, got ${deltaLife}`);
+  }
+
+  // Frostbound: hits inflict chill as though dealing 100% more damage
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["Your hits inflict chill as though dealing 100% more damage"],
+      { isWeapon: false }
+    );
+    assert(
+      patch.hitsInflictChillAsThoughDealingMoreDamagePctFromGear === 100,
+      `Expected hitsInflictChillAsThoughDealingMoreDamagePctFromGear=100, got ${patch.hitsInflictChillAsThoughDealingMoreDamagePctFromGear}`
+    );
+    const enemy = {
+      id: "dummy",
+      name: "Dummy",
+      maxLife: 1_000_000,
+      armour: 0,
+      evasionRating: 0,
+      accuracy: 0,
+      damageMin: 0,
+      damageMax: 0,
+      aps: 0.01,
+    };
+    const baseEq = emptyEquipmentModifiers();
+    baseEq.chillInflictChanceFromGear = 100;
+    const baseStats = computeBuildStats({
+      ...buildWithEqMods(baseEq),
+      ability: { abilityId: "ability_ice_spear", abilityLevel: 1, attunementPct: 0 },
+    });
+    const baseRes = simulateEncounter({ stats: baseStats, enemy, options: { maxDurationSeconds: 1.0, dt: 0.02, maxLogEntries: 0 } });
+    const baseChill = baseRes.enemyDebuffEvents.find((e: any) => e.kind === "chill")?.magnitudePct ?? 0;
+
+    const eq2 = emptyEquipmentModifiers();
+    eq2.chillInflictChanceFromGear = 100;
+    eq2.hitsInflictChillAsThoughDealingMoreDamagePctFromGear = 100;
+    const stats2 = computeBuildStats({
+      ...buildWithEqMods(eq2),
+      ability: { abilityId: "ability_ice_spear", abilityLevel: 1, attunementPct: 0 },
+    });
+    const res2 = simulateEncounter({ stats: stats2, enemy, options: { maxDurationSeconds: 1.0, dt: 0.02, maxLogEntries: 0 } });
+    const chill2 = res2.enemyDebuffEvents.find((e: any) => e.kind === "chill")?.magnitudePct ?? 0;
+    assert(chill2 >= baseChill, `Expected chill magnitude not lower with "as though more", got ${chill2} vs ${baseChill}`);
+  }
+
+  // Sanguine Eye: leech applies to bleed DoT
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["Your leech effects also apply to damage over time inflicted through bleeding"],
+      { isWeapon: false }
+    );
+    assert(Boolean(patch.leechAppliesToBleedDotFromGear), `Expected leechAppliesToBleedDotFromGear true`);
+    const enemy = {
+      id: "dummy",
+      name: "Dummy",
+      maxLife: 1_000_000,
+      armour: 0,
+      evasionRating: 0,
+      accuracy: 0,
+      damageMin: 0,
+      damageMax: 0,
+      aps: 0.01,
+    };
+    const mkStats = (dotLeech: boolean) => {
+      const eq = emptyEquipmentModifiers();
+      eq.bleedInflictChanceFromGear = 100;
+      eq.lifeLeechFromPhysicalHitPercentFromGear = 100; // amplify so signal dominates RNG
+      eq.takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear = 10;
+      eq.leechAppliesToBleedDotFromGear = dotLeech;
+      return computeBuildStats({
+        ...buildWithEqMods(eq),
+        ability: { abilityId: "ability_mana_bolt", abilityLevel: 1, attunementPct: 0 },
+      });
+    };
+    const baseStats = mkStats(false);
+    const stats2 = mkStats(true);
+    const runAvgLife = (stats: any, n: number) => {
+      let sum = 0;
+      for (let i = 0; i < n; i++) {
+        const res = simulateEncounter({ stats, enemy, options: { maxDurationSeconds: 1.5, dt: 0.02, maxLogEntries: 0 } });
+        sum += res.playerFinal.life;
+      }
+      return sum / n;
+    };
+    const n = 40;
+    const avgBase = runAvgLife(baseStats, n);
+    const avgLeech = runAvgLife(stats2, n);
+    assert(avgLeech > avgBase + 0.05, `Expected higher avg life with bleed DoT leech, got ${avgLeech} vs ${avgBase}`);
   }
 
   // Broken Legacy: fixed crit chance = 50%

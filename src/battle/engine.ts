@@ -593,7 +593,9 @@ function applyPlayerAilmentsOnHit(
   if (!noEle && canChillFromElement) {
     const pChill = Math.min(100, gen + stats.chillInflictChanceBonus)
     if (Math.random() * 100 < pChill) {
-      const effectPct = computeNonDamagingAilmentEffectPercent(portions.cold, enemyMaxLife, 0)
+      const asThoughMore = Math.max(0, stats.hitsInflictChillAsThoughDealingMoreDamagePct ?? 0)
+      const chillDamageForEffect = portions.cold * (1 + asThoughMore / 100)
+      const effectPct = computeNonDamagingAilmentEffectPercent(chillDamageForEffect, enemyMaxLife, 0)
       if (stats.enemiesUnaffectedByChill) {
         // modeled: some uniques make enemies immune to chill
         tryLogAilment(`Ailment — Chill prevented (enemy unaffected by chill)`)
@@ -909,6 +911,16 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       dotLogAcc.bleed += dotDpsBleed * dt
       dotLogAcc.poison += dotDpsPoison * dt
       dotLogAcc.ignite += dotDpsIgnite * dt
+
+      // "Your leech effects also apply to damage over time inflicted through bleeding"
+      if ((stats.leechAppliesToBleedDot ?? false) && dotDpsBleed > 0) {
+        const leechPct = stats.lifeLeechFromPhysicalHitPercent ?? 0
+        if (leechPct > 0 && lifeRecoveryAllowed(player, stats)) {
+          const rec = stats.lifeRecoveryRateMult ?? 1
+          const gain = dotDpsBleed * dt * (leechPct / 100) * rec
+          if (gain > 0) player.life = Math.min(stats.maxLife, player.life + gain)
+        }
+      }
       if (t - lastDotLogT + 1e-9 >= DOT_LOG_INTERVAL && log.length < maxLog) {
         const parts: string[] = []
         if (dotLogAcc.bleed > 0) parts.push(`bleed ${dotLogAcc.bleed.toFixed(1)}`)
