@@ -16,10 +16,12 @@ import {
   abilityManaCostAtLevel,
   abilityMatchesWeapon,
   attackDamageMultiplierAtAbilityLevel,
+  attunementNumericEffects,
   EOC_ABILITY_BY_ID,
   extraStrikesFromAbilityLines,
   inflictAilmentBonusesFromAbilityLines,
   interpolateAttunementModifier,
+  parseAbilityLineEffects,
   physicalElementConversionFromAbilityLines,
   scaledSpellHitForAbility,
   weaponAbilityTagFromItemId,
@@ -766,6 +768,9 @@ export interface ComputedBuildStats {
   /** Player attack actions roll this many strike damages (demo combat); 1 for spell casts. */
   strikesPerAttack: number
 
+  /** Parsed ability modifiers from abilities(1.3.2).csv (line 1–5), for battle model features. */
+  abilityLineEffects: ReturnType<typeof parseAbilityLineEffects> | null
+
   // Recovery
   manaRegenPerSecond: number
   manaRegenAppliesToEnergyShieldPercent: number
@@ -822,6 +827,7 @@ export interface ComputedBuildStats {
   weaponLocalDamageAppliesToSpells: boolean
   meleeCritChanceIncPctPer10Int: number
   hitsInflictChillAsThoughDealingMoreDamagePct: number
+  hitsInflictShockAsThoughDealingMoreDamagePct: number
   leechAppliesToBleedDot: boolean
   pctIncreasedExperienceGain: number
   skipNonEliteEnemyEncountersChance: number
@@ -2040,6 +2046,22 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   const bonus = (id: string) => classBonusesActive.includes(id)
 
+  const selAbility = config.ability
+  const selectedAbilityDef =
+    selAbility?.abilityId ? EOC_ABILITY_BY_ID[selAbility.abilityId] : undefined
+  const selectedAbilityApplies =
+    Boolean(selectedAbilityDef) && abilityMatchesWeapon(selectedAbilityDef!, weaponTag)
+  const selectedAbilityLineEffects = selectedAbilityApplies && selectedAbilityDef
+    ? parseAbilityLineEffects(selectedAbilityDef)
+    : null
+  const selectedAttunementNumeric = selectedAbilityApplies && selectedAbilityDef
+    ? attunementNumericEffects(
+        selectedAbilityDef,
+        Number(selAbility?.attunementPct ?? 0),
+        bonus('archmage') ? 2 : 1
+      )
+    : { elementalPenetrationPercent: 0, executeBelowLifePercent: 0 }
+
   /** Trickster class bonus: enemies take 10% increased damage (see gameClasses trickster). Baked into hit/DPS like gear. */
   const TRICKSTER_ENEMIES_TAKE_INCREASED_DAMAGE_PCT = 10
   const enemyDamageTakenIncreasedFromTricksterPct = bonus('trickster') ? TRICKSTER_ENEMIES_TAKE_INCREASED_DAMAGE_PCT : 0
@@ -2443,14 +2465,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     combPctCold,
     combPctLightning
   )
-  if (eq.physicalToRandomElementPctFromGear > 0) {
+  const physicalToRandomElementPct =
+    eq.physicalToRandomElementPctFromGear + (selectedAbilityLineEffects?.physicalToRandomElementPct ?? 0)
+  if (physicalToRandomElementPct > 0) {
     laterConversions.push({
       name: 'Physical to random element (split to fire / cold / lightning)',
-      percent: eq.physicalToRandomElementPctFromGear,
+      percent: physicalToRandomElementPct,
     })
     hitProvRows = applyPhysicalToRandomElementsProv(
       hitProvRows,
-      eq.physicalToRandomElementPctFromGear
+      physicalToRandomElementPct
     )
   }
   if (eq.gainPhysicalAsExtraLightningPctFromGear > 0) {
@@ -2505,9 +2529,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + critFromDex
     + meleeCritFromInt
     + eq.critIncPctPerItemRarityPctFromGear * eq.increasedItemRarityFromGear
+  const abilityBaseCritChanceBonus =
+    selectedAbilityApplies && selectedAbilityDef && (selectedAbilityDef.type === 'Melee' || selectedAbilityDef.type === 'Ranged')
+      ? (selectedAbilityLineEffects?.baseCritChanceBonus ?? 0)
+      : 0
   const attackCritFlatBase =
-    baseCritChance + critFromAssassin + eq.attackBaseCritChanceBonusFromGear + eq.critChanceBonus
-  let critChance = Math.min(100, attackCritFlatBase * (1 + critFromUpgrades / 100))
+    baseCritChance + critFromAssassin + eq.attackBaseCritChanceBonusFromGear + eq.critChanceBonus + abilityBaseCritChanceBonus
+  const rawAttackCritChance = attackCritFlatBase * (1 + critFromUpgrades / 100)
+  let critChance = Math.min(100, rawAttackCritChance)
   if (eq.fixedCritChancePercentFromGear > 0) {
     critChance = Math.max(0, Math.min(100, eq.fixedCritChancePercentFromGear))
   }
@@ -2519,7 +2548,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // Increased: gear + ability attunement — one combined % bucket, like critFromUpgrades.
   const baseCritMultiplier = BASE_GAME_STATS.critMultiplier
   const critMultFlatBonus = eq.flatCriticalDamageMultiplierBonusFromGear / 100
-  const attackCritMultFlatBase = baseCritMultiplier + critMultFlatBonus
+  const critMultFromCritChanceAbove100 =
+    (selectedAbilityLineEffects?.critMultiplierBonusPctPer1CritChanceAbove100 ?? 0) * Math.max(0, rawAttackCritChance - 100) / 100
+  const attackCritMultFlatBase = baseCritMultiplier + critMultFlatBonus + critMultFromCritChanceAbove100
   let attunementIncreasedCritMultiplierPct = 0
   const critMultFromUpgrades = () =>
     eq.increasedCriticalDamageMultiplierFromGear
@@ -2756,6 +2787,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   hitDamageMin = hitSum.min
   hitDamageMax = hitSum.max
 
+  // Ability lines: “more maximum / less minimum attack damage” (Earthquake).
+  if (selectedAbilityLineEffects && selectedAbilityDef && (selectedAbilityDef.type === 'Melee' || selectedAbilityDef.type === 'Ranged')) {
+    const minMult = selectedAbilityLineEffects.lessMinimumAttackDamageMult ?? 1
+    const maxMult = selectedAbilityLineEffects.moreMaximumAttackDamageMult ?? 1
+    if (minMult !== 1 || maxMult !== 1) {
+      hitDamageMin = roundDamageNearest(hitDamageMin * minMult)
+      hitDamageMax = roundDamageNearest(hitDamageMax * maxMult)
+    }
+  }
+
   hitDamageBreakdownPartial = {
     baseWeaponDamage: baseWeaponDamageForBreakdown,
     abilityDamageMultiplier: abilityHitDmBreak,
@@ -2804,6 +2845,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   let attunementStrikesIncPct = 0
   let attunementFlatDoubleChance = 0
   let attunementDefencesPct = 0
+  if (selectedAbilityLineEffects?.increasedDefencesPercent) {
+    attunementDefencesPct += selectedAbilityLineEffects.increasedDefencesPercent
+  }
 
   if (sel?.abilityId) {
     const def = EOC_ABILITY_BY_ID[sel.abilityId]
@@ -2908,9 +2952,40 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             + spellAttCast
             + eq.pctIncreasedCastSpeedFromGear
             + eq.castSpeedIncPctPer10DexFromGear * (dex / 10)
-          const effectiveCastTime =
+          const fx = selectedAbilityApplies && selectedAbilityDef?.id === def.id ? selectedAbilityLineEffects : null
+          let hitsPerCast = 1
+          if (fx?.hitsPerCastRange) {
+            const avg = (fx.hitsPerCastRange.min + fx.hitsPerCastRange.max) / 2
+            hitsPerCast = fx.hitsPerCastIsAdditional ? (1 + avg) : avg
+          }
+          hitsPerCast = Math.max(0, hitsPerCast)
+
+          let effectiveCastTime =
             castBase / ((1 + castSpeedInc / 100) * eq.castSpeedLessMultFromGear)
-          const castsPerSec = 1 / effectiveCastTime
+          if (fx?.castSpeedAppliesToHitsPerCast) {
+            // Storm Call: cast speed scales hit count, not cast time.
+            effectiveCastTime = castBase / (eq.castSpeedLessMultFromGear || 1)
+            hitsPerCast *= Math.max(0.05, 1 + castSpeedInc / 100)
+          }
+          const castsPerSec = effectiveCastTime > 0 ? (1 / effectiveCastTime) : 0
+
+          // Spell “more” modifiers from ability lines (planner approximation: assume full pools at cast start).
+          const spellMoreMult = (() => {
+            let m = 1
+            if (fx?.flameBlastMoreDamagePer0_1sCastTimePct) {
+              m *= 1 + (fx.flameBlastMoreDamagePer0_1sCastTimePct / 100) * (castBase / 0.1)
+            }
+            if (fx?.arcaneExplosionSacrificeCurrentManaPercent) {
+              const sacrificed = maxMana * (fx.arcaneExplosionSacrificeCurrentManaPercent / 100)
+              const steps = Math.floor(sacrificed / 50)
+              m *= 1 + steps * (fx.arcaneExplosionMoreDamagePer50ManaSacrificedPct / 100)
+            }
+            if (fx?.blazingRadianceMoreFireDamagePer40CombinedCurrentPct) {
+              const combined = maxLife + maxEnergyShield
+              m *= 1 + (combined / 40) * (fx.blazingRadianceMoreFireDamagePer40CombinedCurrentPct / 100)
+            }
+            return m
+          })()
           const spellBaseCrit = def.baseCritChancePct ?? BASE_GAME_STATS.baseCritChance
           const spellCritFlatBase =
             spellBaseCrit + critFromAssassin + eq.critChanceBonus + eq.spellBaseCritChanceBonusFromGear
@@ -2974,8 +3049,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           const baseMax = scaledHit.max + baseAdded.max;
           spellRows.push({
             type: baseType,
-            min: roundDamageNearest(baseMin * added * (1 + incFrac) * enemyDamageTakenIncreasedMult),
-            max: roundDamageNearest(baseMax * added * (1 + incFrac) * enemyDamageTakenIncreasedMult),
+            min: roundDamageNearest(baseMin * added * (1 + incFrac) * enemyDamageTakenIncreasedMult * spellMoreMult),
+            max: roundDamageNearest(baseMax * added * (1 + incFrac) * enemyDamageTakenIncreasedMult * spellMoreMult),
           });
 
           // Additional spell-only flat types (non-base elements)
@@ -2985,8 +3060,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             if (!r || (r.min === 0 && r.max === 0)) continue;
             spellRows.push({
               type: t,
-              min: roundDamageNearest(r.min * added * (1 + incFrac) * enemyDamageTakenIncreasedMult),
-              max: roundDamageNearest(r.max * added * (1 + incFrac) * enemyDamageTakenIncreasedMult),
+              min: roundDamageNearest(r.min * added * (1 + incFrac) * enemyDamageTakenIncreasedMult * spellMoreMult),
+              max: roundDamageNearest(r.max * added * (1 + incFrac) * enemyDamageTakenIncreasedMult * spellMoreMult),
             });
           }
 
@@ -2998,7 +3073,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           manaCostPerAttack = abilityManaCostAtLevel(baseAbilityMana, startLvl, level)
           avgHit = (hitDamageMin + hitDamageMax) / 2
           avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
-          dps = avgEffectiveDamage * aps
+          dps = avgEffectiveDamage * aps * Math.max(0, hitsPerCast)
           // Spell breakdown (planner)
           const addedFromGearByType = [
             { type: 'physical' as const, ...localFlatDamageDisplayRange(eq.flatSpellDamageMin, eq.flatSpellDamageMax) },
@@ -3053,7 +3128,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             dps: {
               avgEffectiveDamage,
               value: dps,
-              strikesPerCast: 1,
+              strikesPerCast: Math.max(0, hitsPerCast),
               notes: [
                 enemyDamageTakenIncreasedTotalPct !== 0
                   ? `Enemies take +${enemyDamageTakenIncreasedTotalPct.toFixed(1)}% increased damage (gear + Trickster): ×${enemyDamageTakenIncreasedMult.toFixed(4)} on spell hit (included).`
@@ -3152,7 +3227,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // Barbarian class bonus: hits ignore 50% of enemy armour
   const armourIgnorePercent = Math.min(
     100,
-    (bonus('barbarian') ? 50 : 0) + eq.armourIgnoreFromGear
+    (bonus('barbarian') ? 50 : 0) + eq.armourIgnoreFromGear + (selectedAbilityLineEffects?.armourIgnorePercent ?? 0)
   )
 
   // Druid class bonus: 25% of damage taken applied to mana first (while above 50% mana)
@@ -3194,6 +3269,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     (bonus('barbarian') ? 10 : 0) +
       (bonus('destroyer') ? 25 : 0) +
       eq.doubleDamageChanceFromGear +
+      (selectedAbilityLineEffects?.doubleDamageChanceAdd ?? 0) +
       attunementFlatDoubleChance +
       (spellCombat ? eq.doubleDamageChanceFromSpellsFromGear : 0)
   )
@@ -3203,6 +3279,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     const ab = aid ? EOC_ABILITY_BY_ID[aid] : undefined
     const abStrikes =
       ab && (ab.type === 'Melee' || ab.type === 'Ranged') ? extraStrikesFromAbilityLines(ab.lines) : 0
+    const abStrikesFromLines = selectedAbilityLineEffects?.additionalStrikesPerAttackFlat ?? 0
     const baseStrikes = 1 + eq.flatStrikesPerAttack + abStrikes
     const incStrikes =
       eq.increasedStrikesPerAttackFromGear +
@@ -3212,6 +3289,21 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       1,
       Math.round(baseStrikes * (1 + incStrikes / 100) * eq.strikesMoreMultFromGear)
     )
+    if (abStrikesFromLines !== 0) strikesPerAttack += Math.max(0, Math.round(abStrikesFromLines))
+    const rHits = selectedAbilityLineEffects?.hitsPerAttackRange
+    if (rHits) {
+      const expectedAdd = (rHits.min + rHits.max) / 2
+      strikesPerAttack = Math.max(1, Math.round(strikesPerAttack * (1 + expectedAdd)))
+    }
+    const rProj = selectedAbilityLineEffects?.additionalProjectilesPerAttackRange
+    if (rProj) {
+      const expectedAdd = (rProj.min + rProj.max) / 2
+      strikesPerAttack = Math.max(1, Math.round(strikesPerAttack * (1 + expectedAdd)))
+    }
+    const extraStrikeChance = (selectedAbilityLineEffects?.extraStrikeChancePerStrikePercent ?? 0) / 100
+    if (extraStrikeChance > 0) {
+      strikesPerAttack = Math.max(1, Math.round(strikesPerAttack * (1 + extraStrikeChance)))
+    }
   }
 
   if (!spellCombat) {
@@ -3328,7 +3420,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const lifeLeechFromHitDamagePercent =
     eq.lifeLeechAppliesToEnergyShieldFromGear ? 0 : eq.lifeLeechFromHitDamagePercentFromGear
   const lifeLeechFromPhysicalHitPercent = eq.lifeLeechFromPhysicalHitPercentFromGear
-  const hitsCannotBeEvaded = eq.hitsCannotBeEvadedFromGear
+  const hitsCannotBeEvaded =
+    eq.hitsCannotBeEvadedFromGear
+    || Boolean(selectedAbilityLineEffects?.hitsCannotBeEvaded)
   const blockDamageTakenMult = Math.min(
     0.95,
     Math.max(0.05, 0.5 * (100 / (100 + eq.blockPowerPctFromGear)))
@@ -3343,7 +3437,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const firePenetrationPercent = eq.firePenetrationFromGear
   const coldPenetrationPercent = eq.coldPenetrationFromGear
   const chaosPenetrationPercent = eq.chaosPenetrationFromGear
-  const elementalPenetrationPercent = eq.elementalPenetrationFromGear
+  const elementalPenetrationPercent =
+    eq.elementalPenetrationFromGear
+    + (selectedAbilityApplies ? selectedAttunementNumeric.elementalPenetrationPercent : 0)
   const cannotInflictElementalAilments = eq.cannotInflictElementalAilmentsFromGear
   const hitsTakenCannotBeCritical = eq.hitsTakenCannotBeCriticalFromGear
 
@@ -3365,7 +3461,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const dealNoDamageExceptCrit = eq.dealNoDamageExceptCritFromGear
 
   const maxShockEffect = 50 + eq.maxShockEffectBonusFromGear
-  const maxChillEffect = 30 + eq.maxChillEffectBonusFromGear
+  const maxChillEffectBase =
+    30
+    + eq.maxChillEffectBonusFromGear
+    + (selectedAbilityLineEffects?.maxChillEffectBonus ?? 0)
+  const maxChillEffect =
+    (selectedAbilityLineEffects?.maxChillEqualsMaxShock ?? false)
+      ? Math.max(maxChillEffectBase, maxShockEffect)
+      : maxChillEffectBase
   const increasedShockEffect = eq.increasedShockEffectFromGear
   const shockDurationMultiplier = eq.shockDurationMoreMultFromGear
   const enemiesDealLessDamagePercent = eq.enemiesDealLessDamageFromGear
@@ -3406,7 +3509,22 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const avoidAilmentsChance = Math.min(100, Math.max(0, eq.avoidAilmentsChanceFromGear))
   const avoidElementalAilmentsChance = Math.min(100, Math.max(0, eq.avoidElementalAilmentsChanceFromGear))
   const enemyLoseMaxLifeAtStartPercent = Math.min(100, Math.max(0, eq.enemyLoseMaxLifeAtStartPercentFromGear))
-  const executeEnemiesBelowLifePercent = Math.min(100, Math.max(0, eq.executeEnemiesBelowLifePercentFromGear))
+  const executeFromAbilityLines = (() => {
+    const base = selectedAbilityLineEffects?.executeEnemiesBelowLifePercent ?? 0
+    const incPer20 = selectedAbilityLineEffects?.executeBelowLifeIncPer20CritMultiPercent ?? 0
+    if (base <= 0 || incPer20 <= 0) return base
+    const extra = Math.floor(((critMultiplier - 1) * 100) / 20) * incPer20
+    return base + Math.max(0, extra)
+  })()
+  const executeEnemiesBelowLifePercent = Math.min(
+    100,
+    Math.max(
+      0,
+      eq.executeEnemiesBelowLifePercentFromGear,
+      selectedAttunementNumeric.executeBelowLifePercent,
+      executeFromAbilityLines
+    )
+  )
   const executeEnemiesBelowLifePercentEqualToChillEffect = eq.executeEnemiesBelowLifePercentEqualToChillEffectFromGear
   const periodicShockPct = Math.min(100, Math.max(0, eq.periodicShockPctFromGear))
   const periodicShockEverySec = Math.max(0, eq.periodicShockEverySecFromGear)
@@ -3441,6 +3559,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const hitsInflictChillAsThoughDealingMoreDamagePct = Math.max(
     0,
     eq.hitsInflictChillAsThoughDealingMoreDamagePctFromGear
+    + (selectedAbilityLineEffects?.chillAsThoughMoreDamagePercent ?? 0)
+  )
+  const hitsInflictShockAsThoughDealingMoreDamagePct = Math.max(
+    0,
+    (selectedAbilityLineEffects?.shockAsThoughMoreDamagePercent ?? 0)
+    + (selectedAbilityLineEffects?.staticLanceShockAsThoughMoreDamagePercent ?? 0)
   )
   const leechAppliesToBleedDot = eq.leechAppliesToBleedDotFromGear
   const pctIncreasedExperienceGain = Math.max(0, eq.pctIncreasedExperienceGainFromGear)
@@ -3477,7 +3601,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const countsAsDualWielding = eq.countsAsDualWieldingFromGear
   const armourEqualToPercentOfMaxMana = eq.armourEqualToPercentOfMaxManaFromGear
   const lifeLeechAppliesToEnergyShield = eq.lifeLeechAppliesToEnergyShieldFromGear
-  const spellHitDamageLeechedAsEnergyShieldPercent = eq.spellHitDamageLeechedAsEnergyShieldPercentFromGear
+  const spellHitDamageLeechedAsEnergyShieldPercent =
+    eq.spellHitDamageLeechedAsEnergyShieldPercentFromGear
+    + (selectedAbilityLineEffects?.soulDrainEsLeechPercent ?? 0)
   const excessLifeLeechRecoveryToEnergyShield = eq.excessLifeLeechRecoveryToEnergyShieldFromGear
 
   // -------------------------------------------------------------------------
@@ -4299,6 +4425,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     avgEffectiveDamage,
     dps,
     strikesPerAttack,
+    abilityLineEffects: selectedAbilityLineEffects,
 
     // Recovery
     manaRegenPerSecond,
@@ -4356,6 +4483,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     weaponLocalDamageAppliesToSpells,
     meleeCritChanceIncPctPer10Int,
     hitsInflictChillAsThoughDealingMoreDamagePct,
+    hitsInflictShockAsThoughDealingMoreDamagePct,
     leechAppliesToBleedDot,
     pctIncreasedExperienceGain,
     skipNonEliteEnemyEncountersChance,

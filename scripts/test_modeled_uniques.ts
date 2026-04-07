@@ -1,7 +1,7 @@
 import { computeBuildStats, emptyEquipmentModifiers, type BuildConfig } from "../src/data/gameStats";
 import { equipmentModifiersFromUniqueTexts } from "../src/data/uniqueGearMods";
 import { simulateEncounter } from "../src/battle/engine";
-import { updateAbilityDefinitions } from "../src/data/eocAbilities";
+import { parseAbilityLineEffects, updateAbilityDefinitions } from "../src/data/eocAbilities";
 import abilitiesJson from "../src/data/eocAbilities.generated.json";
 import { aggregateEquippedToEquipmentModifiers } from "../src/data/gameStats";
 import { updateUniqueDefinitions } from "../src/data/eocUniques";
@@ -24,6 +24,15 @@ function main() {
   // Tests rely on ability lookups; populate from generated snapshot.
   updateAbilityDefinitions(abilitiesJson as any);
   updateUniqueDefinitions(uniquesJson as any);
+
+  // Abilities(1.3.2).csv: every ability line should be recognized by the parser.
+  {
+    for (const def of abilitiesJson as any[]) {
+      const fx = parseAbilityLineEffects(def as any);
+      const unknown = (fx as any).__unknownLines as string[] | undefined;
+      assert(!unknown || unknown.length === 0, `Unrecognized ability lines for ${def.id} (${def.name}): ${unknown?.join(" | ")}`);
+    }
+  }
 
   // Battery Crown: mana costs paid with energy shield
   {

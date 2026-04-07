@@ -23,6 +23,10 @@ interface DotInstance {
   kind: DotKind
   dps: number
   expiresAt: number
+  /** For “ignite does not deal damage over its duration” style effects. */
+  burstDamageOnExpire?: number
+  /** If true, expiring this ignite also removes and bursts all ignites. */
+  burstClearsAllIgnites?: boolean
 }
 
 interface NonDotAilmentInstance {
@@ -340,13 +344,13 @@ function resolvePlayerAttack(
   enemy: DemoEnemyDef,
   enemyLife: number,
   stats: ComputedBuildStats,
-  attackOpts?: { targetTakesIncreasedDamagePct: number }
-): { damage: number; outcome: PlayerHitOutcome; anyCrit: boolean; anyDouble: boolean; anyTriple: boolean } {
+  attackOpts?: { targetTakesIncreasedDamagePct: number; extraTargetTakesIncreasedDamagePct?: number; moreDamageMult?: number }
+): { damage: number; damageForAilments: number; outcome: PlayerHitOutcome; anyCrit: boolean; anyDouble: boolean; anyTriple: boolean } {
   const evadePct = stats.hitsCannotBeEvaded
     ? 0
     : computeEvasionChancePercent(stats.accuracy, enemy.evasionRating, 0)
   const miss = Math.random() * 100 < evadePct
-  if (miss) return { damage: 0, outcome: 'miss', anyCrit: false, anyDouble: false, anyTriple: false }
+  if (miss) return { damage: 0, damageForAilments: 0, outcome: 'miss', anyCrit: false, anyDouble: false, anyTriple: false }
 
   const blk = enemy.blockChance ?? 0
   const zealot = stats.classBonusesActive.includes('zealot')
@@ -412,13 +416,27 @@ function resolvePlayerAttack(
     base *= enemyDamageTakenMultiplier(stats, frac)
     const shockPct = attackOpts?.targetTakesIncreasedDamagePct ?? 0
     if (shockPct > 0) base *= 1 + shockPct / 100
+    const extraInc = attackOpts?.extraTargetTakesIncreasedDamagePct ?? 0
+    if (extraInc > 0) base *= 1 + extraInc / 100
+    const more = attackOpts?.moreDamageMult ?? 1
+    if (more !== 1) base *= more
 
     total += mitigatedPlayerHitVsArmour(enemy, stats, base)
   }
 
   const outcome: PlayerHitOutcome =
     blockedStrikes === strikes && strikes > 0 ? 'enemy_blocked' : 'hit'
-  return { damage: total, outcome, anyCrit, anyDouble, anyTriple }
+  const fx = stats.abilityLineEffects
+  const dealNoDamage = (fx?.dealNoDamage ?? false)
+  const ailmentsFull = (fx?.inflictAilmentsAsThoughFullHitDamage ?? false)
+  return {
+    damage: dealNoDamage ? 0 : total,
+    damageForAilments: (dealNoDamage && ailmentsFull) ? total : (dealNoDamage ? 0 : total),
+    outcome,
+    anyCrit,
+    anyDouble,
+    anyTriple,
+  }
 }
 
 const BASE_BLEED_SEC = 5
@@ -523,6 +541,7 @@ function applyPlayerAilmentsOnHit(
   const noEle = stats.cannotInflictElementalAilments
   const ndMult = 1 + (stats.nonDamagingAilmentEffectIncreasedPercent ?? 0) / 100
   const chillOutMult = stats.chillInflictEffectMult ?? 1
+  const fx = stats.abilityLineEffects
 
   const canIgniteFromElement = portions.fire > 0.01
     || (stats.allElementalDamageTypesCanIgnite && (portions.cold + portions.lightning) > 0.01)
@@ -540,13 +559,19 @@ function applyPlayerAilmentsOnHit(
               * (stats.randomIgniteDurationMorePercent + stats.randomIgniteDurationLessPercent)
               - stats.randomIgniteDurationLessPercent) / 100)
           : 1
+      const igniteDurationSec = BASE_IGNITE_SEC * ignDur * Math.max(0.05, randIgn) * critAilmentDurMult
+      const igniteBurst = fx?.igniteDealsNoDamageOverDuration ?? false
       state.dots.push({
         kind: 'ignite',
-        dps,
-        expiresAt: t + BASE_IGNITE_SEC * ignDur * Math.max(0.05, randIgn) * critAilmentDurMult,
+        dps: igniteBurst ? 0 : dps,
+        expiresAt: t + igniteDurationSec,
+        burstDamageOnExpire: igniteBurst ? dps * igniteDurationSec : undefined,
+        burstClearsAllIgnites: fx?.igniteBurstsAtEndAndClearsAll ?? false,
       })
       tryLogAilment(
-        `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${(BASE_IGNITE_SEC * ignDur * Math.max(0.05, randIgn) * critAilmentDurMult).toFixed(1)}s`
+        igniteBurst
+          ? `Ailment — Ignite stored: ~${(dps * igniteDurationSec).toFixed(1)} fire damage at end (${igniteDurationSec.toFixed(1)}s)`
+          : `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${igniteDurationSec.toFixed(1)}s`
       )
       if (stats.elementalAilmentsYouInflictReflectedToYou ?? false) {
         const avoidAll = Math.min(100, Math.max(0, stats.avoidAilmentsChance ?? 0))
@@ -573,7 +598,9 @@ function applyPlayerAilmentsOnHit(
   if (!noEle && canShockFromElement) {
     const pShock = Math.min(100, gen + stats.shockInflictChanceBonus)
     if (Math.random() * 100 < pShock) {
-      const effectPct = computeNonDamagingAilmentEffectPercent(portions.lightning, enemyMaxLife, 0)
+      const asThoughMore = Math.max(0, stats.hitsInflictShockAsThoughDealingMoreDamagePct ?? 0)
+      const shockDamageForEffect = portions.lightning * (1 + asThoughMore / 100)
+      const effectPct = computeNonDamagingAilmentEffectPercent(shockDamageForEffect, enemyMaxLife, 0)
       const shockCap = (stats.ignoreMaxShockEffect ?? false) ? Number.POSITIVE_INFINITY : (stats.maxShockEffect ?? 50)
       const shockIncMult = 1 + (stats.increasedShockEffect ?? 0) / 100
       const computedShock = Math.max(5, effectPct * 1.15 * ndMult * shockIncMult)
@@ -634,6 +661,12 @@ function applyPlayerAilmentsOnHit(
       tryLogAilment(
         `Ailment — Chill: enemy action speed −${chillPct.toFixed(0)}% (${dur.toFixed(1)}s)`
       )
+      if (fx?.inflictShockEqualToChill ?? false) {
+        const shockCap = (stats.ignoreMaxShockEffect ?? false) ? Number.POSITIVE_INFINITY : (stats.maxShockEffect ?? 50)
+        const shock = Math.min(shockCap, chillPct)
+        state.shocks.push({ magnitudePct: shock, expiresAt: t + dur })
+        debuffEvents.push({ t, kind: 'shock', magnitudePct: shock, durationSec: dur })
+      }
       if ((stats.elementalAilmentsYouInflictReflectedToYou ?? false) && !(stats.unaffectedByChill ?? false)) {
         const avoidAll = Math.min(100, Math.max(0, stats.avoidAilmentsChance ?? 0))
         const avoidEle = Math.min(100, Math.max(0, stats.avoidElementalAilmentsChance ?? 0))
@@ -906,6 +939,34 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       }
     }
 
+    // Handle stored/burst ignite expirations (Explosive Shot).
+    const expiredDots = ailmentState.dots.filter((d) => d.expiresAt <= t)
+    if (expiredDots.length) {
+      const anyBurstClear = expiredDots.some((d) => d.kind === 'ignite' && d.burstClearsAllIgnites)
+      if (anyBurstClear) {
+        // Deal total stored ignite damage from all active ignites at once, then clear.
+        const totalStored = ailmentState.dots
+          .filter((d) => d.kind === 'ignite')
+          .reduce((sum, d) => sum + (d.burstDamageOnExpire ?? 0), 0)
+        if (totalStored > 0) {
+          const enemyLifeBefore = enemyLife
+          enemyLife -= totalStored
+          totalDotDamage += totalStored
+          if (enemyLifeBefore > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
+        }
+        ailmentState.dots = ailmentState.dots.filter((d) => d.kind !== 'ignite')
+      } else {
+        for (const d of expiredDots) {
+          const burst = d.burstDamageOnExpire ?? 0
+          if (burst > 0) {
+            const enemyLifeBefore = enemyLife
+            enemyLife -= burst
+            totalDotDamage += burst
+            if (enemyLifeBefore > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
+          }
+        }
+      }
+    }
     ailmentState.dots = ailmentState.dots.filter((d) => d.expiresAt > t)
     ailmentState.shocks = ailmentState.shocks.filter((s) => s.expiresAt > t)
     ailmentState.chills = ailmentState.chills.filter((c) => c.expiresAt > t)
@@ -1028,12 +1089,19 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         }
         const shockNow = activeShockPct(ailmentState, t)
         const enemyLifeBeforeHit = enemyLife
-        const { damage, outcome, anyCrit } = resolvePlayerAttack(enemy, enemyLife, stats, {
+        const fx = stats.abilityLineEffects
+        const poisonStacks = ailmentState.dots.filter((d) => d.kind === 'poison' && d.expiresAt > t).length
+        const chillPctNow = activeChillPct(ailmentState, t)
+        const extraInc =
+          (fx?.enemiesTakeIncreasedDamagePerPoisonPercent ?? 0) * poisonStacks
+          + (fx?.enemiesTakeIncreasedDamagePerChillEffectPercent ?? 0) * chillPctNow
+        const { damage, damageForAilments, outcome, anyCrit } = resolvePlayerAttack(enemy, enemyLife, stats, {
           targetTakesIncreasedDamagePct: shockNow,
+          extraTargetTakesIncreasedDamagePct: extraInc,
         })
         enemyLife -= damage
         if (enemyLifeBeforeHit > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
-        if (damage > 0) {
+        if (damage > 0 || damageForAilments > 0) {
           hitsPlayer++
           const rec = stats.lifeRecoveryRateMult ?? 1
           const gainOnHit =
@@ -1067,12 +1135,12 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
                   : 'Glancing hit (no damage)'
           log.push({ t, kind: 'player_attack', message: msg, damage })
         }
-        if (damage > 0) {
+        if (damageForAilments > 0) {
           const hitWasCritical = (stats.firstAttackAlwaysCrit ?? false) && !firstHitFlag.used ? true : anyCrit
           firstHitFlag.used = true
           applyPlayerAilmentsOnHit(
             stats,
-            damage,
+            damageForAilments,
             enemy.maxLife,
             t,
             ailmentState,

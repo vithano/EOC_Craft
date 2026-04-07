@@ -209,6 +209,483 @@ export interface ParsedAttunementLine {
   value: number
 }
 
+export interface AbilityLineEffects {
+  doubleDamageChanceAdd: number
+  increasedDefencesPercent: number
+  armourIgnorePercent: number
+  hitsCannotBeEvaded: boolean
+  dealNoDamage: boolean
+  inflictAilmentsAsThoughFullHitDamage: boolean
+
+  executeEnemiesBelowLifePercent: number
+  executeBelowLifeIncPer20CritMultiPercent: number
+
+  enemiesTakeIncreasedDamagePerPoisonPercent: number
+  enemiesTakeIncreasedDamagePerChillEffectPercent: number
+  enemiesLessSpeedPerPoisonPercent: number
+  maxChillEffectBonus: number
+  maxChillEqualsMaxShock: boolean
+  inflictShockEqualToChill: boolean
+  shockAsThoughMoreDamagePercent: number
+  chillAsThoughMoreDamagePercent: number
+  bleedDurationMoreMult: number
+  poisonDurationMoreMult: number
+  chillDurationMoreMult: number
+  physicalToRandomElementPct: number
+
+  morePoisonDamageMult: number
+  moreBleedDamageMult: number
+  moreIgniteDamageMult: number
+  igniteDealsNoDamageOverDuration: boolean
+  igniteBurstsAtEndAndClearsAll: boolean
+
+  baseCritChanceBonus: number
+  baseCritChanceBonusPer5ChillEffect: number
+  critMultiplierBonusPctPer1ChillEffect: number
+  critMultiplierBonusPctPer1CritChanceAbove100: number
+  critChanceMorePerHitThisStageMaxPct: number
+  critMultiplierBonusAtMaxStageHits: number
+  criticalHitsDoNotDealExtraDamage: boolean
+  extraHitsOnCritPer25CritMulti: boolean
+  extraHitsOnCritDealLessMult: number
+  extraHitsOnCritCannotCrit: boolean
+
+  moreAttackSpeedPerHitThisStagePct: number
+  moreAttackSpeedPerHitThisStageMaxPct: number
+  additionalArmourIgnoreAtMaxStageHits: number
+
+  moreMaximumAttackDamageMult: number
+  lessMinimumAttackDamageMult: number
+
+  additionalStrikesPerAttackFlat: number
+  extraStrikeChancePerStrikePercent: number
+
+  hitsPerAttackRange: { min: number; max: number } | null
+  hitsPerAttackIsAdditional: boolean
+  hitsPerCastRange: { min: number; max: number } | null
+  hitsPerCastIsAdditional: boolean
+  castSpeedAppliesToHitsPerCast: boolean
+  additionalProjectilesPerAttackRange: { min: number; max: number } | null
+
+  smiteAdditionalBaseManaCostPctOfCurrentMana: number
+  smiteAddsLightningPerManaCost: { min: number; max: number } | null
+  arcaneExplosionSacrificeCurrentManaPercent: number
+  arcaneExplosionMoreDamagePer50ManaSacrificedPct: number
+  arcaneExplosionCannotBeEvadedIfManaSacrificedAtLeast: number
+  flameBlastMoreDamagePer0_1sCastTimePct: number
+  darkPactMoreChaosDamagePerMissingCombinedPct: number
+  darkPactLifeLeechPercent: number
+  soulDrainEsLeechPercent: number
+  blazingRadianceTakeFireDpsPctOfCombinedCurrent: number
+  blazingRadianceMoreFireDamagePer40CombinedCurrentPct: number
+  staticLanceShockAsThoughMoreDamagePercent: number
+  staticLanceNextHitMoreDamagePerShockEffectPct: number
+  staticLanceConsumeShockOnEmpoweredHit: boolean
+  hailOfArrows: boolean
+  hailArrowVolleyEverySec: number
+  hailArrowVolleyAtLoadedArrows: number
+  vengeantThornsTriggerAttackOnHit: boolean
+  vengeantThornsWeaponBaseNotApplied: boolean
+  vengeantThornsAddedBasePhysicalPctOfArmour: number
+  cyclone: boolean
+  spectralRazor: boolean
+  noxiousStrikePoisonExecuteIfRemainingDotDamageMoreThanLifeFactor: number
+
+  __unknownLines?: string[]
+}
+
+export function emptyAbilityLineEffects(): AbilityLineEffects {
+  return {
+    doubleDamageChanceAdd: 0,
+    increasedDefencesPercent: 0,
+    armourIgnorePercent: 0,
+    hitsCannotBeEvaded: false,
+    dealNoDamage: false,
+    inflictAilmentsAsThoughFullHitDamage: false,
+
+    executeEnemiesBelowLifePercent: 0,
+    executeBelowLifeIncPer20CritMultiPercent: 0,
+
+    enemiesTakeIncreasedDamagePerPoisonPercent: 0,
+    enemiesTakeIncreasedDamagePerChillEffectPercent: 0,
+    enemiesLessSpeedPerPoisonPercent: 0,
+    maxChillEffectBonus: 0,
+    maxChillEqualsMaxShock: false,
+    inflictShockEqualToChill: false,
+    shockAsThoughMoreDamagePercent: 0,
+    chillAsThoughMoreDamagePercent: 0,
+    bleedDurationMoreMult: 1,
+    poisonDurationMoreMult: 1,
+    chillDurationMoreMult: 1,
+    physicalToRandomElementPct: 0,
+
+    morePoisonDamageMult: 1,
+    moreBleedDamageMult: 1,
+    moreIgniteDamageMult: 1,
+    igniteDealsNoDamageOverDuration: false,
+    igniteBurstsAtEndAndClearsAll: false,
+
+    baseCritChanceBonus: 0,
+    baseCritChanceBonusPer5ChillEffect: 0,
+    critMultiplierBonusPctPer1ChillEffect: 0,
+    critMultiplierBonusPctPer1CritChanceAbove100: 0,
+    critChanceMorePerHitThisStageMaxPct: 0,
+    critMultiplierBonusAtMaxStageHits: 0,
+    criticalHitsDoNotDealExtraDamage: false,
+    extraHitsOnCritPer25CritMulti: false,
+    extraHitsOnCritDealLessMult: 1,
+    extraHitsOnCritCannotCrit: false,
+
+    moreAttackSpeedPerHitThisStagePct: 0,
+    moreAttackSpeedPerHitThisStageMaxPct: 0,
+    additionalArmourIgnoreAtMaxStageHits: 0,
+    moreMaximumAttackDamageMult: 1,
+    lessMinimumAttackDamageMult: 1,
+
+    additionalStrikesPerAttackFlat: 0,
+    extraStrikeChancePerStrikePercent: 0,
+
+    hitsPerAttackRange: null,
+    hitsPerAttackIsAdditional: false,
+    hitsPerCastRange: null,
+    hitsPerCastIsAdditional: false,
+    castSpeedAppliesToHitsPerCast: false,
+    additionalProjectilesPerAttackRange: null,
+
+    smiteAdditionalBaseManaCostPctOfCurrentMana: 0,
+    smiteAddsLightningPerManaCost: null,
+    arcaneExplosionSacrificeCurrentManaPercent: 0,
+    arcaneExplosionMoreDamagePer50ManaSacrificedPct: 0,
+    arcaneExplosionCannotBeEvadedIfManaSacrificedAtLeast: 0,
+    flameBlastMoreDamagePer0_1sCastTimePct: 0,
+    darkPactMoreChaosDamagePerMissingCombinedPct: 0,
+    darkPactLifeLeechPercent: 0,
+    soulDrainEsLeechPercent: 0,
+    blazingRadianceTakeFireDpsPctOfCombinedCurrent: 0,
+    blazingRadianceMoreFireDamagePer40CombinedCurrentPct: 0,
+    staticLanceShockAsThoughMoreDamagePercent: 0,
+    staticLanceNextHitMoreDamagePerShockEffectPct: 0,
+    staticLanceConsumeShockOnEmpoweredHit: false,
+    hailOfArrows: false,
+    hailArrowVolleyEverySec: 0,
+    hailArrowVolleyAtLoadedArrows: 0,
+    vengeantThornsTriggerAttackOnHit: false,
+    vengeantThornsWeaponBaseNotApplied: false,
+    vengeantThornsAddedBasePhysicalPctOfArmour: 0,
+    cyclone: false,
+    spectralRazor: false,
+    noxiousStrikePoisonExecuteIfRemainingDotDamageMoreThanLifeFactor: 0,
+  }
+}
+
+export function parseAbilityLineEffects(def: EocAbilityDefinition): AbilityLineEffects {
+  const out = emptyAbilityLineEffects()
+  for (const raw of def.lines ?? []) {
+    const l = raw.trim()
+    const low = l.toLowerCase()
+
+    const pct1 = (re: RegExp) => {
+      const m = low.match(re)
+      if (!m) return null
+      const v = Number(m[1])
+      return Number.isFinite(v) ? v : null
+    }
+    const range2 = (re: RegExp) => {
+      const m = low.match(re)
+      if (!m) return null
+      const a = Number(m[1])
+      const b = Number(m[2])
+      if (!Number.isFinite(a) || !Number.isFinite(b)) return null
+      return { min: Math.min(a, b), max: Math.max(a, b) }
+    }
+
+    if (/^deals\s+\d+\s*-\s*\d+\s+(physical|fire|cold|lightning|chaos)\s+damage\b/i.test(low)) continue
+
+    // Lines handled elsewhere (so they should not appear as “unknown” here).
+    if (
+      /(?:^|\b)(?:convert|covert)\s+\d+(?:\.\d+)?\s*%\s+of\s+your\s+physical\s+damage\s+to\s+(fire|cold|lightning)\s+damage\b/i.test(low)
+    ) {
+      continue
+    }
+    if (
+      /^\+\d+%\s+chance\s+to\s+inflict\s+(?:bleeding|poison|shock|chill|ignite|elemental\s+ailments?)\b/i.test(low)
+    ) {
+      continue
+    }
+    if (low === 'convert 100% of your physical damage to a random elemental damage type on hit') {
+      out.physicalToRandomElementPct = Math.max(out.physicalToRandomElementPct, 100)
+      continue
+    }
+
+    // Double damage
+    {
+      const m = low.match(/^\+(\d+)%\s+to\s+(?:deal\s+)?double\s+damage\b/i)
+      if (m) { out.doubleDamageChanceAdd += Number(m[1]); continue }
+      const m2 = low.match(/^\+(\d+)%\s+chance\s+to\s+deal\s+double\s+damage\b/i)
+      if (m2) { out.doubleDamageChanceAdd += Number(m2[1]); continue }
+    }
+
+    // Base crit chance
+    {
+      const v = pct1(/^\+(\d+)%\s+to\s+base\s+critical\s+hit\s+chance\b/i)
+      if (v != null) { out.baseCritChanceBonus += v; continue }
+      const per5 = pct1(/^\+(\d+)%\s+to\s+base\s+critical\s+hit\s+chance\s+per\s+5%\s+effect\s+of\s+chill/i)
+      if (per5 != null) { out.baseCritChanceBonusPer5ChillEffect = per5; continue }
+      const m = low.match(/^gain\s+(\d+)%\s+more\s+critical\s+hit\s+chance\s+per\s+hit\s+dealt\s+during\s+a\s+stage,\s+up\s+to\s+(\d+)%$/i)
+      if (m) {
+        out.critChanceMorePerHitThisStageMaxPct = Number(m[2])
+        out.spectralRazor = true
+        continue
+      }
+    }
+
+    // Crit multiplier interactions
+    {
+      const m = low.match(/^\+(\d+)%\s+to\s+critical\s+damage\s+multiplier\s+per\s+1%\s+effect\s+of\s+chill/i)
+      if (m) { out.critMultiplierBonusPctPer1ChillEffect = Number(m[1]); continue }
+      const m2 = low.match(/^\+(\d+)%\s+to\s+critical\s+damage\s+multiplier\s+per\s+1%\s+critical\s+hit\s+chance\s+above\s+100%/i)
+      if (m2) { out.critMultiplierBonusPctPer1CritChanceAbove100 = Number(m2[1]); continue }
+      if (low === 'at maximum effect, additionally gain +50% to critical damage multiplier') {
+        out.critMultiplierBonusAtMaxStageHits = 50
+        out.spectralRazor = true
+        continue
+      }
+      if (low === 'critical hits do not deal extra damage') { out.criticalHitsDoNotDealExtraDamage = true; continue }
+      if (low === 'when you deal a critical hit, hit one additional time per 25% critical damage multiplier') {
+        out.extraHitsOnCritPer25CritMulti = true
+        out.extraHitsOnCritDealLessMult = 0.5
+        out.extraHitsOnCritCannotCrit = true
+        continue
+      }
+      if (low === 'additional hits deal 50% less damage and cannot be critical') {
+        out.extraHitsOnCritDealLessMult = 0.5
+        out.extraHitsOnCritCannotCrit = true
+        continue
+      }
+    }
+
+    // Armour ignore / evasion
+    {
+      const v = pct1(/^hits\s+ignore\s+(\d+)%\s+of\s+enemy\s+armour\b/i)
+      if (v != null) { out.armourIgnorePercent = Math.max(out.armourIgnorePercent, v); continue }
+      if (low === 'your hits cannot be evaded') { out.hitsCannotBeEvaded = true; continue }
+    }
+
+    // Defences
+    {
+      const v = pct1(/^(\d+)%\s+increased\s+defences\b/i)
+      if (v != null) { out.increasedDefencesPercent += v; continue }
+    }
+
+    // Execution
+    {
+      const v = pct1(/^enemies\s+left\s+below\s+(\d+)%\s+of\s+maximum\s+life\s+with\s+hits\s+are\s+executed\b/i)
+      if (v != null) { out.executeEnemiesBelowLifePercent = Math.max(out.executeEnemiesBelowLifePercent, v); continue }
+      if (low === 'enemies left below 25% of maximum life with hits are executed, increased by 1% per 20% critical damage multiplier') {
+        out.executeEnemiesBelowLifePercent = Math.max(out.executeEnemiesBelowLifePercent, 25)
+        out.executeBelowLifeIncPer20CritMultiPercent = 1
+        continue
+      }
+    }
+
+    // More/less duration or damage
+    {
+      const vBleedDur = pct1(/^(\d+)%\s+more\s+bleed\s+duration\b/i)
+      if (vBleedDur != null) { out.bleedDurationMoreMult *= 1 + vBleedDur / 100; continue }
+      const vChillDur = pct1(/^(\d+)%\s+more\s+chill\s+duration\b/i)
+      if (vChillDur != null) { out.chillDurationMoreMult *= 1 + vChillDur / 100; continue }
+      const vPoisonDur = pct1(/^(\d+)%\s+more\s+poison\s+duration\b/i)
+      if (vPoisonDur != null) { out.poisonDurationMoreMult *= 1 + vPoisonDur / 100; continue }
+
+      const vMorePoison = pct1(/^(\d+)%\s+more\s+poison\s+damage\b/i)
+      if (vMorePoison != null) { out.morePoisonDamageMult *= 1 + vMorePoison / 100; continue }
+      const vMoreBleed = pct1(/^(\d+)%\s+more\s+bleed\s+damage\b/i)
+      if (vMoreBleed != null) { out.moreBleedDamageMult *= 1 + vMoreBleed / 100; continue }
+      const vMoreIgnite = pct1(/^(\d+)%\s+more\s+ignite\s+damage\b/i)
+      if (vMoreIgnite != null) { out.moreIgniteDamageMult *= 1 + vMoreIgnite / 100; continue }
+
+      const vMoreMax = pct1(/^(\d+)%\s+more\s+maximum\s+attack\s+damage\b/i)
+      if (vMoreMax != null) { out.moreMaximumAttackDamageMult *= 1 + vMoreMax / 100; continue }
+      const vLessMin = pct1(/^(\d+)%\s+less\s+minimum\s+attack\s+damage\b/i)
+      if (vLessMin != null) { out.lessMinimumAttackDamageMult *= Math.max(0, 1 - vLessMin / 100); continue }
+    }
+
+    if (low === 'hits deal no damage') { out.dealNoDamage = true; continue }
+    if (low === 'hits inflict ailments as though dealing full hit damage') { out.inflictAilmentsAsThoughFullHitDamage = true; continue }
+
+    // Enemy scaling by ailments
+    {
+      const v = pct1(/^enemies\s+take\s+(\d+)%\s+increased\s+damage\s+per\s+applied\s+poison\b/i)
+      if (v != null) { out.enemiesTakeIncreasedDamagePerPoisonPercent = v; continue }
+      const v2 = pct1(/^enemies\s+take\s+(\d+)%\s+increased\s+damage\s+per\s+1%\s+effect\s+of\s+applied\s+chill\b/i)
+      if (v2 != null) { out.enemiesTakeIncreasedDamagePerChillEffectPercent = v2; continue }
+      const v3 = pct1(/^enemies\s+have\s+(\d+)%\s+less\s+speed\s+per\s+applied\s+poison\b/i)
+      if (v3 != null) { out.enemiesLessSpeedPerPoisonPercent = v3; continue }
+    }
+
+    // Chill/shock rules
+    if (low === 'whenever you inflict chill, also inflict an equal shock') { out.inflictShockEqualToChill = true; continue }
+    if (low === 'your maximum effect of chill is equal to the maximum effect of shock') { out.maxChillEqualsMaxShock = true; continue }
+    {
+      const v = pct1(/^\+(\d+)%\s+to\s+maximum\s+chill\s+effect\b/i)
+      if (v != null) { out.maxChillEffectBonus += v; continue }
+      const shMore = pct1(/^hits\s+inflict\s+shock\s+as\s+though\s+dealing\s+(\d+)%\s+more\s+damage\b/i)
+      if (shMore != null) { out.shockAsThoughMoreDamagePercent = shMore; continue }
+      const chillMore = pct1(/^hits\s+inflict\s+chill\s+as\s+though\s+dealing\s+(\d+)%\s+more\s+damage\b/i)
+      if (chillMore != null) { out.chillAsThoughMoreDamagePercent = chillMore; continue }
+    }
+
+    // Cyclone stage mechanics
+    {
+      const m = low.match(/^(\d+)%\s+more\s+attack\s+speed\s+per\s+hit\s+dealt\s+during\s+a\s+stage,\s+up\s+to\s+(\d+)%$/i)
+      if (m) {
+        out.moreAttackSpeedPerHitThisStagePct = Number(m[1])
+        out.moreAttackSpeedPerHitThisStageMaxPct = Number(m[2])
+        out.cyclone = true
+        continue
+      }
+      if (low === 'at maximum effect, your hits additionally ignore 50% of enemy armour') {
+        out.additionalArmourIgnoreAtMaxStageHits = 50
+        out.cyclone = true
+        continue
+      }
+    }
+
+    // Extra strikes / proc strikes
+    {
+      const m = low.match(/^\+(\d+)\s+strikes\s+per\s+attack\b/i)
+      if (m) { out.additionalStrikesPerAttackFlat += Number(m[1]); continue }
+      if (low === 'perform +1 strike per attack') { out.additionalStrikesPerAttackFlat += 1; continue }
+      if (low === 'when you strike an enemy, strike an additional time with 25% chance') {
+        out.extraStrikeChancePerStrikePercent = Math.max(out.extraStrikeChancePerStrikePercent, 25)
+        continue
+      }
+    }
+
+    // Hit counts / projectiles
+    {
+      const r = range2(/^\+(\d+)\s*-\s*(\d+)\s+hits\s+per\s+attack\b/i)
+      if (r) { out.hitsPerAttackRange = r; out.hitsPerAttackIsAdditional = true; continue }
+      const r2 = range2(/^\+?(\d+)\s*-\s*(\d+)\s+hits\s+per\s+cast\b/i)
+      if (r2) { out.hitsPerCastRange = r2; out.hitsPerCastIsAdditional = l.startsWith('+'); continue }
+      if (low === '0-2 hits per cast') { out.hitsPerCastRange = { min: 0, max: 2 }; out.hitsPerCastIsAdditional = false; continue }
+      const r3 = range2(/^fires\s+(\d+)\s*-\s*(\d+)\s+additional\s+arrows\s+per\s+attack\b/i)
+      if (r3) { out.additionalProjectilesPerAttackRange = r3; continue }
+      const r4 = range2(/^\+(\d+)\s*-\s*(\d+)\s+projectiles\s+fired\s+per\s+attack\b/i)
+      if (r4) { out.additionalProjectilesPerAttackRange = r4; continue }
+      if (low === 'modifiers to cast speed apply to the amount of hits per cast instead') {
+        out.castSpeedAppliesToHitsPerCast = true
+        continue
+      }
+    }
+
+    // Smite
+    {
+      const v = pct1(/^gains\s+additional\s+base\s+mana\s+cost\s+equal\s+to\s+(\d+)%\s+of\s+your\s+current\s+mana\b/i)
+      if (v != null) { out.smiteAdditionalBaseManaCostPctOfCurrentMana = v; continue }
+      const m = low.match(/^adds\s+(\d+)\s*-\s*(\d+)\s+lightning\s+damage\s+to\s+attacks\s+per\s+1\s+mana\s+cost\b/i)
+      if (m) { out.smiteAddsLightningPerManaCost = { min: Number(m[1]), max: Number(m[2]) }; continue }
+    }
+
+    // Arcane Explosion
+    if (low === 'when arcane explosion is cast, sacrifice 20% of your current mana to deal 10% more damage per 50 mana sacrificed') {
+      out.arcaneExplosionSacrificeCurrentManaPercent = 20
+      out.arcaneExplosionMoreDamagePer50ManaSacrificedPct = 10
+      continue
+    }
+    if (low === 'arcane explosion cannot be evaded if at least 500 mana was sacrificed this way') {
+      out.arcaneExplosionCannotBeEvadedIfManaSacrificedAtLeast = 500
+      continue
+    }
+
+    // Flame Blast
+    {
+      const v = pct1(/^deal\s+(\d+)%\s+more\s+damage\s+per\s+0\.1\s+seconds\s+of\s+cast\s+time\b/i)
+      if (v != null) { out.flameBlastMoreDamagePer0_1sCastTimePct = v; continue }
+    }
+
+    // Dark Pact
+    if (low === 'deal 1% more chaos damage per 1% missing combined life and energy shield') {
+      out.darkPactMoreChaosDamagePerMissingCombinedPct = 1
+      continue
+    }
+    {
+      const v = pct1(/^leech\s+(\d+)%\s+of\s+chaos\s+hit\s+damage\s+as\s+life\b/i)
+      if (v != null) { out.darkPactLifeLeechPercent = v; continue }
+    }
+
+    // Soul Drain
+    {
+      const v = pct1(/^leech\s+(\d+)%\s+of\s+chaos\s+hit\s+damage\s+as\s+energy\s+shield\b/i)
+      if (v != null) { out.soulDrainEsLeechPercent = v; continue }
+    }
+
+    // Blazing Radiance
+    if (low === 'take fire damage per second equal to 4% of your combined current life and energy shield') {
+      out.blazingRadianceTakeFireDpsPctOfCombinedCurrent = 4
+      continue
+    }
+    if (low === 'deal 1% more fire damage per 40 combined current life and energy shield') {
+      out.blazingRadianceMoreFireDamagePer40CombinedCurrentPct = 1
+      continue
+    }
+
+    // Static Lance
+    if (low === 'hits inflict shock as though dealing 100% more damage') {
+      out.staticLanceShockAsThoughMoreDamagePercent = 100
+      continue
+    }
+    if (low === 'when the effect of shock on an enemy reaches its maximum, your next hit deals 4% more damage per 1% effect of applied shock and removes all shock afterwards') {
+      out.staticLanceNextHitMoreDamagePerShockEffectPct = 4
+      out.staticLanceConsumeShockOnEmpoweredHit = true
+      continue
+    }
+
+    // Explosive Shot ignite behavior
+    if (low === 'ignite does not deal damage over its duration') { out.igniteDealsNoDamageOverDuration = true; continue }
+    if (low === 'at the end of an ignite effect, all ignite effects are removed and their total stored damage is dealt simultaneously') {
+      out.igniteBurstsAtEndAndClearsAll = true
+      continue
+    }
+
+    // Hail of Arrows
+    if (low === 'when your action bar reaches 100%, load an arrow instead of attacking') {
+      out.hailOfArrows = true
+      continue
+    }
+    if (low === 'every 1 second, or once 10 arrows are loaded, perform an attack that fires all loaded arrows') {
+      out.hailOfArrows = true
+      out.hailArrowVolleyEverySec = 1
+      out.hailArrowVolleyAtLoadedArrows = 10
+      continue
+    }
+
+    // Vengeant Thorns
+    if (low === 'perform an attack when you are hit') { out.vengeantThornsTriggerAttackOnHit = true; continue }
+    if (low === 'base damage and base critical hit chance of your weapons are not applied') { out.vengeantThornsWeaponBaseNotApplied = true; continue }
+    {
+      const m = low.match(/^gain\s+added\s+base\s+physical\s+damage\s+equal\s+to\s+(\d+)%\s+of\s+your\s+armour\b/i)
+      if (m) { out.vengeantThornsAddedBasePhysicalPctOfArmour = Number(m[1]); continue }
+    }
+
+    // Stored poison execution (Noxious Strike)
+    if (low === 'enemies are killed when the amount of stored poison damage exceeds twice their current life') {
+      out.noxiousStrikePoisonExecuteIfRemainingDotDamageMoreThanLifeFactor = 2
+      continue
+    }
+
+    // Ignore lines not modeled explicitly (yet) but should not fail parsing.
+    if (low === 'all bleed effects applied to enemies deal their full damage') continue
+    if (low === 'bleeding enemies have 50% less recovery from all sources') continue
+    if (low === 'excess recovery from life leech is applied to your energy shield instead') continue
+    if (low === 'enemies left below 0% of maximum life with hits are executed') continue
+
+    // Anything else is unknown and should be surfaced by tests.
+    out.__unknownLines = (out.__unknownLines ?? []).concat([l])
+  }
+  return out
+}
+
 /**
  * Parse a single attunement description into a normalized key and its % value.
  * `attunement0` / `attunement100` must yield the same `key` to interpolate.
@@ -251,6 +728,22 @@ export function interpolateAttunementModifier(
   const t = Math.min(1, Math.max(0, attPct / 100))
   const v = p0.value + (p1.value - p0.value) * t * effectivenessMult
   return { key: p0.key, value: Math.round(v) }
+}
+
+export function attunementNumericEffects(
+  def: EocAbilityDefinition,
+  attunementPct: number,
+  effectivenessMult: number
+): { elementalPenetrationPercent: number; executeBelowLifePercent: number } {
+  const mod = interpolateAttunementModifier(def, attunementPct, effectivenessMult)
+  if (!mod) return { elementalPenetrationPercent: 0, executeBelowLifePercent: 0 }
+  if (mod.key === 'hits penetrate % of enemy elemental resistances') {
+    return { elementalPenetrationPercent: mod.value, executeBelowLifePercent: 0 }
+  }
+  if (mod.key === 'execute below % max life') {
+    return { elementalPenetrationPercent: 0, executeBelowLifePercent: mod.value }
+  }
+  return { elementalPenetrationPercent: 0, executeBelowLifePercent: 0 }
 }
 
 /** Sums "+N% chance to inflict …" lines from ability CSV text (demo combat / sheet). */
