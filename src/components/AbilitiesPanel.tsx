@@ -80,13 +80,14 @@ export default function AbilitiesPanel({ weaponItemId, ability, onChangeAbility 
           <input
             type="number"
             min={0}
-            // Ability levels can exceed 20 via gear/upgrades; don't clamp in the UI.
+            max={20}
             className="w-full bg-[#1a1624] border border-amber-900/25 text-zinc-200 text-xs rounded px-3 py-2 focus:outline-none focus:border-amber-600/60"
             value={ability.abilityLevel}
             onChange={(e) =>
               onChangeAbility({
                 ...ability,
-                abilityLevel: Math.max(0, Math.floor(Number(e.target.value) || 0)),
+                // Input is base level (before +levels from gear/classes).
+                abilityLevel: Math.min(20, Math.max(0, Math.floor(Number(e.target.value) || 0))),
               })
             }
           />

@@ -2042,7 +2042,15 @@ export function aggregateItemModifiers(
 // ---------------------------------------------------------------------------
 
 export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
-  const eq: EquipmentModifiers = { ...config.equipmentModifiers }
+  // Prefer deriving equipment modifiers from the equipped items when present.
+  // This keeps saved builds correct if modifier parsing changes (e.g. crafted mods),
+  // instead of relying on a potentially stale serialized `equipmentModifiers` snapshot.
+  const eq: EquipmentModifiers = config.equipped
+    ? aggregateEquippedToEquipmentModifiers(
+        EQUIPMENT_SLOTS,
+        (slot) => (config.equipped ? (config.equipped as any)[slot] : null)
+      )
+    : { ...config.equipmentModifiers }
   const weaponItemId = config.equippedWeaponItemId ?? 'none'
   const weaponTag = weaponAbilityTagFromItemId(weaponItemId)
 

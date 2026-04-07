@@ -173,12 +173,13 @@ const MOD_TEXT_FORMATTER: Record<string, (v1: number, v2?: number) => string | n
   'Increased Item Quantity':          (v1) => `${v1}% increased item quantity`,
   'Increased Item Rarity':            (v1) => `${v1}% increased item rarity`,
   'Chance To Avoid Ailments':         (v1) => `${v1}% chance to avoid ailments`,
-  'Additional Level To Physical Abilities': (v1) => `+${v1} to level of physical abilities`,
-  'Additional Level To Fire Abilities':     (v1) => `+${v1} to level of fire abilities`,
-  'Additional Level To Cold Abilities':     (v1) => `+${v1} to level of cold abilities`,
-  'Additional Level To Lightning Abilities': (v1) => `+${v1} to level of lightning abilities`,
-  'Additional Level To Chaos Abilities':    (v1) => `+${v1} to level of chaos abilities`,
-  'Additional Level To All Abilities':      (v1) => `+${v1} to level of all abilities`,
+  // Use "to the level of ..." phrasing to match gear stat parsing patterns.
+  'Additional Level To Physical Abilities': (v1) => `+${v1} to the level of physical abilities`,
+  'Additional Level To Fire Abilities':     (v1) => `+${v1} to the level of fire abilities`,
+  'Additional Level To Cold Abilities':     (v1) => `+${v1} to the level of cold abilities`,
+  'Additional Level To Lightning Abilities': (v1) => `+${v1} to the level of lightning abilities`,
+  'Additional Level To Chaos Abilities':    (v1) => `+${v1} to the level of chaos abilities`,
+  'Additional Level To All Abilities':      (v1) => `+${v1} to the level of all abilities`,
 };
 
 /**

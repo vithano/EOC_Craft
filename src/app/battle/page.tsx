@@ -2,73 +2,31 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { DEMO_ENEMIES } from "../../battle/enemies";
+import { TRAINING_DUMMY } from "../../battle/enemies";
 import { simulateEncounter } from "../../battle/engine";
 import type { DemoEnemyDef } from "../../battle/types";
-import { DEMO_BUILD_PRESETS } from "../../battle/presets";
 import {
   HIT_DAMAGE_TYPE_COLOR_CLASS,
   HIT_DAMAGE_TYPE_LABEL,
 } from "../../data/damageTypes";
 import { getEquippedEntry, migrateEquippedFromSave } from "../../data/equipment";
-import { computeBuildStats } from "../../data/gameStats";
+import { computeBuildStats, emptyEquipmentModifiers } from "../../data/gameStats";
 import { loadStoredPlanner, type StoredPlannerPayload } from "../../lib/eocBuildStorage";
 
-const PLANNER_PRESET_ID = "planner";
-
-function totalUpgradePoints(levels: Record<string, number>): number {
-  return Object.values(levels).reduce((a, b) => a + b, 0);
-}
-
-function plannerHasUsefulData(p: StoredPlannerPayload | null): boolean {
-  if (!p) return false;
-  if (totalUpgradePoints(p.upgradeLevels) > 0) return true;
-  const flat = p.equipmentModifiers;
-  return (
-    (flat.flatLife ?? 0) +
-      (flat.flatArmour ?? 0) +
-      (flat.flatDamageMin ?? 0) +
-      (flat.flatDamageMax ?? 0) +
-      (flat.strBonus ?? 0) +
-      (flat.dexBonus ?? 0) +
-      (flat.intBonus ?? 0) >
-    0
-  );
-}
-
-function enemyFromPresetId(id: string): DemoEnemyDef {
-  const e = DEMO_ENEMIES.find((x) => x.id === id) ?? DEMO_ENEMIES[0];
-  return { ...e };
-}
-
 export default function BattleDemoPage() {
-  const [presetId, setPresetId] = useState<string>(DEMO_BUILD_PRESETS[0].id);
-  const [enemyId, setEnemyId] = useState(DEMO_ENEMIES[0].id);
-  const [enemyDraft, setEnemyDraft] = useState<DemoEnemyDef>(() => enemyFromPresetId(DEMO_ENEMIES[0].id));
+  const [enemyDraft, setEnemyDraft] = useState<DemoEnemyDef>({ ...TRAINING_DUMMY });
   const [runKey, setRunKey] = useState(0);
   const [plannerSnapshot, setPlannerSnapshot] = useState<StoredPlannerPayload | null>(null);
 
   useEffect(() => {
-    setEnemyDraft(enemyFromPresetId(enemyId));
-  }, [enemyId]);
-
-  useEffect(() => {
     queueMicrotask(() => {
-      const snap = loadStoredPlanner();
-      setPlannerSnapshot(snap);
-      if (snap && plannerHasUsefulData(snap)) {
-        setPresetId(PLANNER_PRESET_ID);
-      }
+      setPlannerSnapshot(loadStoredPlanner());
     });
   }, []);
 
-  const buildFromPlanner = plannerSnapshot && presetId === PLANNER_PRESET_ID;
-
   const activeConfig = useMemo(() => {
-    if (buildFromPlanner && plannerSnapshot) {
-      const equippedMap = plannerSnapshot.equipped
-        ? migrateEquippedFromSave(plannerSnapshot.equipped)
-        : migrateEquippedFromSave(null);
+    if (plannerSnapshot) {
+      const equippedMap = migrateEquippedFromSave(plannerSnapshot.equipped ?? null);
       const weaponItemId = getEquippedEntry(equippedMap, "Weapon").itemId;
       return {
         upgradeLevels: plannerSnapshot.upgradeLevels,
@@ -78,27 +36,19 @@ export default function BattleDemoPage() {
         equipped: equippedMap,
       };
     }
-    const preset = DEMO_BUILD_PRESETS.find((p) => p.id === presetId) ?? DEMO_BUILD_PRESETS[0];
-    return preset.config;
-  }, [buildFromPlanner, plannerSnapshot, presetId]);
+    return { upgradeLevels: {}, equipmentModifiers: emptyEquipmentModifiers() };
+  }, [plannerSnapshot]);
 
   const stats = useMemo(() => computeBuildStats(activeConfig), [activeConfig]);
-
-  const activeEnemy = useMemo(
-    () => ({ ...enemyDraft, id: enemyId }),
-    [enemyDraft, enemyId]
-  );
 
   const result = useMemo(() => {
     void runKey;
     return simulateEncounter({
       stats,
-      enemy: activeEnemy,
+      enemy: enemyDraft,
       options: { maxDurationSeconds: 90, maxLogEntries: 100, dt: 0.05 },
     });
-  }, [stats, activeEnemy, runKey]);
-
-  const showPlannerOption = plannerHasUsefulData(plannerSnapshot);
+  }, [stats, enemyDraft, runKey]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -107,65 +57,30 @@ export default function BattleDemoPage() {
           <div>
             <h1 className="text-lg font-bold">Demo encounter</h1>
             <p className="text-zinc-500 text-xs">
-              Uses <code className="text-zinc-400">computeBuildStats</code> + the same local save as the planner
-              (<code className="text-zinc-400">eocCraftBuild</code>).
+              Uses your saved planner build (<code className="text-zinc-400">eocCraftBuild</code>) vs. a training dummy.
             </p>
           </div>
-          <Link href="/" className="text-sm text-blue-400 hover:text-blue-300 shrink-0">
-            ← Build planner
-          </Link>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              className="text-xs text-zinc-500 hover:text-zinc-300"
+              onClick={() => setPlannerSnapshot(loadStoredPlanner())}
+            >
+              Reload saved build
+            </button>
+            <Link href="/" className="text-sm text-blue-400 hover:text-blue-300 shrink-0">
+              ← Build planner
+            </Link>
+          </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <span className="block text-xs uppercase tracking-wider text-zinc-500">Build</span>
-            <select
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm"
-              value={presetId}
-              onChange={(e) => setPresetId(e.target.value)}
-            >
-              {showPlannerOption && (
-                <option value={PLANNER_PRESET_ID}>
-                  Saved from main planner ({totalUpgradePoints(plannerSnapshot!.upgradeLevels)} pts)
-                </option>
-              )}
-              {DEMO_BUILD_PRESETS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="text-xs text-zinc-500 hover:text-zinc-300"
-              onClick={() => {
-                const snap = loadStoredPlanner();
-                setPlannerSnapshot(snap);
-              }}
-            >
-              Reload saved planner build
-            </button>
+        {!plannerSnapshot && (
+          <div className="rounded-lg border border-amber-800/60 bg-amber-950/30 px-4 py-3 text-sm text-amber-300">
+            No saved build found. Go to the build planner and configure your build first.
           </div>
-          <div className="space-y-2">
-            <span className="block text-xs uppercase tracking-wider text-zinc-500">Enemy preset</span>
-            <select
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm"
-              value={enemyId}
-              onChange={(e) => setEnemyId(e.target.value)}
-            >
-              {DEMO_ENEMIES.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                </option>
-              ))}
-            </select>
-            <p className="text-[10px] text-zinc-600">
-              Stats below load from the preset; edit any field for this run.
-            </p>
-          </div>
-        </div>
+        )}
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Enemy stats (this encounter)</div>
@@ -369,13 +284,13 @@ export default function BattleDemoPage() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm space-y-1">
             <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Enemy (active)</div>
             <div>
-              {activeEnemy.name}: {activeEnemy.maxLife} life · {activeEnemy.aps} atk/s
+              {enemyDraft.name}: {enemyDraft.maxLife} life · {enemyDraft.aps} atk/s
             </div>
             <div>
-              Dmg {activeEnemy.damageMin}–{activeEnemy.damageMax} · acc {activeEnemy.accuracy} · eva{" "}
-              {activeEnemy.evasionRating} · arm {activeEnemy.armour}
-              {activeEnemy.blockChance != null && activeEnemy.blockChance > 0
-                ? ` · ${activeEnemy.blockChance}% block`
+              Dmg {enemyDraft.damageMin}–{enemyDraft.damageMax} · acc {enemyDraft.accuracy} · eva{" "}
+              {enemyDraft.evasionRating} · arm {enemyDraft.armour}
+              {enemyDraft.blockChance != null && enemyDraft.blockChance > 0
+                ? ` · ${enemyDraft.blockChance}% block`
                 : ""}
             </div>
           </div>
