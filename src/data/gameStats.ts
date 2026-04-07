@@ -2088,6 +2088,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const classIncreasedStrengthPctBonus = sumFx((fx) => fx.increasedStrengthPercent)
   const classManaAsExtraBaseEsPercent = sumFx((fx) => fx.manaAsExtraBaseEsPercent)
   const classReducedManaCostPercent = sumFx((fx) => fx.reducedManaCostPercent)
+  const classDamageTakenToManaFirstPercent = sumFx((fx) => fx.damageTakenToManaFirstWhileAboveHalfManaPercent)
   const classEnemiesTakeIncDamagePct = sumFx((fx) => fx.enemiesTakeIncreasedDamagePercent)
   const classEnemiesHaveLessSpeedPct = sumFx((fx) => fx.enemiesHaveLessSpeedPercent)
   const classEnemiesDealLessDamagePct = sumFx((fx) => fx.enemiesDealLessDamagePercent)
@@ -2755,6 +2756,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     Math.max(0.05, 1 - classReducedManaCostPercent / 100) *
     Math.max(0.2, 1 - eq.manaCostReductionFromGear / 100) *
     (1 + eq.manaCostIncreasePercentFromGear / 100)
+  // Display and downstream systems expect whole-number mana costs.
+  manaCostPerAttack = Math.max(0, Math.round(manaCostPerAttack))
 
   // -------------------------------------------------------------------------
   // 19. Mana regeneration
@@ -3125,8 +3128,27 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           }
           const added = (def.addedDamageMultiplierPct ?? 100) / 100
           const isEle = ['fire', 'cold', 'lightning'].includes(scaledHit.element)
-          const incFrac =
-            (increasedSpellDamage + increasedDamage + spellAttIncDmg + (isEle ? increasedElementalDamage : 0)) / 100
+
+          const incFracForType = (t: HitDamageTypeRow['type']): number => {
+            const isElemental = t === 'fire' || t === 'cold' || t === 'lightning'
+            const typeSpecific =
+              t === 'fire'
+                ? eq.increasedFireDamageFromGear
+                : t === 'cold'
+                  ? eq.increasedColdDamageFromGear
+                  : t === 'lightning'
+                    ? eq.increasedLightningDamageFromGear
+                    : t === 'chaos'
+                      ? eq.increasedChaosDamageFromGear
+                      : 0
+            return (
+              (increasedSpellDamage
+                + increasedDamage
+                + spellAttIncDmg
+                + (isElemental ? increasedElementalDamage : 0)
+                + typeSpecific) / 100
+            )
+          }
           const increasedDamagePercentSources: StatContributionLine[] = []
           dmgPushIf(increasedDamagePercentSources, 'Upgrades: increased spell damage', u('increasedSpellDamage'))
           if (spellDmgFromInt !== 0) {
@@ -3193,6 +3215,19 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           const castsPerSec = effectiveCastTime > 0 ? (1 / effectiveCastTime) : 0
 
           // Spell “more” modifiers from ability lines (planner approximation: assume full pools at cast start).
+          //
+          // Blazing Radiance: "deal 1% more fire damage per 40 combined current life and energy shield"
+          // uses *pre-increased* pools (lifeFlat + esBase). This keeps the scaling in line with the sheet text
+          // (which references the pool size itself rather than the post-increased value).
+          const blazingRadianceMoreFireMult =
+            fx?.blazingRadianceMoreFireDamagePer40CombinedCurrentPct
+              ? (() => {
+                  const combined = Math.max(0, lifeFlat + esBase)
+                  const steps = Math.floor(combined / 40)
+                  return 1 + steps * (fx.blazingRadianceMoreFireDamagePer40CombinedCurrentPct / 100)
+                })()
+              : 1
+
           const spellMoreMult = (() => {
             let m = 1
             if (fx?.flameBlastMoreDamagePer0_1sCastTimePct) {
@@ -3202,10 +3237,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
               const sacrificed = maxMana * (fx.arcaneExplosionSacrificeCurrentManaPercent / 100)
               const steps = Math.floor(sacrificed / 50)
               m *= 1 + steps * (fx.arcaneExplosionMoreDamagePer50ManaSacrificedPct / 100)
-            }
-            if (fx?.blazingRadianceMoreFireDamagePer40CombinedCurrentPct) {
-              const combined = maxLife + maxEnergyShield
-              m *= 1 + (combined / 40) * (fx.blazingRadianceMoreFireDamagePer40CombinedCurrentPct / 100)
             }
             return m
           })()
@@ -3270,10 +3301,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
               : /* chaos */ spellFlatRanges.chaos;
           const baseMin = scaledHit.min + baseAdded.min;
           const baseMax = scaledHit.max + baseAdded.max;
+          const baseTypeMore = baseType === "fire" ? blazingRadianceMoreFireMult : 1
+          const incFracBase = incFracForType(baseType)
           spellRows.push({
             type: baseType,
-            min: roundDamageNearest(baseMin * added * (1 + incFrac) * enemyDamageTakenIncreasedMult * spellMoreMult),
-            max: roundDamageNearest(baseMax * added * (1 + incFrac) * enemyDamageTakenIncreasedMult * spellMoreMult),
+            min: roundDamageNearest(
+              baseMin * added * (1 + incFracBase) * enemyDamageTakenIncreasedMult * spellMoreMult * baseTypeMore
+            ),
+            max: roundDamageNearest(
+              baseMax * added * (1 + incFracBase) * enemyDamageTakenIncreasedMult * spellMoreMult * baseTypeMore
+            ),
           });
 
           // Additional spell-only flat types (non-base elements)
@@ -3281,10 +3318,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             if (t === baseType) continue;
             const r = spellFlatRanges[t];
             if (!r || (r.min === 0 && r.max === 0)) continue;
+            const more = t === "fire" ? blazingRadianceMoreFireMult : 1
+            const incFracT = incFracForType(t)
             spellRows.push({
               type: t,
-              min: roundDamageNearest(r.min * added * (1 + incFrac) * enemyDamageTakenIncreasedMult * spellMoreMult),
-              max: roundDamageNearest(r.max * added * (1 + incFrac) * enemyDamageTakenIncreasedMult * spellMoreMult),
+              min: roundDamageNearest(r.min * added * (1 + incFracT) * enemyDamageTakenIncreasedMult * spellMoreMult * more),
+              max: roundDamageNearest(r.max * added * (1 + incFracT) * enemyDamageTakenIncreasedMult * spellMoreMult * more),
             });
           }
 
@@ -3293,7 +3332,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           hitDamageMin = hitSum.min
           hitDamageMax = hitSum.max
           aps = castsPerSec
-          manaCostPerAttack = abilityManaCostAtLevel(baseAbilityMana, startLvl, level)
+          // Ability mana cost (spells): base-at-starting-level scaled by level, then global reduced/increased costs.
+          manaCostPerAttack =
+            abilityManaCostAtLevel(baseAbilityMana, startLvl, level, "spells") *
+            Math.max(0.05, 1 - classReducedManaCostPercent / 100) *
+            Math.max(0.2, 1 - eq.manaCostReductionFromGear / 100) *
+            (1 + eq.manaCostIncreasePercentFromGear / 100)
+          manaCostPerAttack = Math.max(0, Math.round(manaCostPerAttack))
           avgHit = (hitDamageMin + hitDamageMax) / 2
           avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
           dps = avgEffectiveDamage * aps * Math.max(0, hitsPerCast)
@@ -3362,7 +3407,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             addedFromGearByTypeSources,
             addedDamageMultiplier: added,
             addedDamageMultiplierSources,
-            increasedDamagePercent: incFrac * 100,
+            increasedDamagePercent: incFracForType(baseType) * 100,
             increasedDamagePercentSources,
             enemiesTakeIncreasedDamage: {
               gearPercent: eq.enemyDamageTakenIncreasedFromGear,
@@ -3747,7 +3792,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const enemyResistancesEqualToYours = eq.enemyResistancesEqualToYoursFromGear
   const enemiesUnaffectedByChill = eq.enemiesUnaffectedByChillFromGear
 
-  const damageTakenToManaFirstPercent = eq.damageTakenToManaFirstPercentFromGear
+  const damageTakenToManaFirstPercent =
+    Math.max(0, eq.damageTakenToManaFirstPercentFromGear + classDamageTakenToManaFirstPercent)
   const lifeRecoveredOnKillPercent = eq.lifeRecoveredOnKillPercentFromGear
   const flatLifeOnKill = eq.flatLifeOnKillFromGear
   const flatManaOnKill = eq.manaOnKillFlatFromGear
@@ -4738,7 +4784,15 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     nonDamagingAilmentEffectIncreasedPercent: blk([{ label: 'Gear', value: nonDamagingAilmentEffectIncreasedPercent }]),
     chillInflictEffectMult: blk([{ label: 'Gear', value: chillInflictEffectMult }]),
     dealNoDamageExceptCrit: blk([boolLine('Gear', dealNoDamageExceptCrit)]),
-    damageTakenToManaFirstPercent: blk([{ label: 'Gear', value: damageTakenToManaFirstPercent }]),
+    damageTakenToManaFirstPercent: blk(
+      [
+        { label: 'Gear', value: eq.damageTakenToManaFirstPercentFromGear },
+        ...(classDamageTakenToManaFirstPercent
+          ? [{ label: 'Class bonus (Druid): damage taken to mana first while above half mana', value: classDamageTakenToManaFirstPercent }]
+          : []),
+      ],
+      `gear + class = ${damageTakenToManaFirstPercent.toFixed(1)}%`
+    ),
     lifeRecoveredOnKillPercent: blk([{ label: 'Gear', value: lifeRecoveredOnKillPercent }]),
     flatLifeOnKill: blk([{ label: 'Gear', value: flatLifeOnKill }]),
     flatManaOnKill: blk([{ label: 'Gear', value: flatManaOnKill }]),

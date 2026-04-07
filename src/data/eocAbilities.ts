@@ -123,12 +123,22 @@ export function spellBaseDamageAtAbilityLevel(
 export function abilityManaCostAtLevel(
   baseMana: number,
   startingAbilityLevel: number,
-  abilityLevel: number
+  abilityLevel: number,
+  kind: "attacks" | "spells" = "attacks"
 ): number {
   const L = Math.max(0, Math.floor(abilityLevel));
   const S = Math.max(0, Math.floor(startingAbilityLevel));
   if (S <= 0) return Math.max(0, baseMana);
-  return Math.max(0, Math.round(baseMana + 5 * Math.max(0, L - S)));
+  const delta = Math.max(0, L - S);
+
+  // Attacks: sheet-observed +5 mana per level above starting.
+  if (kind === "attacks") {
+    return Math.max(0, Math.round(baseMana + 5 * delta));
+  }
+
+  // Spells: much slower scaling (e.g. Blazing Radiance 8 @ 12 → 16 @ 24).
+  // Model as +2 mana per 3 levels above starting (floor).
+  return Math.max(0, Math.round(baseMana + Math.floor((2 * delta) / 3)));
 }
 
 /** Physical → elemental conversion % from ability line text (e.g. Bladesurge, Consecration). */
