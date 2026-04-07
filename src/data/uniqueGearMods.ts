@@ -255,6 +255,22 @@ export interface UniqueGearStatPatch {
   additionalAbilityLevelsAllFromGear?: number;
   /** +N to the level of cold abilities. */
   additionalAbilityLevelsColdFromGear?: number;
+
+  // Enemy-side effects / ailment caps and scaling
+  maxShockEffectBonusFromGear?: number;
+  maxChillEffectBonusFromGear?: number;
+  increasedShockEffectFromGear?: number;
+  shockDurationMoreMultFromGear?: number;
+  enemiesDealLessDamageFromGear?: number;
+  enemiesHaveMoreSpeedFromGear?: number;
+  enemyResistancesEqualToYoursFromGear?: boolean;
+  enemiesUnaffectedByChillFromGear?: boolean;
+
+  // Player overrides / flags
+  fixedCritChancePercentFromGear?: number;
+  blockChanceMultiplierFromGear?: number;
+  cannotEvadeFromGear?: boolean;
+  cannotDodgeFromGear?: boolean;
 }
 
 function num(m: RegExpMatchArray | null, g = 1): number | null {
@@ -679,6 +695,53 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/take\s+no\s+extra\s+damage\s+from\s+critical\s+hits\b/i);
     if (m) {
       acc.hitsTakenCannotBeCriticalFromGear = true;
+      mark();
+    }
+
+    m = l.match(/\+?(\d+)%\s+to\s+maximum\s+shock\s+effect\b/i);
+    if (m) add({ maxShockEffectBonusFromGear: num(m)! });
+
+    m = l.match(/\+?(\d+)%\s+to\s+maximum\s+chill\s+effect\b/i);
+    if (m) add({ maxChillEffectBonusFromGear: num(m)! });
+
+    m = l.match(/([\d.]+)%\s+increased\s+shock\s+effect\b/i);
+    if (m) add({ increasedShockEffectFromGear: num(m)! });
+
+    m = l.match(/([\d.]+)%\s+more\s+shock\s+duration\b/i);
+    if (m) add({ shockDurationMoreMultFromGear: 1 + num(m)! / 100 });
+
+    m = l.match(/enemies\s+deal\s+([\d.]+)%\s+less\s+damage\b/i);
+    if (m) add({ enemiesDealLessDamageFromGear: num(m)! });
+
+    m = l.match(/enemies\s+have\s+([\d.]+)%\s+more\s+speed\b/i);
+    if (m) add({ enemiesHaveMoreSpeedFromGear: num(m)! });
+
+    if (/elemental resistances of enemies are equal to yours\b/i.test(low)) {
+      acc.enemyResistancesEqualToYoursFromGear = true;
+      mark();
+    }
+
+    if (/enemies are unaffected by chill\b/i.test(low)) {
+      acc.enemiesUnaffectedByChillFromGear = true;
+      mark();
+    }
+
+    m = l.match(/your\s+critical\s+hit\s+chance\s+is\s+(\d+)%/i);
+    if (m) add({ fixedCritChancePercentFromGear: num(m)! });
+
+    if (/your\s+chance\s+to\s+block\s+is\s+doubled\b/i.test(low)) {
+      add({ blockChanceMultiplierFromGear: 2 });
+    }
+    if (/your\s+chance\s+to\s+block\s+is\s+halved\b/i.test(low)) {
+      add({ blockChanceMultiplierFromGear: 0.5 });
+    }
+
+    if (/you\s+cannot\s+evade\s+or\s+dodge\b/i.test(low)) {
+      acc.cannotEvadeFromGear = true;
+      acc.cannotDodgeFromGear = true;
+      mark();
+    } else if (/you\s+cannot\s+evade\b/i.test(low)) {
+      acc.cannotEvadeFromGear = true;
       mark();
     }
 

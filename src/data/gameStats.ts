@@ -596,6 +596,20 @@ export interface EquipmentModifiers {
   critMultiPctPerItemQuantityPctFromGear: number
   additionalAbilityLevelsAllFromGear: number
   additionalAbilityLevelsColdFromGear: number
+
+  maxShockEffectBonusFromGear: number
+  maxChillEffectBonusFromGear: number
+  increasedShockEffectFromGear: number
+  shockDurationMoreMultFromGear: number
+  enemiesDealLessDamageFromGear: number
+  enemiesHaveMoreSpeedFromGear: number
+  enemyResistancesEqualToYoursFromGear: boolean
+  enemiesUnaffectedByChillFromGear: boolean
+
+  fixedCritChancePercentFromGear: number
+  blockChanceMultiplierFromGear: number
+  cannotEvadeFromGear: boolean
+  cannotDodgeFromGear: boolean
 }
 
 export interface ComputedBuildStats {
@@ -717,6 +731,14 @@ export interface ComputedBuildStats {
   reducedPhysicalDamageTaken: number
   /** % increased shock/chill effect you inflict (demo). */
   nonDamagingAilmentEffectIncreasedPercent: number
+  maxShockEffect: number
+  maxChillEffect: number
+  increasedShockEffect: number
+  shockDurationMultiplier: number
+  enemiesDealLessDamagePercent: number
+  enemiesMoreSpeedMultiplier: number
+  enemyResistancesEqualToYours: boolean
+  enemiesUnaffectedByChill: boolean
   chillInflictEffectMult: number
   /** Non-crit attacks deal no damage. */
   dealNoDamageExceptCrit: boolean
@@ -965,6 +987,18 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     critMultiPctPerItemQuantityPctFromGear: 0,
     additionalAbilityLevelsAllFromGear: 0,
     additionalAbilityLevelsColdFromGear: 0,
+    maxShockEffectBonusFromGear: 0,
+    maxChillEffectBonusFromGear: 0,
+    increasedShockEffectFromGear: 0,
+    shockDurationMoreMultFromGear: 1,
+    enemiesDealLessDamageFromGear: 0,
+    enemiesHaveMoreSpeedFromGear: 0,
+    enemyResistancesEqualToYoursFromGear: false,
+    enemiesUnaffectedByChillFromGear: false,
+    fixedCritChancePercentFromGear: 0,
+    blockChanceMultiplierFromGear: 1,
+    cannotEvadeFromGear: false,
+    cannotDodgeFromGear: false,
   }
 }
 
@@ -1366,6 +1400,18 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.additionalAbilityLevelsColdFromGear !== undefined) {
     addNum('additionalAbilityLevelsColdFromGear', p.additionalAbilityLevelsColdFromGear)
   }
+  if (p.maxShockEffectBonusFromGear !== undefined) addNum('maxShockEffectBonusFromGear', p.maxShockEffectBonusFromGear)
+  if (p.maxChillEffectBonusFromGear !== undefined) addNum('maxChillEffectBonusFromGear', p.maxChillEffectBonusFromGear)
+  if (p.increasedShockEffectFromGear !== undefined) addNum('increasedShockEffectFromGear', p.increasedShockEffectFromGear)
+  if (p.shockDurationMoreMultFromGear !== undefined) addNum('shockDurationMoreMultFromGear', p.shockDurationMoreMultFromGear)
+  if (p.enemiesDealLessDamageFromGear !== undefined) addNum('enemiesDealLessDamageFromGear', p.enemiesDealLessDamageFromGear)
+  if (p.enemiesHaveMoreSpeedFromGear !== undefined) addNum('enemiesHaveMoreSpeedFromGear', p.enemiesHaveMoreSpeedFromGear)
+  if (p.enemyResistancesEqualToYoursFromGear) eq.enemyResistancesEqualToYoursFromGear = true
+  if (p.enemiesUnaffectedByChillFromGear) eq.enemiesUnaffectedByChillFromGear = true
+  if (p.fixedCritChancePercentFromGear !== undefined) addNum('fixedCritChancePercentFromGear', p.fixedCritChancePercentFromGear)
+  if (p.blockChanceMultiplierFromGear !== undefined) addNum('blockChanceMultiplierFromGear', p.blockChanceMultiplierFromGear)
+  if (p.cannotEvadeFromGear) eq.cannotEvadeFromGear = true
+  if (p.cannotDodgeFromGear) eq.cannotDodgeFromGear = true
 }
 
 /**
@@ -1716,20 +1762,25 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     * eq.evasionMoreMultFromGear
     * eq.defencesLessMultFromGear
   )
+  if (eq.cannotEvadeFromGear) evasionRating = 0
 
   // -------------------------------------------------------------------------
   // 12. Block and dodge
   // -------------------------------------------------------------------------
   // Dragoon class bonus: +25% to maximum block chance (75 → 100)
   const maxBlockChance = (bonus('dragoon') ? 100 : 75) + eq.maxBlockChanceBonusFromGear
-  const blockChance = Math.min(maxBlockChance, u('increasedChanceToBlock') + eq.blockChanceFromGear)
+  let blockChance = Math.min(maxBlockChance, u('increasedChanceToBlock') + eq.blockChanceFromGear)
+  if (eq.blockChanceMultiplierFromGear !== 1) {
+    blockChance = Math.min(maxBlockChance, blockChance * eq.blockChanceMultiplierFromGear)
+  }
   const maxDodgeCap = 75 + eq.maxDodgeChanceBonusFromGear
-  const dodgeChance = Math.min(
+  let dodgeChance = Math.min(
     maxDodgeCap,
     u('increasedChanceToDodge')
       + eq.dodgeChanceFromGear
       + eq.dodgeChancePer10DexFromGear * (dex / 10)
   )
+  if (eq.cannotDodgeFromGear) dodgeChance = 0
 
   // -------------------------------------------------------------------------
   // 13. Resistances
@@ -1976,6 +2027,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const attackCritFlatBase =
     baseCritChance + critFromAssassin + eq.attackBaseCritChanceBonusFromGear + eq.critChanceBonus
   let critChance = Math.min(100, attackCritFlatBase * (1 + critFromUpgrades / 100))
+  if (eq.fixedCritChancePercentFromGear > 0) {
+    critChance = Math.max(0, Math.min(100, eq.fixedCritChancePercentFromGear))
+  }
 
   // -------------------------------------------------------------------------
   // 16b. Critical damage multiplier (same shape: flat base × (1 + increased%/100))
@@ -2771,6 +2825,15 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const nonDamagingAilmentEffectIncreasedPercent = eq.nonDamagingAilmentEffectIncreasedFromGear
   const chillInflictEffectMult = eq.chillInflictEffectMultFromGear
   const dealNoDamageExceptCrit = eq.dealNoDamageExceptCritFromGear
+
+  const maxShockEffect = 50 + eq.maxShockEffectBonusFromGear
+  const maxChillEffect = 30 + eq.maxChillEffectBonusFromGear
+  const increasedShockEffect = eq.increasedShockEffectFromGear
+  const shockDurationMultiplier = eq.shockDurationMoreMultFromGear
+  const enemiesDealLessDamagePercent = eq.enemiesDealLessDamageFromGear
+  const enemiesMoreSpeedMultiplier = 1 + eq.enemiesHaveMoreSpeedFromGear / 100
+  const enemyResistancesEqualToYours = eq.enemyResistancesEqualToYoursFromGear
+  const enemiesUnaffectedByChill = eq.enemiesUnaffectedByChillFromGear
 
   const damageTakenToManaFirstPercent = eq.damageTakenToManaFirstPercentFromGear
   const lifeRecoveredOnKillPercent = eq.lifeRecoveredOnKillPercentFromGear
@@ -3596,6 +3659,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     elementalDamageTakenAsChaosPercent,
     reducedPhysicalDamageTaken,
     nonDamagingAilmentEffectIncreasedPercent,
+    maxShockEffect,
+    maxChillEffect,
+    increasedShockEffect,
+    shockDurationMultiplier,
+    enemiesDealLessDamagePercent,
+    enemiesMoreSpeedMultiplier,
+    enemyResistancesEqualToYours,
+    enemiesUnaffectedByChill,
     chillInflictEffectMult,
     dealNoDamageExceptCrit,
     damageTakenToManaFirstPercent,

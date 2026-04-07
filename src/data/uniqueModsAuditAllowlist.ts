@@ -46,15 +46,14 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   // Not-yet-modeled combat mechanics / scaling rules
   { re: /increased attribute requirements$/i, reason: "Attribute requirement scaling not modeled" },
   { re: /chance to avoid (?:elemental )?ailments$/i, reason: "Ailment avoidance not modeled" },
-  { re: /maximum shock effect$/i, reason: "Shock cap not modeled" },
-  { re: /maximum chill effect$/i, reason: "Chill cap not modeled" },
+  // (modeled) max shock/chill caps now affect battle sim
   { re: /more speed per/i, reason: "Conditional self-state speed scaling not modeled" },
   { re: /more attack and cast speed per/i, reason: "Conditional resource-based speed scaling not modeled" },
   { re: /more accuracy rating per/i, reason: "Conditional attack-time scaling not modeled" },
   { re: /increased effect of modifiers gained from class passives/i, reason: "Class-passive modifier mirroring not modeled" },
   { re: /increased melee critical hit chance per 10 intelligence/i, reason: "Attribute-scaled crit for melee only not modeled" },
   { re: /increased range attack damage per 10 strength/i, reason: "Attribute-scaled ranged damage not modeled" },
-  { re: /increased shock effect/i, reason: "Shock effect scaling not modeled" },
+  // (modeled) increased shock effect now affects battle sim
   { re: /increased recovery from all sources/i, reason: "Global recovery scaling not modeled" },
   { re: /chance to reduce no damage on block/i, reason: "Block variance not modeled" },
   { re: /mana regeneration per second applies to your energy shield instead/i, reason: "Mana→ES regen conversion not modeled" },
@@ -67,10 +66,7 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /counts as dual-wielding/i, reason: "Dual-wield tag mechanics not modeled" },
   { re: /critical hits have a 100% chance to inflict poison/i, reason: "Crit-conditional ailment overrides not modeled" },
   { re: /critical hits have a 100% chance to inflict elemental ailments/i, reason: "Crit-conditional ailment overrides not modeled" },
-  { re: /elemental resistances of enemies are equal to yours/i, reason: "Enemy resistance mirroring not modeled" },
-  { re: /enemies are unaffected by chill/i, reason: "Enemy ailment immunity not modeled" },
-  { re: /enemies deal \d+% less damage/i, reason: "Enemy outgoing damage modifiers not modeled" },
-  { re: /enemies have \d+% more speed/i, reason: "Enemy speed modifiers not modeled" },
+  // (modeled) enemy resistance mirroring + chill immunity + enemy less dmg / more speed now affect battle sim
   { re: /excess recovery from life leech is applied to your energy shield instead/i, reason: "Leech overflow to ES not modeled" },
   { re: /gain armour equal to \d+% of maximum mana/i, reason: "Cross-stat conversion (mana→armour) not modeled" },
   { re: /^if your death was prevented/i, reason: "Stage-based death prevention mechanics not modeled" },

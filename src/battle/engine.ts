@@ -126,11 +126,16 @@ function mitigatedPlayerHitVsArmour(enemy: DemoEnemyDef, stats: ComputedBuildSta
   let lightOut = afterArmour(lightAmt, 'lightning')
   let chaosOut = afterArmour(chaosAmt, 'chaos')
 
-  // Apply resistances
-  const fr = Math.max(0, (enemy.fireResistancePercent ?? 0) - (stats.firePenetrationPercent ?? 0) - elePen)
-  const cr = Math.max(0, (enemy.coldResistancePercent ?? 0) - (stats.coldPenetrationPercent ?? 0) - elePen)
-  const lr = Math.max(0, (enemy.lightningResistancePercent ?? 0) - (stats.lightningPenetrationPercent ?? 0) - elePen)
-  const chr = Math.max(0, (enemy.chaosResistancePercent ?? 0) - (stats.chaosPenetrationPercent ?? 0))
+  // Apply resistances (optionally mirrored to player resists)
+  const enemyFire = stats.enemyResistancesEqualToYours ? stats.fireRes : (enemy.fireResistancePercent ?? 0)
+  const enemyCold = stats.enemyResistancesEqualToYours ? stats.coldRes : (enemy.coldResistancePercent ?? 0)
+  const enemyLight = stats.enemyResistancesEqualToYours ? stats.lightningRes : (enemy.lightningResistancePercent ?? 0)
+  const enemyChaos = stats.enemyResistancesEqualToYours ? stats.chaosRes : (enemy.chaosResistancePercent ?? 0)
+
+  const fr = Math.max(0, enemyFire - (stats.firePenetrationPercent ?? 0) - elePen)
+  const cr = Math.max(0, enemyCold - (stats.coldPenetrationPercent ?? 0) - elePen)
+  const lr = Math.max(0, enemyLight - (stats.lightningPenetrationPercent ?? 0) - elePen)
+  const chr = Math.max(0, enemyChaos - (stats.chaosPenetrationPercent ?? 0))
 
   if (fr  > 0) fireOut  *= 1 - fr  / 100
   if (cr  > 0) coldOut  *= 1 - cr  / 100
@@ -144,6 +149,7 @@ function enemyApsMultiplier(stats: ComputedBuildStats): number {
   let m = 1
   if (stats.classBonusesActive.includes('windrunner')) m *= 1 - 0.1
   if (stats.classBonusesActive.includes('trickster')) m *= 1 - 0.05
+  if ((stats.enemiesMoreSpeedMultiplier ?? 1) !== 1) m *= stats.enemiesMoreSpeedMultiplier ?? 1
   return m
 }
 
@@ -459,8 +465,10 @@ function applyPlayerAilmentsOnHit(
     const pShock = Math.min(100, gen + stats.shockInflictChanceBonus)
     if (Math.random() * 100 < pShock) {
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.lightning, enemyMaxLife, 0)
-      const shock = Math.min(50, Math.max(5, effectPct * 1.15 * ndMult))
-      const dur = getBaseShockChillDurationSec() * durMult
+      const shockCap = stats.maxShockEffect ?? 50
+      const shockIncMult = 1 + (stats.increasedShockEffect ?? 0) / 100
+      const shock = Math.min(shockCap, Math.max(5, effectPct * 1.15 * ndMult * shockIncMult))
+      const dur = getBaseShockChillDurationSec() * durMult * (stats.shockDurationMultiplier ?? 1)
       state.shocks.push({ magnitudePct: shock, expiresAt: t + dur })
       debuffEvents.push({ t, kind: 'shock', magnitudePct: shock, durationSec: dur })
       tryLogAilment(
@@ -473,7 +481,13 @@ function applyPlayerAilmentsOnHit(
     const pChill = Math.min(100, gen + stats.chillInflictChanceBonus)
     if (Math.random() * 100 < pChill) {
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.cold, enemyMaxLife, 0)
-      const chillPct = Math.min(30, Math.max(5, effectPct * 0.85 * ndMult * chillOutMult))
+      if (stats.enemiesUnaffectedByChill) {
+        // modeled: some uniques make enemies immune to chill
+        tryLogAilment(`Ailment — Chill prevented (enemy unaffected by chill)`)
+        return
+      }
+      const chillCap = stats.maxChillEffect ?? 30
+      const chillPct = Math.min(chillCap, Math.max(5, effectPct * 0.85 * ndMult * chillOutMult))
       const dur = getBaseShockChillDurationSec() * durMult
       state.chills.push({ magnitudePct: chillPct, expiresAt: t + dur })
       debuffEvents.push({ t, kind: 'chill', magnitudePct: chillPct, durationSec: dur })
@@ -533,6 +547,10 @@ function resolveEnemyAttack(
 
   if (stats.classBonusesActive.includes('trickster')) {
     raw *= 1 - 0.05
+  }
+
+  if ((stats.enemiesDealLessDamagePercent ?? 0) !== 0) {
+    raw *= Math.max(0.05, 1 - (stats.enemiesDealLessDamagePercent ?? 0) / 100)
   }
 
   if (stats.classBonusesActive.includes('berserker')) {

@@ -10,8 +10,8 @@
     "generate:uniques": "python3 scripts/generate_eoc_uniques.py",
     "generate:abilities": "python3 scripts/generate_eoc_abilities.py",
     "audit:uniques": "tsx scripts/audit_unique_mods.ts",
-    "test": "npm run audit:uniques",
-    "check": "npm run build && npm run audit:uniques"
+    "test": "npm run audit:uniques && tsx scripts/test_modeled_uniques.ts",
+    "check": "npm run build && npm run test"
   },
   "dependencies": {
     "next": "16.2.2",
