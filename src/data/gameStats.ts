@@ -619,6 +619,23 @@ export interface EquipmentModifiers {
   cannotRecoverLifeWhileAboveHalfLifeFromGear: boolean
   armourHasNoEffectWhileBelowHalfLifeFromGear: boolean
   sacrificeCurrentManaPercentPerSecondFromGear: number
+
+  poisonYouInflictReflectedToYouFromGear: boolean
+  elementalAilmentsYouInflictReflectedToYouFromGear: boolean
+  moreSpeedPerPoisonOnYouPercentFromGear: number
+  moreSpeedPerShockEffectOnYouPerPctFromGear: number
+  lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear: number
+  unaffectedByChillFromGear: boolean
+
+  manaRecoveredOnKillPercentFromGear: number
+  moreAttackAndCastSpeedPer50CurrentManaPctFromGear: number
+  moreAccuracyRatingPer0_1sAttackTimePctFromGear: number
+
+  poisonDamageTakenLessPercentFromGear: number
+  flatLifeRegenPerSecondPerCharacterLevelFromGear: number
+
+  loseLifePerSecondFromGear: number
+  takeChaosDamagePerSecondFromGear: number
 }
 
 export interface ComputedBuildStats {
@@ -675,6 +692,19 @@ export interface ComputedBuildStats {
   cannotRecoverLifeWhileAboveHalfLife: boolean
   armourHasNoEffectWhileBelowHalfLife: boolean
   sacrificeCurrentManaPercentPerSecond: number
+  poisonYouInflictReflectedToYou: boolean
+  elementalAilmentsYouInflictReflectedToYou: boolean
+  moreSpeedPerPoisonOnYouPercent: number
+  moreSpeedPerShockEffectOnYouPerPct: number
+  lifeRegenPercentOfMaxPerSecondWhileIgnited: number
+  unaffectedByChill: boolean
+  manaRecoveredOnKillPercent: number
+  moreAttackAndCastSpeedPer50CurrentManaPct: number
+  moreAccuracyRatingPer0_1sAttackTimePct: number
+  poisonDamageTakenLessPercent: number
+  flatLifeRegenPerSecond: number
+  loseLifePerSecond: number
+  takeChaosDamagePerSecond: number
   lifeRecoveryPct: number
   esRecoveryPct: number
 
@@ -1022,6 +1052,19 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     cannotRecoverLifeWhileAboveHalfLifeFromGear: false,
     armourHasNoEffectWhileBelowHalfLifeFromGear: false,
     sacrificeCurrentManaPercentPerSecondFromGear: 0,
+    poisonYouInflictReflectedToYouFromGear: false,
+    elementalAilmentsYouInflictReflectedToYouFromGear: false,
+    moreSpeedPerPoisonOnYouPercentFromGear: 0,
+    moreSpeedPerShockEffectOnYouPerPctFromGear: 0,
+    lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear: 0,
+    unaffectedByChillFromGear: false,
+    manaRecoveredOnKillPercentFromGear: 0,
+    moreAttackAndCastSpeedPer50CurrentManaPctFromGear: 0,
+    moreAccuracyRatingPer0_1sAttackTimePctFromGear: 0,
+    poisonDamageTakenLessPercentFromGear: 0,
+    flatLifeRegenPerSecondPerCharacterLevelFromGear: 0,
+    loseLifePerSecondFromGear: 0,
+    takeChaosDamagePerSecondFromGear: 0,
   }
 }
 
@@ -1446,6 +1489,29 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.sacrificeCurrentManaPercentPerSecondFromGear !== undefined) {
     addNum('sacrificeCurrentManaPercentPerSecondFromGear', p.sacrificeCurrentManaPercentPerSecondFromGear)
   }
+  if (p.poisonYouInflictReflectedToYouFromGear) eq.poisonYouInflictReflectedToYouFromGear = true
+  if (p.elementalAilmentsYouInflictReflectedToYouFromGear) eq.elementalAilmentsYouInflictReflectedToYouFromGear = true
+  if (p.moreSpeedPerPoisonOnYouPercentFromGear !== undefined) addNum('moreSpeedPerPoisonOnYouPercentFromGear', p.moreSpeedPerPoisonOnYouPercentFromGear)
+  if (p.moreSpeedPerShockEffectOnYouPerPctFromGear !== undefined) addNum('moreSpeedPerShockEffectOnYouPerPctFromGear', p.moreSpeedPerShockEffectOnYouPerPctFromGear)
+  if (p.lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear !== undefined) {
+    addNum('lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear', p.lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear)
+  }
+  if (p.unaffectedByChillFromGear) eq.unaffectedByChillFromGear = true
+  if (p.manaRecoveredOnKillPercentFromGear !== undefined) addNum('manaRecoveredOnKillPercentFromGear', p.manaRecoveredOnKillPercentFromGear)
+  if (p.moreAttackAndCastSpeedPer50CurrentManaPctFromGear !== undefined) {
+    addNum('moreAttackAndCastSpeedPer50CurrentManaPctFromGear', p.moreAttackAndCastSpeedPer50CurrentManaPctFromGear)
+  }
+  if (p.moreAccuracyRatingPer0_1sAttackTimePctFromGear !== undefined) {
+    addNum('moreAccuracyRatingPer0_1sAttackTimePctFromGear', p.moreAccuracyRatingPer0_1sAttackTimePctFromGear)
+  }
+  if (p.poisonDamageTakenLessPercentFromGear !== undefined) {
+    addNum('poisonDamageTakenLessPercentFromGear', p.poisonDamageTakenLessPercentFromGear)
+  }
+  if (p.flatLifeRegenPerSecondPerCharacterLevelFromGear !== undefined) {
+    addNum('flatLifeRegenPerSecondPerCharacterLevelFromGear', p.flatLifeRegenPerSecondPerCharacterLevelFromGear)
+  }
+  if (p.loseLifePerSecondFromGear !== undefined) addNum('loseLifePerSecondFromGear', p.loseLifePerSecondFromGear)
+  if (p.takeChaosDamagePerSecondFromGear !== undefined) addNum('takeChaosDamagePerSecondFromGear', p.takeChaosDamagePerSecondFromGear)
 }
 
 /**
@@ -1849,7 +1915,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     BASE_GAME_STATS.baseAccuracy + (bonus('rogue') ? 150 : 0) + levelFlatAccuracy + eq.flatAccuracy
   const accuracyFromUpgrades =
     u('increasedAccuracyRating') + eq.pctIncreasedAccuracyFromGear
-  const accuracy = Math.round(
+  let accuracy = Math.round(
     accuracyFlatBase * (1 + accuracyFromUpgrades / 100) * eq.accuracyLessMultFromGear
   )
 
@@ -2132,6 +2198,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   const manaRegenPerSecond =
     eq.noManaFromGear ? 0 : manaRegenPerSecondRaw
+
+  // -------------------------------------------------------------------------
+  // 19b. Attack-time scaled accuracy (depends on final APS)
+  // -------------------------------------------------------------------------
+  const moreAccPer01s = eq.moreAccuracyRatingPer0_1sAttackTimePctFromGear
+  if (moreAccPer01s > 0 && aps > 0) {
+    const attackTimeSec = 1 / aps
+    const accMoreMult = 1 + (moreAccPer01s / 100) * (attackTimeSec / 0.1)
+    accuracy = Math.round(accuracy * Math.max(0.05, accMoreMult))
+  }
 
   // -------------------------------------------------------------------------
   // 20. Damage modifiers — per hit instance (after §15 conversion lineage):
@@ -2841,6 +2917,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     Math.max(0.05, 0.5 * (100 / (100 + eq.blockPowerPctFromGear)))
   )
   const lifeRegenPercentOfMaxPerSecond = eq.lifeRegenPercentOfMaxLifePerSecondFromGear
+  const flatLifeRegenPerSecond =
+    eq.flatLifeRegenPerSecondPerCharacterLevelFromGear * characterLevel
   const esRegenPercentOfMaxPerSecond = eq.esRegenPercentOfMaxPerSecondFromGear
   const enemiesTakeIncreasedDamagePercent = enemyDamageTakenIncreasedTotalPct
   const damageTakenMultiplierFromGear =
@@ -2881,6 +2959,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const lifeRecoveredOnKillPercent = eq.lifeRecoveredOnKillPercentFromGear
   const flatLifeOnKill = eq.flatLifeOnKillFromGear
   const flatManaOnKill = eq.manaOnKillFlatFromGear
+  const manaRecoveredOnKillPercent = eq.manaRecoveredOnKillPercentFromGear
   const lifeRecoveredOnBlockPercent = eq.lifeRecoveredOnBlockPercentFromGear
   const flatLifeOnBlock = eq.flatLifeOnBlockFromGear
   const manaRecoveredOnBlockPercent = eq.manaRecoveredOnBlockPercentFromGear
@@ -2895,6 +2974,17 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const cannotRecoverLifeWhileAboveHalfLife = eq.cannotRecoverLifeWhileAboveHalfLifeFromGear
   const armourHasNoEffectWhileBelowHalfLife = eq.armourHasNoEffectWhileBelowHalfLifeFromGear
   const sacrificeCurrentManaPercentPerSecond = eq.sacrificeCurrentManaPercentPerSecondFromGear
+  const poisonYouInflictReflectedToYou = eq.poisonYouInflictReflectedToYouFromGear
+  const elementalAilmentsYouInflictReflectedToYou = eq.elementalAilmentsYouInflictReflectedToYouFromGear
+  const moreSpeedPerPoisonOnYouPercent = eq.moreSpeedPerPoisonOnYouPercentFromGear
+  const moreSpeedPerShockEffectOnYouPerPct = eq.moreSpeedPerShockEffectOnYouPerPctFromGear
+  const lifeRegenPercentOfMaxPerSecondWhileIgnited = eq.lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear
+  const unaffectedByChill = eq.unaffectedByChillFromGear
+  const moreAttackAndCastSpeedPer50CurrentManaPct = eq.moreAttackAndCastSpeedPer50CurrentManaPctFromGear
+  const moreAccuracyRatingPer0_1sAttackTimePct = eq.moreAccuracyRatingPer0_1sAttackTimePctFromGear
+  const poisonDamageTakenLessPercent = eq.poisonDamageTakenLessPercentFromGear
+  const loseLifePerSecond = eq.loseLifePerSecondFromGear
+  const takeChaosDamagePerSecond = eq.takeChaosDamagePerSecondFromGear
 
   // -------------------------------------------------------------------------
   // Planner stat breakdowns (every ComputedBuildStats field)
@@ -3662,6 +3752,19 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     cannotRecoverLifeWhileAboveHalfLife,
     armourHasNoEffectWhileBelowHalfLife,
     sacrificeCurrentManaPercentPerSecond,
+    poisonYouInflictReflectedToYou,
+    elementalAilmentsYouInflictReflectedToYou,
+    moreSpeedPerPoisonOnYouPercent,
+    moreSpeedPerShockEffectOnYouPerPct,
+    lifeRegenPercentOfMaxPerSecondWhileIgnited,
+    unaffectedByChill,
+    manaRecoveredOnKillPercent,
+    moreAttackAndCastSpeedPer50CurrentManaPct,
+    moreAccuracyRatingPer0_1sAttackTimePct,
+    flatLifeRegenPerSecond,
+    poisonDamageTakenLessPercent,
+    loseLifePerSecond,
+    takeChaosDamagePerSecond,
 
     // Ailments
     bleedChance,

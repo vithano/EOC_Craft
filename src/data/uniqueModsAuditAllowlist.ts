@@ -32,7 +32,6 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /lose \d+% of maximum life at the beginning of combat/i, reason: "Enemy pre-combat life loss not modeled" },
 
   // Ailment reflection / propagation (not modeled)
-  { re: /are reflected to you/i, reason: "Ailment reflection not modeled" },
   { re: /carry on to subsequent enemies/i, reason: "Ailment propagation not modeled" },
   { re: /have infinite duration/i, reason: "Infinite ailment duration not modeled" },
 
@@ -48,8 +47,8 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /chance to avoid (?:elemental )?ailments$/i, reason: "Ailment avoidance not modeled" },
   // (modeled) max shock/chill caps now affect battle sim
   { re: /more speed per/i, reason: "Conditional self-state speed scaling not modeled" },
-  { re: /more attack and cast speed per/i, reason: "Conditional resource-based speed scaling not modeled" },
-  { re: /more accuracy rating per/i, reason: "Conditional attack-time scaling not modeled" },
+  // (modeled) speed scaling from current mana (battle sim)
+  // (modeled) attack-time scaled accuracy (planner + battle sim)
   { re: /increased effect of modifiers gained from class passives/i, reason: "Class-passive modifier mirroring not modeled" },
   { re: /increased melee critical hit chance per 10 intelligence/i, reason: "Attribute-scaled crit for melee only not modeled" },
   { re: /increased range attack damage per 10 strength/i, reason: "Attribute-scaled ranged damage not modeled" },
@@ -74,14 +73,14 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /^increased local attack speed/i, reason: "Non-standard local attack speed format not modeled" },
   { re: /leech .* from spells as energy shield/i, reason: "Spell leech to ES not modeled" },
   { re: /life leech effects apply to your energy shield instead/i, reason: "Leech to ES replacement not modeled" },
-  { re: /lose \d+ life per second/i, reason: "Self-damage over time from gear not modeled" },
+  // (modeled) self life loss per second
   // (modeled) ability costs can be paid with ES
-  { re: /poison you inflict is reflected to you/i, reason: "Ailment reflection not modeled" },
-  { re: /recover \d+% of mana on kill/i, reason: "Mana on kill % not modeled" },
-  { re: /regenerate \d+ life per second per character level/i, reason: "Level-scaled regen not modeled" },
-  { re: /regenerate \d+% of maximum life per second while you are ignited/i, reason: "Conditional regen not modeled" },
+  // (modeled) poison reflection to self (battle sim)
+  // (modeled) mana on kill %
+  // (modeled) level-scaled flat life regen
+  // (modeled) conditional regen while ignited (battle sim)
   // (modeled) current-mana sacrifice per second
-  { re: /take \d+% less poison damage/i, reason: "Poison taken multiplier not modeled" },
+  // (modeled) poison damage taken less (affects poison on you in battle sim)
   { re: /take chaos damage equal to/i, reason: "Self-damage on cast not modeled" },
   { re: /take physical damage equal to/i, reason: "Self-damage on attack not modeled" },
   { re: /aggregated effect of shock/i, reason: "Shock stacking rules not modeled" },
@@ -95,7 +94,7 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /^while you have at least 400/i, reason: "Attribute-threshold conditional lines not modeled (except Titansblood subset)" },
   { re: /^while your energy shield is below/i, reason: "Conditional self-sacrifice to restore ES not modeled" },
   { re: /^while your off-hand is empty, your first attack/i, reason: "Encounter-first-hit mechanics not modeled" },
-  { re: /you are unaffected by chill/i, reason: "Ailment immunity not modeled" },
+  // (modeled) chill immunity (battle sim: ignores chill on you)
   { re: /you cannot evade(?: or dodge)?$/i, reason: "Evasion/dodge disable not modeled" },
   { re: /you cannot evade while you have energy shield/i, reason: "Conditional evasion disable not modeled" },
   // (modeled) no-mana build state

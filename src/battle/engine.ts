@@ -38,6 +38,13 @@ interface EnemyAilmentRuntime {
   chills: NonDotAilmentInstance[]
 }
 
+interface PlayerAilmentRuntime {
+  poisons: { expiresAt: number; dps: number }[]
+  igniteUntil: number
+  shock: NonDotAilmentInstance | null
+  chill: NonDotAilmentInstance | null
+}
+
 function avgHitByDamageType(stats: ComputedBuildStats): {
   physical: number
   fire: number
@@ -238,6 +245,10 @@ function applyOnKillRecovery(player: BattleParticipantState, stats: ComputedBuil
   if (flatMana > 0) {
     player.mana = Math.min(stats.maxMana, player.mana + flatMana)
   }
+  const manaPct = stats.manaRecoveredOnKillPercent ?? 0
+  if (manaPct > 0 && stats.maxMana > 0) {
+    player.mana = Math.min(stats.maxMana, player.mana + stats.maxMana * (manaPct / 100))
+  }
 }
 
 function applyBlockRecovery(
@@ -413,6 +424,7 @@ function applyPlayerAilmentsOnHit(
   enemyMaxLife: number,
   t: number,
   state: EnemyAilmentRuntime,
+  playerAilments: PlayerAilmentRuntime,
   log: BattleLogEntry[],
   maxLog: number,
   debuffEvents: EnemyDebuffEvent[]
@@ -447,6 +459,10 @@ function applyPlayerAilmentsOnHit(
       expiresAt: t + BASE_POISON_SEC * durMult,
     })
     tryLogAilment(`Ailment — Poison (DoT): ~${dps.toFixed(1)} DPS for ${(BASE_POISON_SEC * durMult).toFixed(1)}s`)
+    if (stats.poisonYouInflictReflectedToYou ?? false) {
+      playerAilments.poisons.push({ expiresAt: t + BASE_POISON_SEC * durMult, dps })
+      tryLogAilment(`Ailment — Poison reflected to you (${(BASE_POISON_SEC * durMult).toFixed(1)}s)`)
+    }
   }
 
   const gen = stats.elementalAilmentChance
@@ -467,6 +483,10 @@ function applyPlayerAilmentsOnHit(
       tryLogAilment(
         `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${(BASE_IGNITE_SEC * ignDur).toFixed(1)}s`
       )
+      if (stats.elementalAilmentsYouInflictReflectedToYou ?? false) {
+        playerAilments.igniteUntil = Math.max(playerAilments.igniteUntil, t + BASE_IGNITE_SEC * ignDur)
+        tryLogAilment(`Ailment — Ignite reflected to you (${(BASE_IGNITE_SEC * ignDur).toFixed(1)}s)`)
+      }
     }
   }
 
@@ -483,6 +503,15 @@ function applyPlayerAilmentsOnHit(
       tryLogAilment(
         `Ailment — Shock: enemy takes +${shock.toFixed(0)}% damage from your hits (${dur.toFixed(1)}s)`
       )
+      if (stats.elementalAilmentsYouInflictReflectedToYou ?? false) {
+        if (!playerAilments.shock || playerAilments.shock.expiresAt <= t) {
+          playerAilments.shock = { magnitudePct: shock, expiresAt: t + dur }
+        } else {
+          playerAilments.shock.magnitudePct = Math.max(playerAilments.shock.magnitudePct, shock)
+          playerAilments.shock.expiresAt = Math.max(playerAilments.shock.expiresAt, t + dur)
+        }
+        tryLogAilment(`Ailment — Shock reflected to you (+${shock.toFixed(0)}%, ${dur.toFixed(1)}s)`)
+      }
     }
   }
 
@@ -503,6 +532,15 @@ function applyPlayerAilmentsOnHit(
       tryLogAilment(
         `Ailment — Chill: enemy action speed −${chillPct.toFixed(0)}% (${dur.toFixed(1)}s)`
       )
+      if ((stats.elementalAilmentsYouInflictReflectedToYou ?? false) && !(stats.unaffectedByChill ?? false)) {
+        if (!playerAilments.chill || playerAilments.chill.expiresAt <= t) {
+          playerAilments.chill = { magnitudePct: chillPct, expiresAt: t + dur }
+        } else {
+          playerAilments.chill.magnitudePct = Math.max(playerAilments.chill.magnitudePct, chillPct)
+          playerAilments.chill.expiresAt = Math.max(playerAilments.chill.expiresAt, t + dur)
+        }
+        tryLogAilment(`Ailment — Chill reflected to you (−${chillPct.toFixed(0)}%, ${dur.toFixed(1)}s)`)
+      }
     }
   }
 }
@@ -660,6 +698,13 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     chills: [],
   }
 
+  const playerAilments: PlayerAilmentRuntime = {
+    poisons: [],
+    igniteUntil: 0,
+    shock: null,
+    chill: null,
+  }
+
   const log: BattleLogEntry[] = [
     { t: 0, kind: 'phase', message: `Encounter: ${enemy.name}` },
   ]
@@ -679,6 +724,11 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     ailmentState.dots = ailmentState.dots.filter((d) => d.expiresAt > t)
     ailmentState.shocks = ailmentState.shocks.filter((s) => s.expiresAt > t)
     ailmentState.chills = ailmentState.chills.filter((c) => c.expiresAt > t)
+
+    playerAilments.poisons = playerAilments.poisons.filter((p) => p.expiresAt > t)
+    if (playerAilments.igniteUntil <= t) playerAilments.igniteUntil = 0
+    if (playerAilments.shock && playerAilments.shock.expiresAt <= t) playerAilments.shock = null
+    if (playerAilments.chill && playerAilments.chill.expiresAt <= t) playerAilments.chill = null
     let dotDpsBleed = 0
     let dotDpsPoison = 0
     let dotDpsIgnite = 0
@@ -736,7 +786,22 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       lastDebuffPulseT = t
     }
 
-    const pAps = playerApsWithBerserker(stats, player.life)
+    const poisonCount = playerAilments.poisons.length
+    const shockOnYou = playerAilments.shock?.magnitudePct ?? 0
+    const chillOnYou = (stats.unaffectedByChill ?? false) ? 0 : (playerAilments.chill?.magnitudePct ?? 0)
+    const chillSelfMult = Math.max(0.05, 1 - chillOnYou / 100)
+
+    let speedMult = chillSelfMult
+    const morePerPoison = stats.moreSpeedPerPoisonOnYouPercent ?? 0
+    if (morePerPoison > 0 && poisonCount > 0) speedMult *= 1 + (morePerPoison * poisonCount) / 100
+    const morePerShockPct = stats.moreSpeedPerShockEffectOnYouPerPct ?? 0
+    if (morePerShockPct > 0 && shockOnYou > 0) speedMult *= 1 + (morePerShockPct * shockOnYou) / 100
+    const moreAtkCastPer50Mana = stats.moreAttackAndCastSpeedPer50CurrentManaPct ?? 0
+    if (moreAtkCastPer50Mana > 0 && player.mana > 0) {
+      speedMult *= 1 + (moreAtkCastPer50Mana / 100) * (player.mana / 50)
+    }
+
+    const pAps = playerApsWithBerserker(stats, player.life) * speedMult
 
     if (t + 1e-9 >= nextPlayer) {
       const cost = stats.manaCostPerAttack
@@ -791,6 +856,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
             enemy.maxLife,
             t,
             ailmentState,
+            playerAilments,
             log,
             maxLog,
             enemyDebuffEvents
@@ -842,7 +908,10 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         player.energyShield = Math.min(stats.maxEnergyShield, player.energyShield + toEs)
       }
     }
-    const lifeRegenPct = stats.lifeRegenPercentOfMaxPerSecond ?? 0
+    const ignited = playerAilments.igniteUntil > t
+    const baseLifeRegenPct = stats.lifeRegenPercentOfMaxPerSecond ?? 0
+    const ignitedBonus = ignited ? (stats.lifeRegenPercentOfMaxPerSecondWhileIgnited ?? 0) : 0
+    const lifeRegenPct = baseLifeRegenPct + ignitedBonus
     if (lifeRegenPct > 0 && player.life > 0) {
       const rec = stats.lifeRecoveryRateMult ?? 1
       if (lifeRecoveryAllowed(player, stats)) {
@@ -850,6 +919,40 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           stats.maxLife,
           player.life + stats.maxLife * (lifeRegenPct / 100) * dt * rec
         )
+      }
+    }
+    const flatLifeRegen = stats.flatLifeRegenPerSecond ?? 0
+    if (flatLifeRegen > 0 && player.life > 0 && lifeRecoveryAllowed(player, stats)) {
+      const rec = stats.lifeRecoveryRateMult ?? 1
+      player.life = Math.min(stats.maxLife, player.life + flatLifeRegen * dt * rec)
+    }
+
+    // Poison damage on player (currently only sourced from reflected poison in this demo model)
+    const poisonTakenLess = Math.min(100, Math.max(0, stats.poisonDamageTakenLessPercent ?? 0))
+    let poisonSelfDps = 0
+    for (const p of playerAilments.poisons) poisonSelfDps += p.dps
+    if (poisonSelfDps > 0) {
+      const tick = poisonSelfDps * dt * (1 - poisonTakenLess / 100)
+      player.life = Math.max(0, player.life - tick)
+      if (log.length < maxLog && tick > 0.01) {
+        log.push({ t, kind: 'dot_tick', message: `DoT — Poison on you: ${tick.toFixed(1)} (${(poisonSelfDps * (1 - poisonTakenLess / 100)).toFixed(1)} DPS)`, damage: tick })
+      }
+    }
+
+    // Flat self damage over time from gear
+    const loseLife = stats.loseLifePerSecond ?? 0
+    if (loseLife > 0) {
+      player.life = Math.max(0, player.life - loseLife * dt)
+      if (log.length < maxLog && loseLife * dt > 0.01) {
+        log.push({ t, kind: 'dot_tick', message: `DoT — You lose ${loseLife.toFixed(0)} life/s`, damage: loseLife * dt })
+      }
+    }
+    const chaosDps = stats.takeChaosDamagePerSecond ?? 0
+    if (chaosDps > 0) {
+      // Simplified: treat as direct life loss (ignores ES / chaos bypass rules)
+      player.life = Math.max(0, player.life - chaosDps * dt)
+      if (log.length < maxLog && chaosDps * dt > 0.01) {
+        log.push({ t, kind: 'dot_tick', message: `DoT — You take ${chaosDps.toFixed(0)} chaos damage/s`, damage: chaosDps * dt })
       }
     }
     const esRegenPct = stats.esRegenPercentOfMaxPerSecond ?? 0

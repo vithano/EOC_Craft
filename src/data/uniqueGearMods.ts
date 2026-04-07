@@ -282,6 +282,25 @@ export interface UniqueGearStatPatch {
   cannotRecoverLifeWhileAboveHalfLifeFromGear?: boolean;
   armourHasNoEffectWhileBelowHalfLifeFromGear?: boolean;
   sacrificeCurrentManaPercentPerSecondFromGear?: number;
+
+  // Player ailment / self-state interactions
+  poisonYouInflictReflectedToYouFromGear?: boolean;
+  elementalAilmentsYouInflictReflectedToYouFromGear?: boolean;
+  moreSpeedPerPoisonOnYouPercentFromGear?: number;
+  moreSpeedPerShockEffectOnYouPerPctFromGear?: number;
+  lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear?: number;
+  unaffectedByChillFromGear?: boolean;
+
+  // Current-resource / timing-scaled stats
+  manaRecoveredOnKillPercentFromGear?: number;
+  moreAttackAndCastSpeedPer50CurrentManaPctFromGear?: number;
+  moreAccuracyRatingPer0_1sAttackTimePctFromGear?: number;
+
+  poisonDamageTakenLessPercentFromGear?: number;
+  flatLifeRegenPerSecondPerCharacterLevelFromGear?: number;
+
+  loseLifePerSecondFromGear?: number;
+  takeChaosDamagePerSecondFromGear?: number;
 }
 
 function num(m: RegExpMatchArray | null, g = 1): number | null {
@@ -786,6 +805,63 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/sacrifice\s+([\d.]+)%\s+of\s+your\s+current\s+mana\s+per\s+second\b/i);
     if (m) add({ sacrificeCurrentManaPercentPerSecondFromGear: num(m)! });
+
+    if (/poison you inflict is reflected to you\b/i.test(low)) {
+      acc.poisonYouInflictReflectedToYouFromGear = true;
+      mark();
+    }
+
+    if (/elemental ailments you inflict are reflected to you\b/i.test(low)) {
+      acc.elementalAilmentsYouInflictReflectedToYouFromGear = true;
+      mark();
+    }
+
+    m = l.match(/([\d.]+)%\s+more\s+speed\s+per\s+poison\s+on\s+you\b/i);
+    if (m) add({ moreSpeedPerPoisonOnYouPercentFromGear: num(m)! });
+
+    m = l.match(/([\d.]+)%\s+more\s+speed\s+per\s+([\d.]+)%\s+effect\s+of\s+shock\s+applied\s+to\s+you\b/i);
+    if (m) {
+      const more = num(m, 1)!
+      const per = num(m, 2)!
+      if (per > 0) add({ moreSpeedPerShockEffectOnYouPerPctFromGear: more / per })
+    }
+
+    m = l.match(/regenerate\s+([\d.]+)%\s+of\s+maximum\s+life\s+per\s+second\s+while\s+you\s+are\s+ignited\b/i);
+    if (m) add({ lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear: num(m)! });
+
+    if (/you are unaffected by chill\b/i.test(low)) {
+      acc.unaffectedByChillFromGear = true;
+      mark();
+    }
+
+    m = l.match(/recover\s+([\d.]+)%\s+of\s+mana\s+on\s+kill\b/i);
+    if (m) add({ manaRecoveredOnKillPercentFromGear: num(m)! });
+
+    m = l.match(/([\d.]+)%\s+more\s+attack\s+and\s+cast\s+speed\s+per\s+([\d.]+)\s+current\s+mana\b/i);
+    if (m) {
+      const more = num(m, 1)!
+      const per = num(m, 2)!
+      if (per > 0) add({ moreAttackAndCastSpeedPer50CurrentManaPctFromGear: (more / per) * 50 })
+    }
+
+    m = l.match(/([\d.]+)%\s+more\s+accuracy\s+rating\s+per\s+([\d.]+)\s+seconds?\s+of\s+attack\s+time\b/i);
+    if (m) {
+      const more = num(m, 1)!
+      const per = num(m, 2)!
+      if (per > 0) add({ moreAccuracyRatingPer0_1sAttackTimePctFromGear: (more / per) * 0.1 })
+    }
+
+    m = l.match(/take\s+([\d.]+)%\s+less\s+poison\s+damage\b/i);
+    if (m) add({ poisonDamageTakenLessPercentFromGear: num(m)! });
+
+    m = l.match(/regenerate\s+([\d.]+)\s+life\s+per\s+second\s+per\s+character\s+level\b/i);
+    if (m) add({ flatLifeRegenPerSecondPerCharacterLevelFromGear: num(m)! });
+
+    m = l.match(/lose\s+([\d.]+)\s+life\s+per\s+second\b/i);
+    if (m) add({ loseLifePerSecondFromGear: num(m)! });
+
+    m = l.match(/take\s+([\d.]+)\s+chaos\s+damage\s+per\s+second\b/i);
+    if (m) add({ takeChaosDamagePerSecondFromGear: num(m)! });
 
     m = l.match(
       /regenerate\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+life\s+per\s+second\b/i

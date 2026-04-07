@@ -101,6 +101,142 @@ function main() {
     assert(Boolean(stats.armourHasNoEffectWhileBelowHalfLife), "Expected stats.armourHasNoEffectWhileBelowHalfLife true");
   }
 
+  // The Melding / Venofrenzy / Wintermarch: self-ailment state mechanics
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      [
+        "Poison you inflict is reflected to you",
+        "Elemental Ailments you inflict are reflected to you",
+        "1% more speed per poison on you",
+        "1% more speed per 1% effect of shock applied to you",
+        "Regenerate 5% of maximum life per second while you are ignited",
+        "You are unaffected by chill",
+      ],
+      { isWeapon: false }
+    );
+    assert(Boolean(patch.poisonYouInflictReflectedToYouFromGear), "Expected poison reflect flag");
+    assert(Boolean(patch.elementalAilmentsYouInflictReflectedToYouFromGear), "Expected elemental reflect flag");
+    assert(patch.moreSpeedPerPoisonOnYouPercentFromGear === 1, `Expected moreSpeedPerPoison=1, got ${patch.moreSpeedPerPoisonOnYouPercentFromGear}`);
+    assert(
+      Math.abs((patch.moreSpeedPerShockEffectOnYouPerPctFromGear ?? 0) - 1) < 1e-9,
+      `Expected moreSpeedPerShockEffectOnYouPerPct=1, got ${patch.moreSpeedPerShockEffectOnYouPerPctFromGear}`
+    );
+    assert(
+      patch.lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear === 5,
+      `Expected ignited regen=5, got ${patch.lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear}`
+    );
+    assert(Boolean(patch.unaffectedByChillFromGear), "Expected unaffectedByChillFromGear true");
+
+    const eq = emptyEquipmentModifiers();
+    eq.poisonYouInflictReflectedToYouFromGear = true;
+    eq.elementalAilmentsYouInflictReflectedToYouFromGear = true;
+    eq.moreSpeedPerPoisonOnYouPercentFromGear = 1;
+    eq.moreSpeedPerShockEffectOnYouPerPctFromGear = 1;
+    eq.lifeRegenPercentOfMaxPerSecondWhileIgnitedFromGear = 5;
+    eq.unaffectedByChillFromGear = true;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(Boolean(stats.poisonYouInflictReflectedToYou), "Expected stats poisonYouInflictReflectedToYou true");
+    assert(Boolean(stats.elementalAilmentsYouInflictReflectedToYou), "Expected stats elementalAilmentsYouInflictReflectedToYou true");
+    assert(stats.moreSpeedPerPoisonOnYouPercent === 1, `Expected stats.moreSpeedPerPoisonOnYouPercent=1, got ${stats.moreSpeedPerPoisonOnYouPercent}`);
+    assert(Math.abs(stats.moreSpeedPerShockEffectOnYouPerPct - 1) < 1e-9, `Expected stats.moreSpeedPerShockEffectOnYouPerPct=1, got ${stats.moreSpeedPerShockEffectOnYouPerPct}`);
+    assert(stats.lifeRegenPercentOfMaxPerSecondWhileIgnited === 5, `Expected stats.lifeRegenWhileIgnited=5, got ${stats.lifeRegenPercentOfMaxPerSecondWhileIgnited}`);
+    assert(Boolean(stats.unaffectedByChill), "Expected stats.unaffectedByChill true");
+  }
+
+  // Prowlsight / The Parallax: attack-time accuracy + current-mana speed scaling + mana on kill %
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      [
+        "10% more accuracy rating per 0.1 seconds of attack time",
+        "1% more attack and cast speed per 50 current mana",
+        "Recover 7% of mana on kill",
+      ],
+      { isWeapon: false }
+    );
+    assert(
+      Math.abs((patch.moreAccuracyRatingPer0_1sAttackTimePctFromGear ?? 0) - 10) < 1e-9,
+      `Expected moreAccPer0.1s=10, got ${patch.moreAccuracyRatingPer0_1sAttackTimePctFromGear}`
+    );
+    assert(
+      Math.abs((patch.moreAttackAndCastSpeedPer50CurrentManaPctFromGear ?? 0) - 1) < 1e-9,
+      `Expected moreAtkCastPer50Mana=1, got ${patch.moreAttackAndCastSpeedPer50CurrentManaPctFromGear}`
+    );
+    assert(
+      patch.manaRecoveredOnKillPercentFromGear === 7,
+      `Expected manaRecoveredOnKillPercentFromGear=7, got ${patch.manaRecoveredOnKillPercentFromGear}`
+    );
+
+    const eq = emptyEquipmentModifiers();
+    eq.moreAccuracyRatingPer0_1sAttackTimePctFromGear = 10;
+    eq.moreAttackAndCastSpeedPer50CurrentManaPctFromGear = 1;
+    eq.manaRecoveredOnKillPercentFromGear = 7;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(
+      Math.abs(stats.moreAccuracyRatingPer0_1sAttackTimePct - 10) < 1e-9,
+      `Expected stats.moreAccuracyRatingPer0_1sAttackTimePct=10, got ${stats.moreAccuracyRatingPer0_1sAttackTimePct}`
+    );
+    assert(
+      Math.abs(stats.moreAttackAndCastSpeedPer50CurrentManaPct - 1) < 1e-9,
+      `Expected stats.moreAttackAndCastSpeedPer50CurrentManaPct=1, got ${stats.moreAttackAndCastSpeedPer50CurrentManaPct}`
+    );
+    assert(
+      stats.manaRecoveredOnKillPercent === 7,
+      `Expected stats.manaRecoveredOnKillPercent=7, got ${stats.manaRecoveredOnKillPercent}`
+    );
+  }
+
+  // Venofrenzy / Aspirant's Will: poison taken less + level-scaled flat regen
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      [
+        "Take 90% less poison damage",
+        "regenerate 1 life per second per character level",
+      ],
+      { isWeapon: false }
+    );
+    assert(
+      patch.poisonDamageTakenLessPercentFromGear === 90,
+      `Expected poisonDamageTakenLess=90, got ${patch.poisonDamageTakenLessPercentFromGear}`
+    );
+    assert(
+      patch.flatLifeRegenPerSecondPerCharacterLevelFromGear === 1,
+      `Expected flatLifeRegenPerLevel=1, got ${patch.flatLifeRegenPerSecondPerCharacterLevelFromGear}`
+    );
+
+    const eq = emptyEquipmentModifiers();
+    eq.poisonDamageTakenLessPercentFromGear = 90;
+    eq.flatLifeRegenPerSecondPerCharacterLevelFromGear = 1;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(
+      stats.poisonDamageTakenLessPercent === 90,
+      `Expected stats.poisonDamageTakenLessPercent=90, got ${stats.poisonDamageTakenLessPercent}`
+    );
+    assert(
+      stats.flatLifeRegenPerSecond > 0,
+      `Expected stats.flatLifeRegenPerSecond > 0, got ${stats.flatLifeRegenPerSecond}`
+    );
+  }
+
+  // Carnage Pact / Hollow Revenant: flat self-DoT lines
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      [
+        "lose 200 life per second",
+        "take 1.000 chaos damage per second",
+      ],
+      { isWeapon: false }
+    );
+    assert(patch.loseLifePerSecondFromGear === 200, `Expected loseLifePerSecond=200, got ${patch.loseLifePerSecondFromGear}`);
+    assert(patch.takeChaosDamagePerSecondFromGear === 1, `Expected takeChaosDamagePerSecond=1, got ${patch.takeChaosDamagePerSecondFromGear}`);
+
+    const eq = emptyEquipmentModifiers();
+    eq.loseLifePerSecondFromGear = 200;
+    eq.takeChaosDamagePerSecondFromGear = 1;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(stats.loseLifePerSecond === 200, `Expected stats.loseLifePerSecond=200, got ${stats.loseLifePerSecond}`);
+    assert(stats.takeChaosDamagePerSecond === 1, `Expected stats.takeChaosDamagePerSecond=1, got ${stats.takeChaosDamagePerSecond}`);
+  }
+
   // Broken Legacy: fixed crit chance = 50%
   {
     const patch = equipmentModifiersFromUniqueTexts(
