@@ -2,16 +2,56 @@
  * Enemy modifier list from `formulas.csv` (enemy mods) — values from {@link FORMULA_CONSTANTS}.
  * Each enemy can have up to three modifiers; they stack additively where noted in the sheet.
  *
- * Flat mods (Vital, Plated, …) apply to **enemy base stats** (life 40, armour 1, …) *before*
- * level / nexus / crucible scaling — see formulas.csv notes. For already-scaled demo enemies,
- * that is modeled by multiplying the scaled stat by `(base + ΣΔ) / base`.
+ * Flat mods (Vital, Plated, …) are “+Δ to base before scaling” (formulas.csv). For enemies whose stats are
+ * already scaled, we multiply by `(ref + ΣΔ) / ref`. **`DemoEnemyDef.modifierRatioBases`** should match the
+ * scaling anchor (e.g. `enemyStatsAtLevel(100)` for Nexus/Crucible, or the selected level for level mode);
+ * when omitted, CSV bases (40 life, 1 armour, …) are used.
  */
 
 import type { DemoEnemyDef } from "../battle/types";
-import type { NexusTierRow } from "./nexusEnemyScaling";
-import { FORMULA_CONSTANTS } from "./formulaConstants";
+import { NEXUS_ENEMY_LEVEL_ANCHOR, type NexusTierRow } from "./nexusEnemyScaling";
+import { enemyStatsAtLevel, FORMULA_CONSTANTS } from "./formulaConstants";
 
 export const MAX_ENEMY_MODIFIERS = 3;
+
+/** Ratio denominators for flat mods at a given enemy level (Nexus uses `NEXUS_ENEMY_LEVEL_ANCHOR`, currently 100). */
+export function enemyModifierRatioBasesAtLevel(level: number): NonNullable<DemoEnemyDef["modifierRatioBases"]> {
+  const s = enemyStatsAtLevel(level);
+  return {
+    life: s.life,
+    armour: s.armour,
+    evasion: s.evasion,
+    accuracy: s.accuracy,
+    speed: s.speed,
+  };
+}
+
+/** Life denominator for regen/leech scaling (`raw × maxLife / ref`). */
+export function enemyModifierRefLifeForRegen(enemy: DemoEnemyDef): number {
+  const l = enemy.modifierRatioBases?.life;
+  return l != null && l > 0 ? l : FORMULA_CONSTANTS.enemyBaseLife;
+}
+
+function modifierRatioRefs(enemy: DemoEnemyDef) {
+  const k = FORMULA_CONSTANTS;
+  const r = enemy.modifierRatioBases;
+  if (r) {
+    return {
+      life: Math.max(1, r.life),
+      armour: Math.max(1, r.armour),
+      evasion: Math.max(1, r.evasion),
+      accuracy: Math.max(1, r.accuracy),
+      speed: Math.max(0.05, r.speed),
+    };
+  }
+  return {
+    life: Math.max(1, k.enemyBaseLife),
+    armour: Math.max(1, k.enemyBaseArmour),
+    evasion: Math.max(1, k.enemyBaseEvasion),
+    accuracy: Math.max(1, k.enemyBaseAccuracy),
+    speed: Math.max(0.05, k.enemyBaseSpeed),
+  };
+}
 
 export type EnemyModifierId =
   | "vital"
@@ -350,14 +390,14 @@ export function applyEnemyModifierDeltasToScaledEnemy(
   enemy: DemoEnemyDef,
   deltas: EnemyModifierBaseDeltas
 ): DemoEnemyDef {
-  const k = C();
-  const lifeBase = Math.max(1, k.enemyBaseLife + deltas.life);
-  const lifeMult = lifeBase / k.enemyBaseLife;
-  const armourMult = (k.enemyBaseArmour + deltas.armour) / k.enemyBaseArmour;
-  const evasionMult = (k.enemyBaseEvasion + deltas.evasion) / k.enemyBaseEvasion;
-  const accuracyMult = (k.enemyBaseAccuracy + deltas.accuracy) / k.enemyBaseAccuracy;
-  const speedBase = Math.max(0.05, k.enemyBaseSpeed + deltas.speed);
-  const speedMult = speedBase / k.enemyBaseSpeed;
+  const rb = modifierRatioRefs(enemy);
+  const lifeBase = Math.max(1, rb.life + deltas.life);
+  const lifeMult = lifeBase / rb.life;
+  const armourMult = (rb.armour + deltas.armour) / rb.armour;
+  const evasionMult = (rb.evasion + deltas.evasion) / rb.evasion;
+  const accuracyMult = (rb.accuracy + deltas.accuracy) / rb.accuracy;
+  const speedBase = Math.max(0.05, rb.speed + deltas.speed);
+  const speedMult = speedBase / rb.speed;
   const dmgMult = deltas.damageMult;
 
   const next: DemoEnemyDef = {
@@ -383,12 +423,19 @@ export function applyEnemyModifierDeltasToScaledEnemy(
     next.chaosDamageMax = Math.max(0, Math.round((enemy.chaosDamageMax ?? 0) * dmgMult));
   }
 
-  // ES scaling note in formulas.csv: life scaling also applies to energy shield if present.
-  // Model: existing ES pool is scaled by the same base-life ratio; Barrier ES adds +20 ES to base,
-  // which corresponds to (20 / 40) of base life, so it becomes `(scaledLife * 20/40)` at the target scale.
+  // ES: Vital-style life ratio still scales any pre-existing ES pool (`* lifeMult`).
+  // Barrier: scale mod ES along the life curve at refLife (`× refLife / enemyBaseLife`), not × tier-scaled max life.
+  // Elite/boss: multiply by `rarityLifeMult` (same as life row); omit → 1.
   {
+    const k = FORMULA_CONSTANTS;
     const scaledExistingEs = Math.round((enemy.maxEnergyShield ?? 0) * lifeMult);
-    const scaledBarrierEsAdd = deltas.es !== 0 ? Math.round(next.maxLife * (deltas.es / k.enemyBaseLife)) : 0;
+    const rarity = enemy.rarityLifeMult ?? 1;
+    const scaledBarrierEsAdd =
+      deltas.es !== 0
+        ? enemy.barrierEsFlat === true
+          ? Math.round(deltas.es)
+          : Math.round((deltas.es * rb.life * rarity) / k.enemyBaseLife)
+        : 0;
     const totalEs = scaledExistingEs + scaledBarrierEsAdd;
     if (totalEs > 0 || (enemy.maxEnergyShield ?? 0) > 0 || deltas.es !== 0) {
       next.maxEnergyShield = Math.max(0, totalEs);
@@ -433,6 +480,8 @@ function nexusTierRowToDemoEnemy(row: NexusTierRow): DemoEnemyDef {
     name: `Nexus ${row.tier}`,
     maxLife: row.health,
     maxEnergyShield: 0,
+    rarityLifeMult: 1,
+    modifierRatioBases: enemyModifierRatioBasesAtLevel(NEXUS_ENEMY_LEVEL_ANCHOR),
     armour: row.armour,
     evasionRating: row.evasion,
     accuracy: row.accuracy,
@@ -464,13 +513,12 @@ export function applyEnemyModifiersToNexusRow(
   const deltas = computeEnemyModifierBaseDeltas(withTiers);
   const demo = nexusTierRowToDemoEnemy(row);
   const out = applyEnemyModifierDeltasToScaledEnemy(demo, deltas);
-  const fc = FORMULA_CONSTANTS;
-  // Regen is defined as "+2 per second to base before scaling", and sheet notes say life scaling applies to regen.
-  // Model regen off scaled life (even for ES regen), matching the same base-life ratio approach.
+  const refLife = enemyModifierRefLifeForRegen(out);
+  // Regen: raw per second × scaled max life / ref life (ref matches modifier ratio anchor).
   const lifeRegenPerSecond =
-    deltas.lifeRegenRaw !== 0 ? (deltas.lifeRegenRaw * out.maxLife) / fc.enemyBaseLife : 0;
+    deltas.lifeRegenRaw !== 0 ? (deltas.lifeRegenRaw * out.maxLife) / refLife : 0;
   const esRegenPerSecond =
-    deltas.esRegenRaw !== 0 ? (deltas.esRegenRaw * out.maxLife) / fc.enemyBaseLife : 0;
+    deltas.esRegenRaw !== 0 ? (deltas.esRegenRaw * out.maxLife) / refLife : 0;
 
   return {
     ...row,

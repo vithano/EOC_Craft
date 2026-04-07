@@ -42,7 +42,7 @@ export interface ComputedStats {
 
 export const FORMULA_DESCRIPTIONS: Record<string, string> = {
   statStacking:
-    'computeBuildStats: all “increased” that apply to the same outcome are summed (Σ), then ×(1+Σ/100); “more”/“less” multiply separately (product of factors).',
+    'computeBuildStats — increased/reduced vs more/less: all “increased” and “reduced” in the same pool are combined additively (Σ), then the stat is scaled once by (1+Σ/100). “More” and “less” are multiplicative: each line is its own factor (product of (1+p/100)). For positive values, equal “more” is usually stronger than “increased”; for negative values the reverse tends to hold.',
   plannerMaxLife:
     'computeBuildStats: lifeFlat × (1 + Σ increased max life /100) × Π more max life (gear); occultist → 1',
   plannerMaxMana:

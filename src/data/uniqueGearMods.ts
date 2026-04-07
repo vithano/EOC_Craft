@@ -101,6 +101,10 @@ export interface UniqueGearStatPatch {
   actionBarSetToPercentAfterCastFromGear?: number;
   /** Your action bar is filled by X% when you block. */
   actionBarFilledByPercentOnBlockFromGear?: number;
+  /** Siegebreaker-style: on block, gain fire damage from prevented damage then counter-attack (battle sim). */
+  counterAttackOnBlockFromGear?: boolean;
+  /** Percent of damage prevented by block converted to added fire on the counter (e.g. 50). */
+  counterAttackFirePctOfPreventedFromGear?: number;
   /** While your off-hand is empty, your first attack during an encounter is always a critical hit. */
   firstAttackAlwaysCritFromGear?: boolean;
   /** While your off-hand is empty, your action bar is set to X% at the beginning of an encounter. */
@@ -583,6 +587,9 @@ export function equipmentModifiersFromUniqueTexts(
         (acc as Record<string, number>)[key as string] = cur + v;
       } else if (typeof v === "number") {
         (acc as Record<string, number>)[key as string] = v;
+      } else if (typeof v === "boolean" && v) {
+        // Siegebreaker and other lines use add({ someFlagFromGear: true, someNumber: n }).
+        (acc as Record<string, boolean>)[key as string] = true;
       }
     }
   };
@@ -1024,6 +1031,16 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/your\s+action\s+bar\s+is\s+filled\s+by\s+([\d.]+)%\s+when\s+you\s+block\b/i);
     if (m) add({ actionBarFilledByPercentOnBlockFromGear: num(m)! });
+
+    m = l.match(
+      /when\s+you\s+block\s+a\s+hit,\s+gain\s+local\s+fire\s+damage\s+(?:qual|equal)\s+to\s+(\d+)%\s+of\s+total\s+prevented\s+damage,\s+then\s+perform\s+a\s+counter\s+attack\b/i
+    );
+    if (m) {
+      add({
+        counterAttackOnBlockFromGear: true,
+        counterAttackFirePctOfPreventedFromGear: num(m)!,
+      });
+    }
 
     if (/while\s+your\s+off-hand\s+is\s+empty,\s+your\s+first\s+attack\s+during\s+an\s+encounter\s+is\s+always\s+a\s+critical\s+hit\b/i.test(low)) {
       acc.firstAttackAlwaysCritFromGear = true;

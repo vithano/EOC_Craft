@@ -8,9 +8,11 @@ import {
   EQUIPMENT_SLOTS,
   getEquippedEntry,
   getItemDefinition,
+  isAttackWeaponItem,
   isCraftedEquipItemId,
   INVENTORY_MAX_SLOTS,
   slotCategory,
+  weaponUsesBothHands,
 } from "../data/equipment";
 import {
   EOC_UNIQUE_DEFINITIONS,
@@ -76,7 +78,10 @@ const filterBtnOff = "border-[#4a3f32] bg-[#1c1814] text-[#8a7d6b] hover:border-
 interface EquipmentPanelProps {
   equipped: Record<string, EquippedEntry>;
   inventory: InventoryStack[];
-  onEquipStack: (stackId: string, overrides?: { rolls?: number[]; enhancement?: number }) => void;
+  onEquipStack: (
+    stackId: string,
+    overrides?: { rolls?: number[]; enhancement?: number; targetSlot?: string }
+  ) => void;
   onUpdateInventoryStack: (stackId: string, rolls: number[], enhancement: number) => void;
   onUpdateEquippedSlot: (slot: string, rolls: number[], enhancement: number) => void;
   onUnequipSlot: (slot: string) => void;
@@ -605,6 +610,22 @@ export default function EquipmentPanel({
                   >
                     Equip
                   </button>
+                  {effectiveDetail.stack.slot === "Weapon" &&
+                    isAttackWeaponItem(itemId) &&
+                    !weaponUsesBothHands(itemId) && (
+                    <button
+                      type="button"
+                      className={brassBtn}
+                      onClick={() =>
+                        onEquipStack(effectiveDetail.stack.id, {
+                          enhancement: craftedEnh,
+                          targetSlot: "Off-hand",
+                        })
+                      }
+                    >
+                      Equip off-hand
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={mutedBtn}
@@ -654,7 +675,22 @@ export default function EquipmentPanel({
           )}
           <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
             {effectiveDetail.kind === "inventory" && (
-              <button type="button" className={brassBtn} onClick={() => onEquipStack(effectiveDetail.stack.id)}>Equip</button>
+              <>
+                <button type="button" className={brassBtn} onClick={() => onEquipStack(effectiveDetail.stack.id)}>
+                  Equip
+                </button>
+                {effectiveDetail.stack.slot === "Weapon" &&
+                  isAttackWeaponItem(itemId) &&
+                  !weaponUsesBothHands(itemId) && (
+                  <button
+                    type="button"
+                    className={brassBtn}
+                    onClick={() => onEquipStack(effectiveDetail.stack.id, { targetSlot: "Off-hand" })}
+                  >
+                    Equip off-hand
+                  </button>
+                )}
+              </>
             )}
             {effectiveDetail.kind === "equipped" && (
               <button type="button" className={brassBtn} onClick={() => onUnequipSlot(effectiveDetail.slot)}>Unequip</button>
@@ -905,10 +941,30 @@ export default function EquipmentPanel({
         {/* ── Action buttons ── */}
         <div className="mt-3 flex flex-col gap-2 px-4 pb-5">
           {effectiveDetail.kind === "inventory" && (
-            <button type="button" className={brassBtn} onClick={() => {
-              const rolls = parseRollTextsToValues(udef, detailRollTexts);
-              onEquipStack(effectiveDetail.stack.id, { rolls, enhancement: detailEnhancement });
-            }}>Equip</button>
+            <>
+              <button type="button" className={brassBtn} onClick={() => {
+                const rolls = parseRollTextsToValues(udef, detailRollTexts);
+                onEquipStack(effectiveDetail.stack.id, { rolls, enhancement: detailEnhancement });
+              }}>Equip</button>
+              {effectiveDetail.stack.slot === "Weapon" &&
+                isAttackWeaponItem(itemId) &&
+                !weaponUsesBothHands(itemId) && (
+                <button
+                  type="button"
+                  className={brassBtn}
+                  onClick={() => {
+                    const rolls = parseRollTextsToValues(udef, detailRollTexts);
+                    onEquipStack(effectiveDetail.stack.id, {
+                      rolls,
+                      enhancement: detailEnhancement,
+                      targetSlot: "Off-hand",
+                    });
+                  }}
+                >
+                  Equip off-hand
+                </button>
+              )}
+            </>
           )}
           {effectiveDetail.kind === "inventory" && (
             <button type="button" className={mutedBtn} onClick={() => {
@@ -1563,6 +1619,10 @@ export default function EquipmentPanel({
               <li>
                 Two-handed weapons cannot share a row with off-hand; equipping one sends the other piece back to
                 your bag.
+              </li>
+              <li>
+                One-handed weapons in your bag can use Equip off-hand to place the second weapon in the off-hand row
+                for dual-wielding (averaged weapon damage, APS, and crit; 20% more attack speed and +10% block).
               </li>
               <li>
                 Unique enhancement (+10 max unless data says otherwise) adds the item&apos;s Enhancement Bonus

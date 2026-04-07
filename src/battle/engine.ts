@@ -7,7 +7,11 @@ import {
 } from '../data/eocFormulas'
 import { FORMULA_CONSTANTS } from '../data/formulaConstants'
 import type { ComputedBuildStats } from '../data/gameStats'
-import { applyEnemyModifiersWithTiersToScaledEnemy, type EnemyModifierId } from '../data/enemyModifiers'
+import {
+  applyEnemyModifiersWithTiersToScaledEnemy,
+  enemyModifierRefLifeForRegen,
+  type EnemyModifierId,
+} from '../data/enemyModifiers'
 import {
   DEFAULT_BLOCK_DAMAGE_TAKEN_MULT,
   type BattleContext,
@@ -138,7 +142,13 @@ function rollDamage(min: number, max: number, rollTwiceHigh: boolean): number {
 }
 
 
-function mitigatedPlayerHitVsArmour(enemy: DemoEnemyDef, stats: ComputedBuildStats, raw: number): number {
+function mitigatedPlayerHitVsArmour(
+  enemy: DemoEnemyDef,
+  stats: ComputedBuildStats,
+  raw: number,
+  /** Extra flat fire before armour/resists (e.g. Siegebreaker counter), included in armour hit total. */
+  extraFireFlat = 0
+): number {
   const armourIgnoredFrac = stats.armourIgnorePercent / 100
   const baseArmour = enemy.armour
   const elePen = stats.elementalPenetrationPercent ?? 0
@@ -148,8 +158,9 @@ function mitigatedPlayerHitVsArmour(enemy: DemoEnemyDef, stats: ComputedBuildSta
   // Split raw hit into per-type amounts using current fractions
   const a = avgHitByDamageType(stats)
   const total = Math.max(1, a.total)
+  const hitTotal = raw + extraFireFlat
   const physAmt  = raw * (a.physical  / total)
-  const fireAmt  = raw * (a.fire      / total)
+  const fireAmt  = raw * (a.fire      / total) + extraFireFlat
   const coldAmt  = raw * (a.cold      / total)
   const lightAmt = raw * (a.lightning / total)
   const chaosAmt = raw * (a.chaos     / total)
@@ -157,7 +168,7 @@ function mitigatedPlayerHitVsArmour(enemy: DemoEnemyDef, stats: ComputedBuildSta
   // Apply armour DR per type using the full multi-type formula (ARMOUR_RESISTANCE splits armour)
   function afterArmour(amt: number, type: Parameters<typeof computeArmourDR>[3]): number {
     if (amt <= 0) return 0
-    const dr = computeArmourDR(baseArmour, amt, raw, type, armourIgnoredFrac)
+    const dr = computeArmourDR(baseArmour, amt, hitTotal, type, armourIgnoredFrac)
     return amt * (1 - dr)
   }
 
@@ -387,7 +398,13 @@ function resolvePlayerAttack(
   enemy: DemoEnemyDef,
   enemyLife: number,
   stats: ComputedBuildStats,
-  attackOpts?: { targetTakesIncreasedDamagePct: number; extraTargetTakesIncreasedDamagePct?: number; moreDamageMult?: number }
+  attackOpts?: {
+    targetTakesIncreasedDamagePct: number
+    extraTargetTakesIncreasedDamagePct?: number
+    moreDamageMult?: number
+    /** Added to the first strike only (e.g. Siegebreaker counter fire). */
+    extraFlatFireDamage?: number
+  }
 ): { damage: number; damageForAilments: number; outcome: PlayerHitOutcome; anyCrit: boolean; anyDouble: boolean; anyTriple: boolean } {
   const evadePct = stats.hitsCannotBeEvaded
     ? 0
@@ -412,12 +429,17 @@ function resolvePlayerAttack(
     if (blocked) blockedStrikes++
 
     let base = rollDamage(stats.hitDamageMin, stats.hitDamageMax, zealot)
-    if (blocked) base *= DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
+    let extraFire = s === 0 ? Math.max(0, attackOpts?.extraFlatFireDamage ?? 0) : 0
+    if (blocked) {
+      base *= DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
+      extraFire *= DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
+    }
 
     let isCrit = false
     if (!blocked) {
       if (Math.random() * 100 < stats.critChance) {
         base *= stats.critMultiplier
+        extraFire *= stats.critMultiplier
         isCrit = true
       }
       if (isCrit) anyCrit = true
@@ -427,22 +449,27 @@ function resolvePlayerAttack(
         const tripleChance = stats.doubleDamageChance / 2
         if (Math.random() * 100 < tripleChance) {
           base *= 3
+          extraFire *= 3
           anyTriple = true
         } else if (Math.random() * 100 < stats.doubleDamageChance) {
           base *= 2
+          extraFire *= 2
           anyDouble = true
         }
       } else if (tChance > 0 && Math.random() * 100 < tChance) {
         base *= 3
+        extraFire *= 3
         anyTriple = true
       } else if (Math.random() * 100 < stats.doubleDamageChance) {
         // Damage proc chaining: if we "would deal double", allow upgrade to triple
         const up = stats.doubleDamageUpgradesToTripleChance ?? 0
         if (up > 0 && Math.random() * 100 < up) {
           base *= 3
+          extraFire *= 3
           anyTriple = true
         } else {
           base *= 2
+          extraFire *= 2
           anyDouble = true
         }
       }
@@ -451,23 +478,39 @@ function resolvePlayerAttack(
         const up4 = stats.tripleDamageUpgradesToQuadrupleChance ?? 0
         if (up4 > 0 && Math.random() * 100 < up4) {
           base *= 4 / 3
+          extraFire *= 4 / 3
         }
       }
 
-      if (stats.dealNoDamageExceptCrit && !isCrit) base = 0
+      if (stats.dealNoDamageExceptCrit && !isCrit) {
+        base = 0
+        extraFire = 0
+      }
     }
 
     base *= stats.damageDealtLessMult ?? 1
+    extraFire *= stats.damageDealtLessMult ?? 1
     const frac = enemyLife / Math.max(1, enemy.maxLife)
-    base *= enemyDamageTakenMultiplier(stats, frac)
+    const takenMult = enemyDamageTakenMultiplier(stats, frac)
+    base *= takenMult
+    extraFire *= takenMult
     const shockPct = attackOpts?.targetTakesIncreasedDamagePct ?? 0
-    if (shockPct > 0) base *= 1 + shockPct / 100
+    if (shockPct > 0) {
+      base *= 1 + shockPct / 100
+      extraFire *= 1 + shockPct / 100
+    }
     const extraInc = attackOpts?.extraTargetTakesIncreasedDamagePct ?? 0
-    if (extraInc > 0) base *= 1 + extraInc / 100
+    if (extraInc > 0) {
+      base *= 1 + extraInc / 100
+      extraFire *= 1 + extraInc / 100
+    }
     const more = attackOpts?.moreDamageMult ?? 1
-    if (more !== 1) base *= more
+    if (more !== 1) {
+      base *= more
+      extraFire *= more
+    }
 
-    total += mitigatedPlayerHitVsArmour(enemy, stats, base)
+    total += mitigatedPlayerHitVsArmour(enemy, stats, base, extraFire)
   }
 
   const outcome: PlayerHitOutcome =
@@ -756,7 +799,16 @@ function resolveEnemyAttack(
   playerState: BattleParticipantState,
   firstHitThisEncounter: { used: boolean },
   maxLife: number
-): { damageToDisplay: number; fullBeforeArmour: number; mitigatedByArmour: number; evaded: boolean; dodged: boolean; blocked: boolean } {
+): {
+  damageToDisplay: number
+  fullBeforeArmour: number
+  mitigatedByArmour: number
+  evaded: boolean
+  dodged: boolean
+  blocked: boolean
+  /** Damage removed by block mitigation on this hit (pre-block hit damage minus post-block, before armour). */
+  preventedByBlock: number
+} {
   const acc = enemy.accuracy
   let eva = stats.evasionRating
   const flat = flatEvasionFromClassBonuses(stats)
@@ -778,6 +830,7 @@ function resolveEnemyAttack(
       evaded: true,
       dodged: false,
       blocked: false,
+      preventedByBlock: 0,
     }
   }
 
@@ -796,6 +849,7 @@ function resolveEnemyAttack(
       evaded: false,
       dodged: true,
       blocked: false,
+      preventedByBlock: 0,
     }
   }
 
@@ -848,16 +902,20 @@ function resolveEnemyAttack(
         evaded: false,
         dodged: true,
         blocked: false,
+        preventedByBlock: 0,
       }
     }
   }
+  let preventedByBlock = 0
   if (blocked) {
+    const preBlockDamage = afterPath
     const preventAllChance = stats.blockPreventsAllDamageChance ?? 0
     if (preventAllChance > 0 && Math.random() * 100 < preventAllChance) {
       afterPath = 0
     } else {
       afterPath *= stats.blockDamageTakenMult ?? DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
     }
+    preventedByBlock = Math.max(0, preBlockDamage - afterPath)
   }
 
   // Enemy hit: allow multi-type armour split per formulas.csv.
@@ -934,6 +992,7 @@ function resolveEnemyAttack(
     evaded: false,
     dodged: false,
     blocked,
+    preventedByBlock,
   }
 }
 
@@ -953,11 +1012,12 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   const { enemy, deltas } = applyEnemyModifiersWithTiersToScaledEnemy(ctx.enemy, rawMods)
   const enemyLifeLeechPct = Math.min(100, deltas.lifeLeechPct)
   const enemyEsLeechPct = Math.min(100, deltas.esLeechPct)
+  const refLife = enemyModifierRefLifeForRegen(enemy)
   const enemyLifeRegenPerSecond = (deltas.lifeRegenRaw !== 0)
-    ? (deltas.lifeRegenRaw * enemy.maxLife) / FORMULA_CONSTANTS.enemyBaseLife
+    ? (deltas.lifeRegenRaw * enemy.maxLife) / refLife
     : 0
   const enemyEsRegenPerSecond = (deltas.esRegenRaw !== 0)
-    ? (deltas.esRegenRaw * enemy.maxLife) / FORMULA_CONSTANTS.enemyBaseLife
+    ? (deltas.esRegenRaw * enemy.maxLife) / refLife
     : 0
 
   let runtimeMaxLife = stats.maxLife
@@ -1392,6 +1452,72 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         const fill = stats.actionBarFilledByPercentOnBlock ?? 0
         if (fill > 0) actionBar = Math.min(1, actionBar + fill / 100)
       }
+
+      // Siegebreaker-style: blocked hit → counter attack with added fire from prevented damage.
+      if (
+        r.blocked
+        && stats.counterAttackOnBlock
+        && stats.counterAttackFirePctOfPrevented > 0
+        && r.preventedByBlock > 0
+        && enemyLife > 0
+      ) {
+        const extraFire = (r.preventedByBlock * stats.counterAttackFirePctOfPrevented) / 100
+        const shockNow = activeShockPct(ailmentState, t)
+        const fx = stats.abilityLineEffects
+        const poisonStacks = ailmentState.dots.filter((d) => d.kind === 'poison' && d.expiresAt > t).length
+        const chillPctNow = activeChillPct(ailmentState, t)
+        const extraInc =
+          (fx?.enemiesTakeIncreasedDamagePerPoisonPercent ?? 0) * poisonStacks
+          + (fx?.enemiesTakeIncreasedDamagePerChillEffectPercent ?? 0) * chillPctNow
+        const enemyLifeBeforeCounter = enemyLife
+        const ctr = resolvePlayerAttack(enemy, enemyLife, stats, {
+          targetTakesIncreasedDamagePct: shockNow,
+          extraTargetTakesIncreasedDamagePct: extraInc,
+          extraFlatFireDamage: extraFire,
+        })
+        applyDamageToEnemyPools(enemyState, ctr.damage)
+        enemyLife = enemyState.life
+        if (enemyLifeBeforeCounter > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
+        if (ctr.damage > 0 || ctr.damageForAilments > 0) hitsPlayer++
+        {
+          const msg =
+            ctr.outcome === 'miss'
+              ? 'Counter attack evaded'
+              : ctr.outcome === 'enemy_blocked' && ctr.damage > 0
+                ? `Counter attack — enemy blocked, ${ctr.damage.toFixed(1)} (${enemyPoolsText()} left)`
+                : ctr.damage > 0
+                  ? `Counter attack — ${ctr.damage.toFixed(1)} (${enemyPoolsText()} left)`
+                  : 'Counter attack (no damage)'
+          tryLog({ t, kind: 'player_attack', message: msg, damage: ctr.damage })
+        }
+        if (ctr.damageForAilments > 0) {
+          applyPlayerAilmentsOnHit(
+            stats,
+            ctr.damageForAilments,
+            enemy.maxLife,
+            t,
+            ailmentState,
+            playerAilments,
+            ctr.anyCrit,
+            log,
+            tryLog,
+            enemyDebuffEvents
+          )
+          if (enemyLife > 0) {
+            const fixedExec = stats.executeEnemiesBelowLifePercent ?? 0
+            const chillExec = (stats.executeEnemiesBelowLifePercentEqualToChillEffect ?? false)
+              ? activeChillPct(ailmentState, t)
+              : 0
+            const execPct = Math.max(fixedExec, chillExec)
+            if (execPct > 0 && enemyLife <= enemy.maxLife * (execPct / 100)) {
+              enemyState.life = 0
+              enemyState.energyShield = 0
+              enemyLife = 0
+            }
+          }
+        }
+      }
+
       if ((r.evaded || r.dodged) && stats.classBonusesActive.includes('shadow')) {
         actionBar = Math.min(1, actionBar + 0.35)
       }

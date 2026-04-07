@@ -89,10 +89,37 @@ export function weaponUsesBothHands(itemId: string): boolean {
   return row?.twoHanded ?? false;
 }
 
+/** True when the item uses weapon attack base stats (APS); shields and spell weapons typically return false. */
+export function isAttackWeaponItem(itemId: string): boolean {
+  if (!itemId || itemId === 'none') return false;
+  if (isUniqueItemId(itemId)) {
+    const d = EOC_UNIQUE_BY_ID[itemId];
+    return d != null && d.baseAttackSpeed != null;
+  }
+  if (isCraftedEquipItemId(itemId)) {
+    const d = EOC_BASE_EQUIPMENT_BY_ID[itemId];
+    return d != null && d.baseAttackSpeed != null;
+  }
+  return false;
+}
+
+/** Two one-handed attack weapons equipped (main + off-hand). */
+export function isDualWieldingAttackWeapons(mainHandItemId: string, offHandItemId: string): boolean {
+  if (!mainHandItemId || mainHandItemId === 'none' || !offHandItemId || offHandItemId === 'none') return false;
+  if (weaponUsesBothHands(mainHandItemId) || weaponUsesBothHands(offHandItemId)) return false;
+  return isAttackWeaponItem(mainHandItemId) && isAttackWeaponItem(offHandItemId);
+}
+
 export function getItemDefinition(slot: string, itemId: string): EquipmentItem | undefined {
   // Uniques + "none" live in the cached map.
   const fromMap = getEquipmentItemsMap()[slot]?.find((i) => i.id === itemId);
   if (fromMap) return fromMap;
+
+  // Dual-wield: one-handed weapons equip into Off-hand but uniques are indexed under Weapon only.
+  if (slot === 'Off-hand' && itemId !== 'none') {
+    const asWeapon = getEquipmentItemsMap().Weapon?.find((i) => i.id === itemId);
+    if (asWeapon) return asWeapon;
+  }
 
   // Crafted/base equipment items are not in the map (they come from the Equipment sheet).
   if (isCraftedEquipItemId(itemId)) {

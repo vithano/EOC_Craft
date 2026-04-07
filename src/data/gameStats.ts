@@ -8,7 +8,10 @@ import {
 } from './gameClasses'
 import {
   EQUIPMENT_SLOTS,
+  getEquippedEntry,
   getItemDefinition,
+  isAttackWeaponItem,
+  isDualWieldingAttackWeapons,
   type EquippedEntry,
   type ItemModifiers,
 } from './equipment'
@@ -466,6 +469,8 @@ export interface EquipmentModifiers {
   ailmentsOnCritGainDurationPerCritMultiFromGear: boolean
   actionBarSetToPercentAfterCastFromGear: number
   actionBarFilledByPercentOnBlockFromGear: number
+  counterAttackOnBlockFromGear: boolean
+  counterAttackFirePctOfPreventedFromGear: number
   firstAttackAlwaysCritFromGear: boolean
   actionBarSetToPercentAtStartFromGear: number
   additionalBaseManaCostPctOfMaxEnergyShieldFromGear: number
@@ -841,6 +846,8 @@ export interface ComputedBuildStats {
   ailmentsOnCritGainDurationPerCritMulti: boolean
   actionBarSetToPercentAfterCast: number
   actionBarFilledByPercentOnBlock: number
+  counterAttackOnBlock: boolean
+  counterAttackFirePctOfPrevented: number
   firstAttackAlwaysCrit: boolean
   actionBarSetToPercentAtStart: number
   additionalBaseManaCostPctOfMaxEnergyShield: number
@@ -1058,6 +1065,8 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     ailmentsOnCritGainDurationPerCritMultiFromGear: false,
     actionBarSetToPercentAfterCastFromGear: 0,
     actionBarFilledByPercentOnBlockFromGear: 0,
+    counterAttackOnBlockFromGear: false,
+    counterAttackFirePctOfPreventedFromGear: 0,
     firstAttackAlwaysCritFromGear: false,
     actionBarSetToPercentAtStartFromGear: 0,
     additionalBaseManaCostPctOfMaxEnergyShieldFromGear: 0,
@@ -1411,6 +1420,11 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
   if (p.actionBarFilledByPercentOnBlockFromGear !== undefined) {
     addNum('actionBarFilledByPercentOnBlockFromGear', p.actionBarFilledByPercentOnBlockFromGear)
+  }
+  if (p.counterAttackOnBlockFromGear) eq.counterAttackOnBlockFromGear = true
+  if (p.counterAttackFirePctOfPreventedFromGear !== undefined) {
+    const v = p.counterAttackFirePctOfPreventedFromGear
+    eq.counterAttackFirePctOfPreventedFromGear = Math.max(eq.counterAttackFirePctOfPreventedFromGear, v)
   }
   if (p.firstAttackAlwaysCritFromGear) eq.firstAttackAlwaysCritFromGear = true
   if (p.actionBarSetToPercentAtStartFromGear !== undefined) {
@@ -1904,6 +1918,184 @@ function mergeAttributeThresholdConditionalUniques(
   }
 }
 
+/** Dual-wield: average local weapon stats; global bonus is multiplicative APS and flat block (see mergeDualWieldWeaponEquipment). */
+const DUAL_WIELD_MORE_ATTACK_SPEED_MULT = 1.2
+const DUAL_WIELD_BLOCK_CHANCE_FLAT = 10
+
+/** Fields merged multiplicatively when combining equipment snapshots (defaults are 1). */
+const EQUIPMENT_MOD_MULTIPLICATIVE_KEYS = new Set<keyof EquipmentModifiers>([
+  'energyShieldLessMultFromGear',
+  'dotDamageMoreMultFromGear',
+  'strikesMoreMultFromGear',
+  'attackSpeedLessMultFromGear',
+  'accuracyLessMultFromGear',
+  'castSpeedLessMultFromGear',
+  'ailmentDurationLessMultFromGear',
+  'igniteDurationLessMultFromGear',
+  'damageTakenLessMultFromGear',
+  'damageTakenMoreMultFromGear',
+  'evasionMoreMultFromGear',
+  'defencesLessMultFromGear',
+  'lifeMoreMultFromGear',
+  'manaMoreMultFromGear',
+  'damageDealtLessMultFromGear',
+  'chillInflictEffectMultFromGear',
+  'shockDurationMoreMultFromGear',
+  'blockChanceMultiplierFromGear',
+])
+
+function mergeEquipmentSnapshotInto(dst: EquipmentModifiers, src: EquipmentModifiers): void {
+  for (const k of Object.keys(emptyEquipmentModifiers()) as (keyof EquipmentModifiers)[]) {
+    const d = dst[k]
+    const s = src[k]
+    if (k === 'weaponEffectiveAps' || k === 'weaponBaseCritChance') {
+      const sn = s as number | null | undefined
+      const dn = d as number | null | undefined
+      if (sn != null) {
+        if (dn == null) (dst as unknown as Record<string, number | null>)[k as string] = sn
+        else (dst as unknown as Record<string, number | null>)[k as string] = dn + sn
+      }
+      continue
+    }
+    if (typeof d === 'boolean' && typeof s === 'boolean') {
+      if (s) (dst as unknown as Record<string, boolean>)[k as string] = true
+      continue
+    }
+    if (typeof d === 'number' && typeof s === 'number') {
+      if (EQUIPMENT_MOD_MULTIPLICATIVE_KEYS.has(k)) {
+        ;(dst as unknown as Record<string, number>)[k as string] = d * s
+      } else {
+        ;(dst as unknown as Record<string, number>)[k as string] = d + s
+      }
+      continue
+    }
+  }
+}
+
+/**
+ * Full weapon contribution as if the item were in the main hand (used for dual-wield averaging and off-hand weapons).
+ */
+function accumulateEquippedWeaponInto(
+  eq: EquipmentModifiers,
+  entry: {
+    itemId: string
+    rolls?: number[]
+    enhancement?: number
+    craftedPrefixes?: import('./eocModifiers').AppliedModifier[]
+    craftedSuffixes?: import('./eocModifiers').AppliedModifier[]
+  }
+): void {
+  const itemId = entry.itemId
+  if (itemId === 'none') return
+
+  if (isUniqueItemId(itemId)) {
+    const def = EOC_UNIQUE_BY_ID[itemId]
+    if (!def) return
+    const { innateText, lineTexts } = resolveUniqueMods(def, entry.rolls, entry.enhancement ?? 0)
+    const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
+    const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon: true })
+
+    const baseDmgMin = def.baseDamageMin ?? 0
+    const baseDmgMax = def.baseDamageMax ?? 0
+    if (baseDmgMin > 0 || baseDmgMax > 0) {
+      const localPhysPct = patch.localIncreasedPhysDamagePct ?? 0
+      eq.flatDamageMin += baseDmgMin * (1 + localPhysPct / 100)
+      eq.flatDamageMax += baseDmgMax * (1 + localPhysPct / 100)
+    }
+    if (def.baseAttackSpeed != null) {
+      const localApsPct = patch.localIncreasedApsPct ?? 0
+      eq.weaponEffectiveAps = def.baseAttackSpeed * (1 + localApsPct / 100)
+    }
+    if (def.baseCritChance != null) {
+      eq.weaponBaseCritChance = def.baseCritChance
+    }
+
+    mergeUniqueGearPatch(eq, patch)
+    return
+  }
+
+  if (isCraftedEquipItemId(itemId)) {
+    const def = EOC_BASE_EQUIPMENT_BY_ID[itemId]
+    if (!def) return
+    const prefixes = entry.craftedPrefixes ?? []
+    const suffixes = entry.craftedSuffixes ?? []
+    const texts = craftedEquipStatParseTexts(def, prefixes, suffixes, entry.enhancement ?? 0)
+    const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon: true })
+    applyExtraCraftedModPatterns(patch, texts)
+
+    const baseDmgMin = def.baseDamageMin ?? 0
+    const baseDmgMax = def.baseDamageMax ?? 0
+    if (baseDmgMin > 0 || baseDmgMax > 0) {
+      const localPhysPct = patch.localIncreasedPhysDamagePct ?? 0
+      eq.flatDamageMin += baseDmgMin * (1 + localPhysPct / 100)
+      eq.flatDamageMax += baseDmgMax * (1 + localPhysPct / 100)
+    }
+    if (def.baseAttackSpeed != null) {
+      const localApsPct = patch.localIncreasedApsPct ?? 0
+      eq.weaponEffectiveAps = def.baseAttackSpeed * (1 + localApsPct / 100)
+    }
+    if (def.baseCritChance != null) {
+      eq.weaponBaseCritChance = def.baseCritChance
+    }
+
+    mergeUniqueGearPatch(eq, patch)
+    return
+  }
+
+  const item = getItemDefinition('Weapon', itemId)
+  if (!item) return
+  addItemModifiersToEquipment(eq, item.modifiers)
+}
+
+function mergeDualWieldWeaponEquipment(
+  mainEntry: { itemId: string; rolls?: number[]; enhancement?: number; craftedPrefixes?: import('./eocModifiers').AppliedModifier[]; craftedSuffixes?: import('./eocModifiers').AppliedModifier[] },
+  offEntry: { itemId: string; rolls?: number[]; enhancement?: number; craftedPrefixes?: import('./eocModifiers').AppliedModifier[]; craftedSuffixes?: import('./eocModifiers').AppliedModifier[] }
+): EquipmentModifiers {
+  const merged = emptyEquipmentModifiers()
+  accumulateEquippedWeaponInto(merged, mainEntry)
+  accumulateEquippedWeaponInto(merged, offEntry)
+
+  const w1 = emptyEquipmentModifiers()
+  accumulateEquippedWeaponInto(w1, mainEntry)
+  const w2 = emptyEquipmentModifiers()
+  accumulateEquippedWeaponInto(w2, offEntry)
+
+  const avg = (a: number, b: number) => (a + b) / 2
+  merged.flatDamageMin = avg(w1.flatDamageMin, w2.flatDamageMin)
+  merged.flatDamageMax = avg(w1.flatDamageMax, w2.flatDamageMax)
+  merged.flatFireMin = avg(w1.flatFireMin, w2.flatFireMin)
+  merged.flatFireMax = avg(w1.flatFireMax, w2.flatFireMax)
+  merged.flatColdMin = avg(w1.flatColdMin, w2.flatColdMin)
+  merged.flatColdMax = avg(w1.flatColdMax, w2.flatColdMax)
+  merged.flatLightningMin = avg(w1.flatLightningMin, w2.flatLightningMin)
+  merged.flatLightningMax = avg(w1.flatLightningMax, w2.flatLightningMax)
+  merged.flatChaosMin = avg(w1.flatChaosMin, w2.flatChaosMin)
+  merged.flatChaosMax = avg(w1.flatChaosMax, w2.flatChaosMax)
+  merged.flatSpellDamageMin = avg(w1.flatSpellDamageMin, w2.flatSpellDamageMin)
+  merged.flatSpellDamageMax = avg(w1.flatSpellDamageMax, w2.flatSpellDamageMax)
+  merged.flatSpellFireMin = avg(w1.flatSpellFireMin, w2.flatSpellFireMin)
+  merged.flatSpellFireMax = avg(w1.flatSpellFireMax, w2.flatSpellFireMax)
+  merged.flatSpellColdMin = avg(w1.flatSpellColdMin, w2.flatSpellColdMin)
+  merged.flatSpellColdMax = avg(w1.flatSpellColdMax, w2.flatSpellColdMax)
+  merged.flatSpellLightningMin = avg(w1.flatSpellLightningMin, w2.flatSpellLightningMin)
+  merged.flatSpellLightningMax = avg(w1.flatSpellLightningMax, w2.flatSpellLightningMax)
+  merged.flatSpellChaosMin = avg(w1.flatSpellChaosMin, w2.flatSpellChaosMin)
+  merged.flatSpellChaosMax = avg(w1.flatSpellChaosMax, w2.flatSpellChaosMax)
+  merged.flatStrikesPerAttack = avg(w1.flatStrikesPerAttack, w2.flatStrikesPerAttack)
+
+  const aps1 = w1.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps
+  const aps2 = w2.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps
+  merged.weaponEffectiveAps = ((aps1 + aps2) / 2) * DUAL_WIELD_MORE_ATTACK_SPEED_MULT
+
+  const c1 = (w1.weaponBaseCritChance ?? BASE_GAME_STATS.baseCritChance) + w1.critChanceBonus
+  const c2 = (w2.weaponBaseCritChance ?? BASE_GAME_STATS.baseCritChance) + w2.critChanceBonus
+  merged.weaponBaseCritChance = (c1 + c2) / 2
+  merged.critChanceBonus -= w1.critChanceBonus + w2.critChanceBonus
+
+  merged.blockChanceFromGear += DUAL_WIELD_BLOCK_CHANCE_FLAT
+  return merged
+}
+
 /** Sum static items and rolled uniques for all worn slots. */
 export function aggregateEquippedToEquipmentModifiers(
   slots: string[],
@@ -1913,10 +2105,17 @@ export function aggregateEquippedToEquipmentModifiers(
   let magicItemCount = 0
   const asceticNoArmorSlots = { Helmet: true, Gloves: true, Boots: true }
   const worn: Record<string, boolean> = {}
+  const mainHandEntry = getEquipped('Weapon')
+  const offHandEntry = getEquipped('Off-hand')
+  const dualWieldAttack =
+    isDualWieldingAttackWeapons(mainHandEntry?.itemId ?? 'none', offHandEntry?.itemId ?? 'none')
+
   for (const slot of slots) {
     const entry = getEquipped(slot)
     const itemId = entry?.itemId ?? 'none'
     if (itemId === 'none') continue
+    if (dualWieldAttack && slot === 'Weapon') continue
+    if (dualWieldAttack && slot === 'Off-hand' && isAttackWeaponItem(itemId)) continue
     worn[slot] = true
 
     if (isUniqueItemId(itemId)) {
@@ -1928,7 +2127,7 @@ export function aggregateEquippedToEquipmentModifiers(
         entry?.enhancement ?? 0
       )
       const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
-      const isWeapon = slot === 'Weapon'
+      const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && isAttackWeaponItem(itemId))
       const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
 
       if (isWeapon) {
@@ -1980,7 +2179,7 @@ export function aggregateEquippedToEquipmentModifiers(
       const prefixes = entry?.craftedPrefixes ?? []
       const suffixes = entry?.craftedSuffixes ?? []
       const texts = craftedEquipStatParseTexts(def, prefixes, suffixes, entry?.enhancement ?? 0)
-      const isWeapon = slot === 'Weapon'
+      const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && isAttackWeaponItem(itemId))
       const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
       applyExtraCraftedModPatterns(patch, texts)
 
@@ -2023,6 +2222,16 @@ export function aggregateEquippedToEquipmentModifiers(
     const item = getItemDefinition(slot, itemId)
     if (!item) continue
     addItemModifiersToEquipment(eq, item.modifiers)
+  }
+
+  if (
+    dualWieldAttack
+    && mainHandEntry
+    && offHandEntry
+    && mainHandEntry.itemId !== 'none'
+    && offHandEntry.itemId !== 'none'
+  ) {
+    mergeEquipmentSnapshotInto(eq, mergeDualWieldWeaponEquipment(mainHandEntry, offHandEntry))
   }
 
   // "…while you are not wearing a helmet gloves and boots" (The Ascetic)
@@ -2069,9 +2278,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const weaponTag = weaponAbilityTagFromItemId(weaponItemId)
 
   // Stat stacking (sheet-style):
-  // - All “increased X” that apply to the same outcome are summed, then applied once as (1 + Σ/100).
-  // - “More” / “less” (and similar multiplicative modifiers) multiply separately; multiple “more” lines
-  //   are a product of (1 + p/100) each.
+  // - “Increased” / “reduced” in the same pool are additive (Σ), then one scale (1 + Σ/100).
+  // - “More” / “less” are multiplicative: each is a separate factor, Π(1 + p/100). Same nominal % as
+  //   “more” usually beats “increased” when both are positive; with negatives, additive penalties
+  //   typically hurt less per line than stacking multiplicative “less”.
 
   // -------------------------------------------------------------------------
   // 1. Determine active class bonuses
@@ -2421,7 +2631,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         if (!def) continue
         const { innateText, lineTexts } = resolveUniqueMods(def, ent.rolls, ent.enhancement ?? 0)
         const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
-        const isWeapon = slot === 'Weapon'
+        const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && isAttackWeaponItem(itemId))
         const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
 
         if (isWeapon) {
@@ -2460,7 +2670,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         const prefixes = ent.craftedPrefixes ?? []
         const suffixes = ent.craftedSuffixes ?? []
         const texts = craftedEquipStatParseTexts(def, prefixes, suffixes, ent.enhancement ?? 0)
-        const isWeapon = slot === 'Weapon'
+        const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && isAttackWeaponItem(itemId))
         const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
         applyExtraCraftedModPatterns(patch, texts)
 
@@ -3957,6 +4167,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const ailmentsOnCritGainDurationPerCritMulti = eq.ailmentsOnCritGainDurationPerCritMultiFromGear
   const actionBarSetToPercentAfterCast = Math.min(100, Math.max(0, eq.actionBarSetToPercentAfterCastFromGear))
   const actionBarFilledByPercentOnBlock = Math.min(100, Math.max(0, eq.actionBarFilledByPercentOnBlockFromGear))
+  const counterAttackOnBlock = eq.counterAttackOnBlockFromGear
+  const counterAttackFirePctOfPrevented = Math.max(0, eq.counterAttackFirePctOfPreventedFromGear)
   const firstAttackAlwaysCrit = eq.firstAttackAlwaysCritFromGear
   const actionBarSetToPercentAtStart = Math.min(100, Math.max(0, eq.actionBarSetToPercentAtStartFromGear))
   const weaponLocalDamageAppliesToSpells = eq.weaponLocalDamageAppliesToSpellsFromGear
@@ -4003,7 +4215,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const blockPreventsAllDamageChance = Math.min(100, Math.max(0, eq.blockPreventsAllDamageChanceFromGear))
   const convertEvasionToArmour = eq.convertEvasionToArmourFromGear
   const energyShieldCannotBeReducedBelowMaximum = eq.energyShieldCannotBeReducedBelowMaximumFromGear
-  const countsAsDualWielding = eq.countsAsDualWieldingFromGear
+  const countsAsDualWielding =
+    eq.countsAsDualWieldingFromGear
+    || (config.equipped
+      ? isDualWieldingAttackWeapons(
+        getEquippedEntry(config.equipped, 'Weapon').itemId,
+        getEquippedEntry(config.equipped, 'Off-hand').itemId
+      )
+      : false)
   const armourEqualToPercentOfMaxMana = eq.armourEqualToPercentOfMaxManaFromGear
   const lifeLeechAppliesToEnergyShield = eq.lifeLeechAppliesToEnergyShieldFromGear
   const spellHitDamageLeechedAsEnergyShieldPercent =
@@ -5036,6 +5255,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     ailmentsOnCritGainDurationPerCritMulti,
     actionBarSetToPercentAfterCast,
     actionBarFilledByPercentOnBlock,
+    counterAttackOnBlock,
+    counterAttackFirePctOfPrevented,
     firstAttackAlwaysCrit,
     actionBarSetToPercentAtStart,
     additionalBaseManaCostPctOfMaxEnergyShield,

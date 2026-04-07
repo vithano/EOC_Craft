@@ -87,9 +87,17 @@ export interface FormulaConstants {
   bossDamageMult:  number; // 1.8
   bossRegenMult:   number; // 1.8
 
-  // ---- Nexus/Crucible tier scaling ----
+  // ---- Nexus/Crucible tier scaling (see nexusEnemyScaling.ts) ----
+  /** Life & life-linked regen: × per tier vs previous. */
   nexusLifeMult:          number; // 1.27479
+  /**
+   * Sheet: damage (previous tier) × this value (1.2589) = **DPS** step per tier. Enemies also gain
+   * `nexusSpeedPerTierPct` increased APS each tier; **per-hit** min/max use `nexusPerHitDamageMultPerTier`
+   * in `nexusEnemyScaling.ts` (`nexusDamageMult × 100/(100+speed%)`) so the speed tier is removed from hit
+   * damage and DPS stays × `nexusDamageMult`, not ×1.2589×1.05.
+   */
   nexusDamageMult:        number; // 1.2589
+  /** % increased enemy APS per tier; “removed” from hit-damage mult vs headline 1.2589 so DPS matches sheet. */
   nexusSpeedPerTierPct:   number; // 5
 
   // ---- Enemy mod values ----
@@ -236,7 +244,9 @@ export function enemyStatsAtLevel(level: number): {
     life:      scaleEnemyStatToLevel(C.enemyBaseLife,      level, C.enemyLifeScaleA,     C.enemyLifeScaleB),
     armour:    scaleEnemyStatToLevel(C.enemyBaseArmour,    level, C.enemyArmourScaleA,   C.enemyArmourScaleB),
     evasion:   scaleEnemyStatToLevel(C.enemyBaseEvasion,   level, C.enemyEvasionScaleA,  C.enemyEvasionScaleB),
-    speed:     scaleEnemyStatToLevel(C.enemyBaseSpeed,     level, C.enemyDamageScaleA,   C.enemyDamageScaleB),
+    // APS is not scaled by enemy level (sheet: life/damage/accuracy/evasion/armour curves only).
+    // Nexus / Crucible tiers apply +5% APS per tier with damage adjusted so DPS matches (see nexusEnemyScaling).
+    speed:     C.enemyBaseSpeed,
     accuracy:  scaleEnemyStatToLevel(C.enemyBaseAccuracy,  level, C.enemyAccuracyScaleA, C.enemyAccuracyScaleB),
     damageMin: scaleEnemyStatToLevel(C.enemyBaseDamageMin, level, C.enemyDamageScaleA,   C.enemyDamageScaleB),
     damageMax: scaleEnemyStatToLevel(C.enemyBaseDamageMax, level, C.enemyDamageScaleA,   C.enemyDamageScaleB),

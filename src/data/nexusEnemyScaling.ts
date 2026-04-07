@@ -1,18 +1,45 @@
 /**
- * Nexus Tier Enemy Scaling — derived from `formulas.csv` (nexus scaling per tier).
+ * Nexus tier enemy scaling — matches sheet rules (see `formulas.csv` / `FORMULA_CONSTANTS`).
  *
- * Per tier (from previous tier):
- * - Life × nexusLifeMult (1.27479)
- * - Regeneration (when modeled off scaled life, e.g. mods) follows the same life scaling in practice.
- * - Hit damage (min/max per type) × (nexusDamageMult / (1 + nexusSpeedPerTierPct/100)) so that
- *   combined with +5% APS per tier, DPS grows by nexusDamageMult (1.2589) per tier.
- * - APS × (1 + nexusSpeedPerTierPct/100) each tier.
- * - physDps / eleDps / chaosDps (reference DPS) × nexusDamageMult per tier.
+ * Per tier vs previous tier:
+ * - **Life** × `nexusLifeMult` (1.27479).
+ * - **Regeneration** × 1.27479 as well: in the demo, regen is `raw × scaledMaxLife / refLife` (ref = modifier
+ *   ratio anchor, level 100 for Nexus), so when
+ *   max life steps by 1.27479 each tier, life (and ES) regen per second steps by the same factor.
+ * - **Damage (sheet):** previous tier × `nexusDamageMult` (1.2589) — that is the **DPS** target per tier.
+ *   **Note:** each tier also grants **5% increased APS** (`nexusSpeedPerTierPct`). That 5% is **removed from
+ *   the per-hit damage multiplier** (hits × `nexusDamageMult / (1 + 5/100)`), so `hit × APS` still grows by
+ *   1.2589 per tier instead of 1.2589×1.05.
+ * - **APS** × `(1 + nexusSpeedPerTierPct/100)` each tier.
+ * - Reference columns **physDps / eleDps / chaosDps** × `nexusDamageMult` per tier (sanity check vs hit×APS).
  *
- * Accuracy, evasion, armour, and resistances do **not** scale with Nexus tier (tier 0 values are reused).
+ * **Tier 0** is anchored to **enemy level 100** (`enemyStatsAtLevel(100)`) for life, armour, evasion, accuracy,
+ * APS, and physical hit bands; elemental/chaos hits use the same multiplier vs the template row so split ratios
+ * match the sheet. Higher tiers stack Nexus multipliers on top of that baseline.
+ *
+ * **Accuracy, evasion, armour,** and **base resistances** in the tier template do not increase with Nexus tier.
+ * **Barrier** ES uses `modES × refLife / enemyBaseLife × rarityLifeMult` (ref = level-100 life), so it tracks the
+ * level-100 life curve and rarity, not Nexus tier life.
+ *
+ * **ES regeneration** from mods still uses the same `× scaledMaxLife / refLife` model as life regen, so
+ * it steps with nexus life when Replenishing is present.
  */
 
-import { FORMULA_CONSTANTS } from "./formulaConstants";
+import { enemyStatsAtLevel, FORMULA_CONSTANTS } from "./formulaConstants";
+
+/** Enemy level used as the baseline for Nexus / Crucible tier 0 (before per-tier Nexus multipliers). */
+export const NEXUS_ENEMY_LEVEL_ANCHOR = 100;
+
+/**
+ * Per Nexus tier, enemy **hit** min/max (phys / ele / chaos bands) multiply by this vs the previous tier.
+ * `nexusDamageMult` in the sheet is the **DPS** step; APS also gains `nexusSpeedPerTierPct` increased each tier.
+ * That extra attack speed is **removed from per-hit scaling** here (`× 100/(100+speed%)` of the headline mult,
+ * i.e. `nexusDamageMult ÷ (1 + speed%/100)`), so per-tier `hit mult × APS mult = nexusDamageMult`.
+ */
+export function nexusPerHitDamageMultPerTier(): number {
+  const C = FORMULA_CONSTANTS;
+  return (C.nexusDamageMult * 100) / (100 + C.nexusSpeedPerTierPct);
+}
 
 export interface NexusTierRow {
   tier: number;
@@ -74,7 +101,9 @@ function n(
   };
 }
 
-/** Tier 0 baseline (Nexus 0). Only life, damage, APS, and DPS columns scale per tier; other fields stay fixed. */
+/**
+ * Template row (relative shape). Tier 0 in `buildNexusTierRows` is derived from this plus `enemyStatsAtLevel(100)`.
+ */
 const NEXUS_TIER_0_SEED = n(
   0,
   286,
@@ -97,21 +126,46 @@ const NEXUS_TIER_0_SEED = n(
 
 const MAX_NEXUS_TIER = 30;
 
+function nexusTier0AtLevel100(template: NexusTierRow): NexusTierRow {
+  const L = enemyStatsAtLevel(NEXUS_ENEMY_LEVEL_ANCHOR);
+  const hitSpan = template.physMin + template.physMax;
+  const kHit = hitSpan > 0 ? (L.damageMin + L.damageMax) / hitSpan : 1;
+  return n(
+    0,
+    Math.round(template.physMin * kHit),
+    Math.round(template.physMax * kHit),
+    Math.round(template.elementalMin * kHit),
+    Math.round(template.elementalMax * kHit),
+    Math.round(template.chaosMin * kHit),
+    Math.round(template.chaosMax * kHit),
+    Math.max(1, Math.round(L.life)),
+    Math.max(0.05, Number(L.speed.toFixed(3))),
+    Math.round(L.accuracy),
+    Math.round(L.evasion),
+    Math.round(L.armour),
+    template.elementalResPercent,
+    template.chaosResPercent,
+    Math.round(template.physDps * kHit),
+    Math.round(template.eleDps * kHit),
+    Math.round(template.chaosDps * kHit)
+  );
+}
+
 /**
  * Build tiers 0…MAX_NEXUS_TIER from tier 0 and formulas.csv multipliers.
- * Uses iterative rounding (same as a hand-maintained table).
+ * Tier 0 is anchored to {@link enemyStatsAtLevel} at {@link NEXUS_ENEMY_LEVEL_ANCHOR}.
  */
 export function buildNexusTierRows(): NexusTierRow[] {
   const C = FORMULA_CONSTANTS;
   const lifeMult = C.nexusLifeMult;
   const dpsMultPerTier = C.nexusDamageMult;
   const speedMultPerTier = 1 + C.nexusSpeedPerTierPct / 100;
-  const hitMultPerTier = C.nexusDamageMult / speedMultPerTier;
+  const hitMultPerTier = nexusPerHitDamageMultPerTier();
 
-  const rows: NexusTierRow[] = [NEXUS_TIER_0_SEED];
+  const tier0 = nexusTier0AtLevel100(NEXUS_TIER_0_SEED);
+  const rows: NexusTierRow[] = [tier0];
   for (let t = 1; t <= MAX_NEXUS_TIER; t++) {
     const prev = rows[t - 1]!;
-    const seed = NEXUS_TIER_0_SEED;
     rows.push(
       n(
         t,
@@ -123,11 +177,11 @@ export function buildNexusTierRows(): NexusTierRow[] {
         Math.round(prev.chaosMax * hitMultPerTier),
         Math.round(prev.health * lifeMult),
         Number((prev.attacksPerSecond * speedMultPerTier).toFixed(3)),
-        seed.accuracy,
-        seed.evasion,
-        seed.armour,
-        seed.elementalResPercent,
-        seed.chaosResPercent,
+        tier0.accuracy,
+        tier0.evasion,
+        tier0.armour,
+        tier0.elementalResPercent,
+        tier0.chaosResPercent,
         Math.round(prev.physDps * dpsMultPerTier),
         Math.round(prev.eleDps * dpsMultPerTier),
         Math.round(prev.chaosDps * dpsMultPerTier)
@@ -171,8 +225,7 @@ export function getCrucibleTierRow(crucibleTier: number): NexusTierRow | undefin
   const lifeMult = Math.pow(C.nexusLifeMult, steps);
   const dpsMult = Math.pow(C.nexusDamageMult, steps);
   const speedMult = Math.pow(1 + C.nexusSpeedPerTierPct / 100, steps);
-  const hitMult = C.nexusDamageMult / (1 + C.nexusSpeedPerTierPct / 100);
-  const hitMultPow = Math.pow(hitMult, steps);
+  const hitMultPow = Math.pow(nexusPerHitDamageMultPerTier(), steps);
 
   return {
     tier: ct,

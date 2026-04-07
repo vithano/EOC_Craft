@@ -313,11 +313,12 @@ export default function BuildPlanner() {
   }, []);
 
   const equipFromStack = useCallback(
-    (stackId: string, overrides?: { rolls?: number[]; enhancement?: number }) => {
+    (stackId: string, overrides?: { rolls?: number[]; enhancement?: number; targetSlot?: string }) => {
     const { equipped: e, inventory: inv } = equipStateRef.current;
     const stack = inv.find((s) => s.id === stackId);
     if (!stack || stack.qty < 1) return;
-    const { slot, itemId } = stack;
+    const slot = overrides?.targetSlot ?? stack.slot;
+    const { itemId } = stack;
     const rolls =
       overrides?.rolls !== undefined
         ? overrides.rolls.length

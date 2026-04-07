@@ -3,12 +3,34 @@ import type { ComputedBuildStats } from '../data/gameStats'
 /** Default fraction of blocked hit damage that still gets through (glossary: 50% block power). */
 export const DEFAULT_BLOCK_DAMAGE_TAKEN_MULT = 0.5
 
+/**
+ * Denominators for flat enemy mods (Vital, Plated, …): scaled stat × `(ref + ΣΔ) / ref`.
+ * When omitted, formula CSV enemy bases (40 life, 1 armour, …) are used.
+ */
+export interface EnemyModifierRatioBases {
+  life: number
+  armour: number
+  evasion: number
+  accuracy: number
+  speed: number
+}
+
 export interface DemoEnemyDef {
   id: string
   name: string
   maxLife: number
   /** Optional extra pool (e.g. Barrier enemy mod). Damage is applied to ES before life. */
   maxEnergyShield?: number
+  /**
+   * When true, Barrier adds literal mod ES. Otherwise Barrier ES is
+   * `modES × refLife / enemyBaseLife × rarityLifeMult` (refLife = `modifierRatioBases.life` or CSV 40).
+   * That follows the enemy life level curve without using tier-scaled max life (no Nexus-tier ES creep).
+   */
+  barrierEsFlat?: boolean
+  /** Elite/boss life multiplier only (1 = normal). Used for Barrier ES; omit → 1. */
+  rarityLifeMult?: number
+  /** Anchors for flat mod ratios (e.g. level-100 stats for Nexus); omit → CSV bases. */
+  modifierRatioBases?: EnemyModifierRatioBases
   armour: number
   evasionRating: number
   accuracy: number

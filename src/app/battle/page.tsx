@@ -7,6 +7,7 @@ import type { DemoEnemyDef } from "../../battle/types";
 import {
   applyEnemyModifierBaseRatiosToScaledEnemy,
   ENEMY_MODIFIER_ORDER,
+  enemyModifierRatioBasesAtLevel,
   MAX_ENEMY_MODIFIERS,
   enemyModifierDescription,
   enemyModifierLabel,
@@ -14,7 +15,11 @@ import {
 } from "../../data/enemyModifiers";
 import { enemyStatsAtLevel } from "../../data/formulaConstants";
 import { FORMULA_CONSTANTS } from "../../data/formulaConstants";
-import { getCrucibleTierRow, getNexusTierRow } from "../../data/nexusEnemyScaling";
+import {
+  getCrucibleTierRow,
+  getNexusTierRow,
+  NEXUS_ENEMY_LEVEL_ANCHOR,
+} from "../../data/nexusEnemyScaling";
 import {
   HIT_DAMAGE_TYPE_COLOR_CLASS,
   HIT_DAMAGE_TYPE_LABEL,
@@ -101,6 +106,8 @@ export default function BattleDemoPage() {
         name: `${tLabel}${enemyRarity !== "normal" ? ` (${enemyRarity})` : ""}`,
         maxLife: Math.max(1, Math.round(row.health * rarityLifeMult)),
         maxEnergyShield: 0,
+        rarityLifeMult,
+        modifierRatioBases: enemyModifierRatioBasesAtLevel(NEXUS_ENEMY_LEVEL_ANCHOR),
         armour: Math.max(0, Math.round(row.armour)),
         evasionRating: Math.max(0, Math.round(row.evasion)),
         accuracy: Math.max(0, Math.round(row.accuracy)),
@@ -127,6 +134,14 @@ export default function BattleDemoPage() {
       id: "enemy",
       name: `Enemy L${lvl}${enemyRarity !== "normal" ? ` (${enemyRarity})` : ""}`,
       maxLife: Math.max(1, Math.round(base.life * rarityLifeMult)),
+      rarityLifeMult,
+      modifierRatioBases: {
+        life: base.life,
+        armour: base.armour,
+        evasion: base.evasion,
+        accuracy: base.accuracy,
+        speed: base.speed,
+      },
       armour: Math.max(0, Math.round(base.armour)),
       evasionRating: Math.max(0, Math.round(base.evasion)),
       accuracy: Math.max(0, Math.round(base.accuracy)),
