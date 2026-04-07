@@ -10,6 +10,7 @@ import type { EocAbilityDefinition, EocAbilityType, EocSpellHit } from '../data/
 import type { FormulaConstants } from '../data/formulaConstants';
 import type { EocBaseEquipmentDefinition } from '../data/eocBaseEquipment';
 import type { EocModifierDefinition, ModifierValueSpec } from '../data/eocModifiers';
+import type { ClassDef, ClassTier, UpgradeDef, UpgradeModifierKey } from '../data/gameClasses';
 
 // ---------------------------------------------------------------------------
 // Generic CSV parser (RFC 4180)
@@ -73,6 +74,143 @@ function headerMap(rows: string[][]): Map<string, number> {
 function col(row: string[], map: Map<string, number>, key: string): string {
   const i = map.get(key);
   return i !== undefined ? (row[i] ?? '').trim() : '';
+}
+
+// ---------------------------------------------------------------------------
+// Classes parsers (runtime Google Sheets)
+// ---------------------------------------------------------------------------
+
+function toInt0(v: string): number {
+  const t = (v || '').trim();
+  if (!t) return 0;
+  const n = parseInt(t, 10);
+  return isNaN(n) ? 0 : n;
+}
+
+function toFloat0(v: string): number {
+  const t = (v || '').trim();
+  if (!t) return 0;
+  const n = parseFloat(t);
+  return isNaN(n) ? 0 : n;
+}
+
+function splitIdsPipe(v: string): string[] {
+  return (v || '')
+    .split('|')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export interface SheetClassRow {
+  id: string;
+  name: string;
+  tier: ClassTier;
+  maxLevel: number;
+  classBonusRequiredPoints: number;
+  perLevelStr: number;
+  perLevelDex: number;
+  perLevelInt: number;
+  requirementType: 'none' | 'or' | 'and';
+  requirementClassIds: string[];
+  classBonusText: string;
+}
+
+export function parseClassesCSV(csv: string): SheetClassRow[] {
+  const rows = parseCSV(csv);
+  if (rows.length < 2) return [];
+  const hdr = headerMap(rows);
+  const out: SheetClassRow[] = [];
+  for (const row of rows.slice(1)) {
+    const id = col(row, hdr, 'id');
+    if (!id) continue;
+    const tierRaw = col(row, hdr, 'tier').toLowerCase() as ClassTier;
+    const tier: ClassTier =
+      tierRaw === 'base' || tierRaw === 'intermediate' || tierRaw === 'major' ? tierRaw : 'base';
+    const reqTypeRaw = (col(row, hdr, 'requirementType').toLowerCase() || 'none') as 'none' | 'or' | 'and';
+    const requirementType: 'none' | 'or' | 'and' =
+      reqTypeRaw === 'or' || reqTypeRaw === 'and' ? reqTypeRaw : 'none';
+    const reqIds = splitIdsPipe(col(row, hdr, 'requirementClassIds'));
+    out.push({
+      id,
+      name: col(row, hdr, 'name') || id,
+      tier,
+      maxLevel: toInt0(col(row, hdr, 'maxLevel')),
+      classBonusRequiredPoints: toInt0(col(row, hdr, 'classBonusRequiredPoints')),
+      perLevelStr: toInt0(col(row, hdr, 'perLevelStr')),
+      perLevelDex: toInt0(col(row, hdr, 'perLevelDex')),
+      perLevelInt: toInt0(col(row, hdr, 'perLevelInt')),
+      requirementType,
+      requirementClassIds: requirementType === 'none' ? [] : reqIds,
+      classBonusText: col(row, hdr, 'classBonusText'),
+    });
+  }
+  return out;
+}
+
+export interface SheetClassUpgradeRow {
+  classId: string;
+  upgradeId: UpgradeModifierKey;
+  label: string;
+  valuePerPoint: number;
+  isFlat: boolean;
+  maxPoints: number;
+}
+
+export function parseClassUpgradesCSV(csv: string): SheetClassUpgradeRow[] {
+  const rows = parseCSV(csv);
+  if (rows.length < 2) return [];
+  const hdr = headerMap(rows);
+  const out: SheetClassUpgradeRow[] = [];
+  for (const row of rows.slice(1)) {
+    const classId = col(row, hdr, 'classId');
+    const upgradeId = col(row, hdr, 'upgradeId') as UpgradeModifierKey;
+    if (!classId || !upgradeId) continue;
+    out.push({
+      classId,
+      upgradeId,
+      label: col(row, hdr, 'label') || upgradeId,
+      valuePerPoint: toFloat0(col(row, hdr, 'valuePerPoint')),
+      isFlat: (col(row, hdr, 'isFlat') || '').toLowerCase() === 'true' || col(row, hdr, 'isFlat') === '1',
+      maxPoints: toInt0(col(row, hdr, 'maxPoints')) || 5,
+    });
+  }
+  return out;
+}
+
+export function buildClassDefsFromSheets(classes: SheetClassRow[], upgrades: SheetClassUpgradeRow[]): ClassDef[] {
+  const upgradesByClass = new Map<string, UpgradeDef[]>();
+  for (const u of upgrades) {
+    const arr = upgradesByClass.get(u.classId) ?? [];
+    arr.push({
+      id: u.upgradeId,
+      label: u.label,
+      valuePerPoint: u.valuePerPoint,
+      isFlat: u.isFlat,
+      maxPoints: 5,
+    });
+    upgradesByClass.set(u.classId, arr);
+  }
+
+  return classes.map((c) => ({
+    id: c.id,
+    name: c.name,
+    tier: c.tier,
+    maxLevel: c.maxLevel,
+    classBonusRequiredPoints: c.classBonusRequiredPoints,
+    perLevel: {
+      ...(c.perLevelStr ? { str: c.perLevelStr } : {}),
+      ...(c.perLevelDex ? { dex: c.perLevelDex } : {}),
+      ...(c.perLevelInt ? { int: c.perLevelInt } : {}),
+    },
+    classBonusDescription: c.classBonusText,
+    upgrades: upgradesByClass.get(c.id) ?? [],
+    requirement:
+      c.requirementType === 'or'
+        ? { type: 'or', classIds: c.requirementClassIds }
+        : c.requirementType === 'and'
+          ? { type: 'and', classIds: c.requirementClassIds }
+          : { type: 'none' },
+  }));
 }
 
 // ---------------------------------------------------------------------------

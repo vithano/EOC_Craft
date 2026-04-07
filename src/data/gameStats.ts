@@ -27,6 +27,7 @@ import {
   weaponAbilityTagFromItemId,
   type EocAbilityType,
 } from './eocAbilities'
+import { parseClassBonusEffects } from './classBonusEffects'
 import {
   applyElementalToChaosConversionProv,
   applyGainPhysicalAsExtraLightningProv,
@@ -2059,6 +2060,30 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   const bonus = (id: string) => classBonusesActive.includes(id)
 
+  const activeClassBonusEffects = classBonusesActive
+    .map((id) => GAME_CLASSES_BY_ID[id])
+    .filter(Boolean)
+    .map((cls) => parseClassBonusEffects(cls.classBonusDescription))
+
+  const sumFx = (pick: (fx: ReturnType<typeof parseClassBonusEffects>) => number | undefined): number =>
+    activeClassBonusEffects.reduce((sum, fx) => sum + (pick(fx) ?? 0), 0)
+  const prodFx = (pick: (fx: ReturnType<typeof parseClassBonusEffects>) => number | undefined): number =>
+    activeClassBonusEffects.reduce((p, fx) => p * (pick(fx) ?? 1), 1)
+
+  const classBonusAbilityLevelAdd = Math.floor(sumFx((fx) => fx.plusAllAbilitiesLevels))
+  const classAttunementEffectMult = 1 + sumFx((fx) => fx.increasedAttunementEffectPercent) / 100
+  const classFlatAccuracy = sumFx((fx) => fx.flatAccuracy)
+  const classMoreAttackSpeedMult = prodFx((fx) => fx.moreAttackSpeedMult)
+  const classMoreCastSpeedMult = prodFx((fx) => fx.moreCastSpeedMult)
+  const classAllResBonus = sumFx((fx) => fx.allResistancesPercent)
+  const classMaxLifeFlatBonus = sumFx((fx) => fx.flatMaxLife)
+  const classIncreasedStrengthPctBonus = sumFx((fx) => fx.increasedStrengthPercent)
+  const classManaAsExtraBaseEsPercent = sumFx((fx) => fx.manaAsExtraBaseEsPercent)
+  const classReducedManaCostPercent = sumFx((fx) => fx.reducedManaCostPercent)
+  const classEnemiesTakeIncDamagePct = sumFx((fx) => fx.enemiesTakeIncreasedDamagePercent)
+  const classEnemiesHaveLessSpeedPct = sumFx((fx) => fx.enemiesHaveLessSpeedPercent)
+  const classEnemiesDealLessDamagePct = sumFx((fx) => fx.enemiesDealLessDamagePercent)
+
   const selAbility = config.ability
   const selectedAbilityDef =
     selAbility?.abilityId ? EOC_ABILITY_BY_ID[selAbility.abilityId] : undefined
@@ -2071,13 +2096,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     ? attunementNumericEffects(
         selectedAbilityDef,
         Number(selAbility?.attunementPct ?? 0),
-        bonus('archmage') ? 2 : 1
+        classAttunementEffectMult
       )
     : { elementalPenetrationPercent: 0, executeBelowLifePercent: 0 }
 
   /** Trickster class bonus: enemies take 10% increased damage (see gameClasses trickster). Baked into hit/DPS like gear. */
-  const TRICKSTER_ENEMIES_TAKE_INCREASED_DAMAGE_PCT = 10
-  const enemyDamageTakenIncreasedFromTricksterPct = bonus('trickster') ? TRICKSTER_ENEMIES_TAKE_INCREASED_DAMAGE_PCT : 0
+  const enemyDamageTakenIncreasedFromTricksterPct = classEnemiesTakeIncDamagePct
   const enemyDamageTakenIncreasedTotalPct =
     eq.enemyDamageTakenIncreasedFromGear + enemyDamageTakenIncreasedFromTricksterPct
   /** Baked into hit min/max and DPS; battle engine does not apply gear/trickster again (Windrunner / Dragoon still in combat). */
@@ -2154,7 +2178,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const strMult =
     1
     + u('increasedStrength') / 100
-    + (bonus('warrior') ? 0.15 : 0)
+    + (classIncreasedStrengthPctBonus / 100)
     + eq.pctIncreasedStrengthFromGear / 100
     + incAllAttr
   const dexMult =
@@ -2199,7 +2223,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     BASE_GAME_STATS.baseLife
     + lifeFromStr
     + levelFlatLife
-    + (bonus('warrior') ? 100 : 0)
+    + classMaxLifeFlatBonus
     + eq.flatLife
   const totalIncreasedLife = u('increasedLife') + eq.pctIncreasedLifeFromGear
   // Occultist class bonus: maximum life = 1 (ignores life formula)
@@ -2223,7 +2247,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // Sorcerer class bonus: 10% of max mana as extra base ES
   const esBase =
-    (bonus('sorcerer') ? maxMana * 0.10 : 0)
+    (maxMana * (classManaAsExtraBaseEsPercent / 100))
     + eq.flatEnergyShieldFromGear
     + maxLife * (eq.lifeAsExtraEsPercentFromGear / 100)
     + maxMana * (eq.manaAsExtraEsPercentFromGear / 100)
@@ -2295,7 +2319,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // 13. Resistances
   // -------------------------------------------------------------------------
   // Fighter class bonus: +15% to all resistances
-  const fighterBonus = (bonus('fighter') ? 15 : 0);
+  const fighterBonus = classAllResBonus;
   const allEleBonus =
     u('increasedAllElementalResistances') +
     fighterBonus +
@@ -2326,7 +2350,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // Flat: base + Rogue + gear flat. Increased: tree + gear % — same pattern as crit chance §16.
   const accuracyFlatBase =
-    BASE_GAME_STATS.baseAccuracy + (bonus('rogue') ? 150 : 0) + levelFlatAccuracy + eq.flatAccuracy
+    BASE_GAME_STATS.baseAccuracy + classFlatAccuracy + levelFlatAccuracy + eq.flatAccuracy
   const accuracyFromUpgrades =
     u('increasedAccuracyRating') + eq.pctIncreasedAccuracyFromGear
   let accuracy = Math.round(
@@ -2496,7 +2520,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const selForHit = config.ability
   if (selForHit?.abilityId) {
     const abDef = EOC_ABILITY_BY_ID[selForHit.abilityId]
-    const abLevel = Math.max(0, Math.floor(selForHit.abilityLevel ?? 0))
+    const abLevel = Math.max(0, Math.floor(selForHit.abilityLevel ?? 0) + classBonusAbilityLevelAdd)
     if (
       abDef
       && abilityMatchesWeapon(abDef, weaponTag)
@@ -2704,7 +2728,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + eq.pctIncreasedAttackSpeedFromGear
   // Rogue class bonus: 10% more APS (multiplicative)
   // Flat weapon APS × (1 + increased attack speed %) × more / less (same pattern as §16).
-  const rogueMult = bonus('rogue') ? 1.10 : 1.0
+  const rogueMult = classMoreAttackSpeedMult
   const apsFlatBase = eq.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps
   let aps =
     apsFlatBase * (1 + totalIncreasedAtk / 100) * rogueMult * eq.attackSpeedLessMultFromGear
@@ -2720,7 +2744,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const additionalBaseManaCostFlat = maxEnergyShield * (additionalBaseManaCostPctOfMaxEnergyShield / 100)
   let manaCostPerAttack =
     (BASE_GAME_STATS.baseManaPerAttack + additionalBaseManaCostFlat) *
-    (bonus('sorcerer') ? 0.90 : 1.0) *
+    Math.max(0.05, 1 - classReducedManaCostPercent / 100) *
     Math.max(0.2, 1 - eq.manaCostReductionFromGear / 100) *
     (1 + eq.manaCostIncreasePercentFromGear / 100)
 
@@ -2802,7 +2826,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     const ad = EOC_ABILITY_BY_ID[config.ability.abilityId]
     if (ad && abilityMatchesWeapon(ad, weaponTag) && (ad.type === 'Melee' || ad.type === 'Ranged')) {
       const attPctRaw = Math.min(100, Math.max(0, Number(config.ability.attunementPct) || 0))
-      const am = interpolateAttunementModifier(ad, attPctRaw, bonus('archmage') ? 2 : 1)
+      const am = interpolateAttunementModifier(ad, attPctRaw, classAttunementEffectMult)
       if (am) {
         if (am.key === 'increased damage') attIncDamage = am.value
         else if (am.key === 'increased physical damage') attIncPhysical = am.value
@@ -3002,7 +3026,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   if (sel?.abilityId) {
     const def = EOC_ABILITY_BY_ID[sel.abilityId]
-    const baseLevel = Math.max(0, Math.floor(sel.abilityLevel))
+    const baseLevel = Math.max(0, Math.floor(sel.abilityLevel) + classBonusAbilityLevelAdd)
     const isColdAbility = def?.spellHit?.element?.toLowerCase?.() === 'cold'
     const level =
       baseLevel
@@ -3011,8 +3035,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     if (def && abilityMatchesWeapon(def, weaponTag)) {
       const attPctRaw = Math.min(100, Math.max(0, Number(sel.attunementPct) || 0))
       const attPct = Math.round(attPctRaw)
-      const attMult = bonus('archmage') ? 2 : 1
-      const attMod = interpolateAttunementModifier(def, attPctRaw, attMult)
+      const attMod = interpolateAttunementModifier(def, attPctRaw, classAttunementEffectMult)
       const baseAbilityManaRaw = def.manaCost != null ? def.manaCost : BASE_GAME_STATS.baseManaPerAttack
       const baseAbilityMana = baseAbilityManaRaw + additionalBaseManaCostFlat
       const startLvl = def.startingAbilityLevel ?? 0
@@ -3564,7 +3587,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + mercenaryAspIncPctBr
     + eq.pctIncreasedAttackSpeedFromGear
   const apsFlatBaseBr = eq.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps
-  const rogueMultBr = bonus('rogue') ? 1.10 : 1.0
+  const rogueMultBr = classMoreAttackSpeedMult
 
   let hitDamageComputationBreakdown: HitDamageComputationBreakdown | null = null
   if (hitDamageBreakdownPartial && abilityContribution?.type !== 'Spells') {
@@ -3687,7 +3710,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const recoveryRateMult = 1 + (eq.pctIncreasedLifeRecoveryFromGear + eq.pctIncreasedRecoveryFromAllSourcesFromGear) / 100
   const lifeRecoveryRateMult = recoveryRateMult
   const physicalDamageTakenAsChaosPercent = eq.physicalTakenAsChaosPercentFromGear
-  const physicalDamageTakenAsFirePercent = eq.physicalTakenAsFirePercentFromGear
+  // Chieftain class bonus: take 25% of physical damage as fire damage
+  const physicalDamageTakenAsFirePercent =
+    eq.physicalTakenAsFirePercentFromGear + (bonus('chieftain') ? 25 : 0)
   const physicalDamageTakenAsColdPercent = eq.physicalTakenAsColdPercentFromGear
   const physicalDamageTakenAsLightningPercent = eq.physicalTakenAsLightningPercentFromGear
   const elementalDamageTakenAsChaosPercent = eq.elementalTakenAsChaosPercentFromGear
@@ -3969,7 +3994,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     { label: 'Life from strength (10 per 10 Str × guardian life mult)', value: lifeFromStr },
     { label: 'Life from character level (10 per level above 1)', value: levelFlatLife },
   ]
-  dmgPushIf(lifeLines, 'Warrior bonus: +100 life', bonus('warrior') ? 100 : 0)
+  dmgPushIf(lifeLines, 'Class bonus: +max life', classMaxLifeFlatBonus)
   pushGear(lifeLines, 'Gear: flat life', eq.flatLife, (x) => x.flatLife)
   dmgPushIf(lifeLines, 'Upgrades: increased life', u('increasedLife'))
   pushGear(lifeLines, 'Gear: increased life', eq.pctIncreasedLifeFromGear, (x) => x.pctIncreasedLifeFromGear)
@@ -4010,7 +4035,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   )
 
   const esLines: StatContributionLine[] = []
-  if (bonus('sorcerer')) esLines.push({ label: 'Sorcerer: 10% of max mana as base ES', value: maxMana * 0.1 })
+  if (classManaAsExtraBaseEsPercent > 0) {
+    esLines.push({
+      label: `Class bonus: ${classManaAsExtraBaseEsPercent.toFixed(1)}% of max mana as base ES`,
+      value: maxMana * (classManaAsExtraBaseEsPercent / 100),
+    })
+  }
   pushGear(esLines, 'Gear: flat energy shield', eq.flatEnergyShieldFromGear, (x) => x.flatEnergyShieldFromGear)
   if (eq.lifeAsExtraEsPercentFromGear !== 0) {
     esLines.push({
@@ -4375,7 +4405,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const accuracyLines: StatContributionLine[] = [
     { label: 'Base accuracy', value: BASE_GAME_STATS.baseAccuracy },
   ]
-  if (bonus('rogue')) accuracyLines.push({ label: 'Rogue: +150 accuracy', value: 150 })
+  if (classFlatAccuracy !== 0) accuracyLines.push({ label: 'Class bonus: +accuracy', value: classFlatAccuracy })
   if (levelFlatAccuracy !== 0) {
     accuracyLines.push({ label: 'Character level: +3 accuracy per level above 1', value: levelFlatAccuracy })
   }
@@ -4425,7 +4455,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       value: additionalBaseManaCostFlat,
     })
   }
-  if (bonus('sorcerer')) manaCostLines.push({ label: 'Sorcerer: 10% reduced mana cost', value: -10 })
+  if (classReducedManaCostPercent !== 0) {
+    manaCostLines.push({ label: 'Class bonus: reduced mana cost', value: -classReducedManaCostPercent })
+  }
   pushGear(
     manaCostLines,
     'Gear: mana cost reduction',

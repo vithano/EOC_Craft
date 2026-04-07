@@ -183,12 +183,18 @@ function mitigatedPlayerHitVsArmour(enemy: DemoEnemyDef, stats: ComputedBuildSta
   if (lr  > 0) lightOut *= 1 - lr  / 100
   if (chr > 0) chaosOut *= 1 - chr / 100
 
+  // Chieftain: enemies take 40% increased elemental damage.
+  if (stats.classBonusesActive.includes('chieftain')) {
+    fireOut *= 1.4
+    coldOut *= 1.4
+    lightOut *= 1.4
+  }
+
   return physOut + fireOut + coldOut + lightOut + chaosOut
 }
 
 function enemyApsMultiplier(stats: ComputedBuildStats): number {
   let m = 1
-  if (stats.classBonusesActive.includes('windrunner')) m *= 1 - 0.1
   if (stats.classBonusesActive.includes('trickster')) m *= 1 - 0.05
   if ((stats.enemiesMoreSpeedMultiplier ?? 1) !== 1) m *= stats.enemiesMoreSpeedMultiplier ?? 1
   return m
@@ -196,7 +202,6 @@ function enemyApsMultiplier(stats: ComputedBuildStats): number {
 
 function enemyDamageTakenMultiplier(stats: ComputedBuildStats, enemyLifeFrac: number): number {
   let m = 1
-  if (stats.classBonusesActive.includes('windrunner')) m *= 1 + 0.15
   // Trickster (+10%) and gear “enemies take increased damage” are baked into hitDamageMin/Max in computeBuildStats.
   if (stats.classBonusesActive.includes('dragoon')) {
     const missing = 1 - enemyLifeFrac
@@ -351,6 +356,14 @@ function applyDamageToPools(
     const fromMana = Math.min(portion, Math.max(0, state.mana))
     state.mana -= fromMana
     dmg -= fromMana
+  }
+
+  // Ascendant: 50% of non-chaos damage bypasses energy shield.
+  // Demo model: apply the bypass fraction to all incoming damage (enemy hits are mostly non-chaos).
+  if (stats.classBonusesActive.includes('ascendant') && dmg > 0) {
+    const bypass = dmg * 0.5
+    state.life -= bypass
+    dmg -= bypass
   }
 
   if ((stats.energyShieldCannotBeReducedBelowMaximum ?? false) && stats.maxEnergyShield > 0) {
@@ -1000,6 +1013,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   let nextEnemy = 0
   const apsEnemy = Math.max(0.05, (enemy.aps + enemyModApsAdd) * enemyApsMultiplier(stats))
   const firstHitFlag = { used: false }
+  const firstPlayerActionThisEncounter = { used: false }
 
   const ailmentState: EnemyAilmentRuntime = {
     dots: [],
@@ -1007,11 +1021,23 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     chills: [],
   }
 
+  // Windrunner: permanently inflict 15% shock and 10% chill at encounter start.
+  if (stats.classBonusesActive.includes('windrunner')) {
+    const dur = 1e9
+    ailmentState.shocks.push({ magnitudePct: 15, expiresAt: t + dur })
+    ailmentState.chills.push({ magnitudePct: 10, expiresAt: t + dur })
+  }
+
   const playerAilments: PlayerAilmentRuntime = {
     poisons: [],
     igniteUntil: 0,
     shock: null,
     chill: null,
+  }
+
+  // Reaper: permanently inflict 20% chill on yourself.
+  if (stats.classBonusesActive.includes('reaper')) {
+    playerAilments.chill = { magnitudePct: 20, expiresAt: 1e9 }
   }
 
   const log: BattleLogEntry[] = [
@@ -1229,9 +1255,12 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         const extraInc =
           (fx?.enemiesTakeIncreasedDamagePerPoisonPercent ?? 0) * poisonStacks
           + (fx?.enemiesTakeIncreasedDamagePerChillEffectPercent ?? 0) * chillPctNow
+        const shadowMore = (!firstPlayerActionThisEncounter.used && stats.classBonusesActive.includes('shadow')) ? 1.5 : 1
+        if (shadowMore !== 1) firstPlayerActionThisEncounter.used = true
         const { damage, damageForAilments, outcome, anyCrit } = resolvePlayerAttack(enemy, enemyLife, stats, {
           targetTakesIncreasedDamagePct: shockNow,
           extraTargetTakesIncreasedDamagePct: extraInc,
+          moreDamageMult: shadowMore,
         })
         applyDamageToEnemyPools(enemyState, damage)
         enemyLife = enemyState.life
@@ -1356,6 +1385,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         const fill = stats.actionBarFilledByPercentOnBlock ?? 0
         if (fill > 0) actionBar = Math.min(1, actionBar + fill / 100)
       }
+      if ((r.evaded || r.dodged) && stats.classBonusesActive.includes('shadow')) {
+        actionBar = Math.min(1, actionBar + 0.35)
+      }
       if (!r.evaded && !r.dodged && r.damageToDisplay > 0) hitsEnemy++
       if (log.length < maxLog) {
         if (r.evaded) log.push({ t, kind: 'enemy_attack', message: `${enemy.name} attack evaded` })
@@ -1403,7 +1435,8 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     const ignited = playerAilments.igniteUntil > t
     const baseLifeRegenPct = stats.lifeRegenPercentOfMaxPerSecond ?? 0
     const ignitedBonus = ignited ? (stats.lifeRegenPercentOfMaxPerSecondWhileIgnited ?? 0) : 0
-    const lifeRegenPct = baseLifeRegenPct + ignitedBonus
+    const ascendantLifeRegenPct = stats.classBonusesActive.includes('ascendant') ? 5 : 0
+    const lifeRegenPct = baseLifeRegenPct + ignitedBonus + ascendantLifeRegenPct
     if (lifeRegenPct > 0 && player.life > 0) {
       const rec = stats.lifeRecoveryRateMult ?? 1
       if (lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
@@ -1411,6 +1444,14 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           runtimeMaxLife,
           player.life + runtimeMaxLife * (lifeRegenPct / 100) * dt * rec
         )
+      }
+    }
+    // Ascendant: 50% of life regeneration per second also applies to your energy shield.
+    if (stats.classBonusesActive.includes('ascendant') && stats.maxEnergyShield > 0) {
+      const rec = stats.lifeRecoveryRateMult ?? 1
+      const toEs = runtimeMaxLife * ((baseLifeRegenPct + ignitedBonus + ascendantLifeRegenPct) / 100) * dt * rec * 0.5
+      if (toEs > 0) {
+        player.energyShield = Math.min(stats.maxEnergyShield, player.energyShield + toEs)
       }
     }
     const flatLifeRegen = stats.flatLifeRegenPerSecond ?? 0

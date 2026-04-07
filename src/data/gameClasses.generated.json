@@ -1,0 +1,1622 @@
+[
+  {
+    "id": "sorcerer",
+    "name": "Sorcerer",
+    "tier": "base",
+    "maxLevel": 15,
+    "classBonusRequiredPoints": 10,
+    "perLevel": {
+      "str": 0,
+      "dex": 0,
+      "int": 2
+    },
+    "requirement": {
+      "type": "none",
+      "classIds": []
+    },
+    "classBonusText": "Gain 10% of mana as extra base energy shield, 10% reduced mana cost of abilities",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedEnergyShield",
+        "label": "Increased Energy Shield",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedSpellDamage",
+        "label": "Increased Spell Damage",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "rogue",
+    "name": "Rogue",
+    "tier": "base",
+    "maxLevel": 15,
+    "classBonusRequiredPoints": 10,
+    "perLevel": {
+      "str": 0,
+      "dex": 1,
+      "int": 1
+    },
+    "requirement": {
+      "type": "none",
+      "classIds": []
+    },
+    "classBonusText": "+150 to accuracy rating, 10% more attack speed and cast speed",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedEvasionRatingAndEnergyShield",
+        "label": "Increased Evasion Rating and Energy Shield",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedDamage",
+        "label": "Increased Damage",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "hunter",
+    "name": "Hunter",
+    "tier": "base",
+    "maxLevel": 15,
+    "classBonusRequiredPoints": 10,
+    "perLevel": {
+      "str": 0,
+      "dex": 2,
+      "int": 0
+    },
+    "requirement": {
+      "type": "none",
+      "classIds": []
+    },
+    "classBonusText": "100% increased post-encounter life recovery",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedEvasionRating",
+        "label": "Increased Evasion Rating",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackDamage",
+        "label": "Increased Attack Damage",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "fighter",
+    "name": "Fighter",
+    "tier": "base",
+    "maxLevel": 15,
+    "classBonusRequiredPoints": 10,
+    "perLevel": {
+      "str": 1,
+      "dex": 1,
+      "int": 0
+    },
+    "requirement": {
+      "type": "none",
+      "classIds": []
+    },
+    "classBonusText": "+15% to all resistances, 5% increased experience gain",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmourAndEvasionRating",
+        "label": "Increased Armour and Evasion Rating",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackDamage",
+        "label": "Increased Attack Damage",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "warrior",
+    "name": "Warrior",
+    "tier": "base",
+    "maxLevel": 15,
+    "classBonusRequiredPoints": 10,
+    "perLevel": {
+      "str": 2,
+      "dex": 0,
+      "int": 0
+    },
+    "requirement": {
+      "type": "none",
+      "classIds": []
+    },
+    "classBonusText": "+100 to maximum life, 15% increased strength",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmour",
+        "label": "Increased Armour",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMeleeDamage",
+        "label": "Increased Melee Damage",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "acolyte",
+    "name": "Acolyte",
+    "tier": "base",
+    "maxLevel": 15,
+    "classBonusRequiredPoints": 10,
+    "perLevel": {
+      "str": 1,
+      "dex": 0,
+      "int": 1
+    },
+    "requirement": {
+      "type": "none",
+      "classIds": []
+    },
+    "classBonusText": "25% increased recovery from all sources",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmourAndEnergyShield",
+        "label": "Increased Armour and Energy Shield",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedDamage",
+        "label": "Increased Damage",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "arcanist",
+    "name": "Arcanist",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 0,
+      "dex": 1,
+      "int": 3
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "sorcerer",
+        "trickster",
+        "druid"
+      ]
+    },
+    "classBonusText": "Chaos damage does not bypass your energy shield, 50% increased post-encounter energy shield recovery, take 15% reduced physical damage while you have energy shield",
+    "upgrades": [
+      {
+        "id": "increasedEnergyShield",
+        "label": "Increased Energy Shield",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedSpellDamage",
+        "label": "Increased Spell Damage",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedSpellCriticalHitChance",
+        "label": "Increased Spell Critical Hit Chance",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAllElementalResistances",
+        "label": "Increased All Elemental Resistances",
+        "valuePerPoint": 3.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedManaRegeneration",
+        "label": "Increased Mana Regeneration",
+        "valuePerPoint": 15.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "druid",
+    "name": "Druid",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 1,
+      "dex": 0,
+      "int": 3
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "sorcerer",
+        "guardian",
+        "arcanist"
+      ]
+    },
+    "classBonusText": "While above 50% of maximum mana 25% of damage taken is applied to your mana first, regenerate 2% of maximum mana per second",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedEnergyShield",
+        "label": "Increased Energy Shield",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedSpellDamage",
+        "label": "Increased Spell Damage",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMana",
+        "label": "Increased Mana",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToInflictElementalAilments",
+        "label": "Increased Chance to Inflict Elemental Ailments",
+        "valuePerPoint": 10.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "guardian",
+    "name": "Guardian",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 2,
+      "dex": 0,
+      "int": 2
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "acolyte",
+        "zealot",
+        "druid"
+      ]
+    },
+    "classBonusText": "+30 to all attributes, the inherent bonuses gained from attributes are doubled",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmourAndEnergyShield",
+        "label": "Increased Armour and Energy Shield",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMana",
+        "label": "Increased Mana",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToBlock",
+        "label": "Increased Chance to Block",
+        "valuePerPoint": 3.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChaosResistance",
+        "label": "Increased Chaos Resistance",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "zealot",
+    "name": "Zealot",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 2,
+      "dex": 0,
+      "int": 2
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "guardian",
+        "acolyte",
+        "juggernaut"
+      ]
+    },
+    "classBonusText": "When you hit an enemy your base damage is rolled twice and the higher result is used, when you are hit by an enemy their base damage is rolled twice and the lower result is used",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmourAndEnergyShield",
+        "label": "Increased Armour and Energy Shield",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedElementalDamage",
+        "label": "Increased Elemental Damage",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedCriticalHitChance",
+        "label": "Increased Critical Hit Chance",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToInflictElementalAilments",
+        "label": "Increased Chance to Inflict Elemental Ailments",
+        "valuePerPoint": 10.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "juggernaut",
+    "name": "Juggernaut",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 3,
+      "dex": 0,
+      "int": 1
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "zealot",
+        "warrior",
+        "barbarian"
+      ]
+    },
+    "classBonusText": "+50% to armour effectiveness against elemental damage, +25% to armour effectiveness against chaos damage, when hit recover life equal to 4% of prevented damage",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmour",
+        "label": "Increased Armour",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMeleeDamage",
+        "label": "Increased Melee Damage",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAllElementalResistances",
+        "label": "Increased All Elemental Resistances",
+        "valuePerPoint": 3.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedLifeRecovery",
+        "label": "Increased Life Recovery",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "barbarian",
+    "name": "Barbarian",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 3,
+      "dex": 1,
+      "int": 0
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "juggernaut",
+        "warrior",
+        "champion"
+      ]
+    },
+    "classBonusText": "+10% chance to deal double damage with attacks, hits ignore 50% of enemy armour",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMeleeDamage",
+        "label": "Increased Melee Damage",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackSpeed",
+        "label": "Increased Attack Speed",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAccuracyRating",
+        "label": "Increased Accuracy Rating",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "gainLifeOnKill",
+        "label": "Gain Life on Kill",
+        "valuePerPoint": 45.0,
+        "isFlat": true,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "champion",
+    "name": "Champion",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 2,
+      "dex": 2,
+      "int": 0
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "barbarian",
+        "fighter",
+        "mercenary"
+      ]
+    },
+    "classBonusText": "Take 1% reduced damage per 4% missing life, once per stage if you would die your life is set to 1 instead",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmourAndEvasionRating",
+        "label": "Increased Armour and Evasion Rating",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackSpeed",
+        "label": "Increased Attack Speed",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToInflictBleedingWithAttacks",
+        "label": "Increased Chance to Inflict Bleeding with Attacks",
+        "valuePerPoint": 10.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToBlock",
+        "label": "Increased Chance to Block",
+        "valuePerPoint": 3.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "mercenary",
+    "name": "Mercenary",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 2,
+      "dex": 2,
+      "int": 0
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "champion",
+        "fighter",
+        "windrunner"
+      ]
+    },
+    "classBonusText": "+5 to strength and dexterity per class level, 1% increased attack speed per 10 strength or dexterity whichever is lower",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmourAndEvasionRating",
+        "label": "Increased Armour and Evasion Rating",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackDamage",
+        "label": "Increased Attack Damage",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAllElementalResistances",
+        "label": "Increased All Elemental Resistances",
+        "valuePerPoint": 3.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAccuracyRating",
+        "label": "Increased Accuracy Rating",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "windrunner",
+    "name": "Windrunner",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 1,
+      "dex": 3,
+      "int": 0
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "pathfinder",
+        "hunter",
+        "mercenary"
+      ]
+    },
+    "classBonusText": "Permanently inflict 15% shock and 10% chill on enemies at the beginning of an encounter",
+    "upgrades": [
+      {
+        "id": "increasedEvasionRating",
+        "label": "Increased Evasion Rating",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackSpeed",
+        "label": "Increased Attack Speed",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackCriticalHitChance",
+        "label": "Increased Attack Critical Hit Chance",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToInflictElementalAilments",
+        "label": "Increased Chance to Inflict Elemental Ailments",
+        "valuePerPoint": 10.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "gainManaOnKill",
+        "label": "Gain Mana on Kill",
+        "valuePerPoint": 45.0,
+        "isFlat": true,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "pathfinder",
+    "name": "Pathfinder",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 0,
+      "dex": 3,
+      "int": 1
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "windrunner",
+        "hunter",
+        "assassin"
+      ]
+    },
+    "classBonusText": "+50% to evasion effectiveness against hits from spells, take 20% less damage the first time you are hit during an encounter",
+    "upgrades": [
+      {
+        "id": "increasedEvasionRating",
+        "label": "Increased Evasion Rating",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackDamage",
+        "label": "Increased Attack Damage",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToInflictBleedingWithAttacks",
+        "label": "Increased Chance to Inflict Bleeding with Attacks",
+        "valuePerPoint": 10.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAccuracyRating",
+        "label": "Increased Accuracy Rating",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAllElementalResistances",
+        "label": "Increased All Elemental Resistances",
+        "valuePerPoint": 3.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "assassin",
+    "name": "Assassin",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 0,
+      "dex": 2,
+      "int": 2
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "trickster",
+        "rogue",
+        "pathfinder"
+      ]
+    },
+    "classBonusText": "+8% to base critical hit chance, enemies have 25% less evasion rating against critical hits",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedEvasionRatingAndEnergyShield",
+        "label": "Increased Evasion Rating and Energy Shield",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedCriticalHitChance",
+        "label": "Increased Critical Hit Chance",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToInflictPoisonWithAttacks",
+        "label": "Increased Chance to Inflict Poison with Attacks",
+        "valuePerPoint": 10.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "gainLifeOnKill",
+        "label": "Gain Life on Kill",
+        "valuePerPoint": 45.0,
+        "isFlat": true,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "trickster",
+    "name": "Trickster",
+    "tier": "intermediate",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 0,
+      "dex": 2,
+      "int": 2
+    },
+    "requirement": {
+      "type": "or",
+      "classIds": [
+        "arcanist",
+        "rogue",
+        "assassin"
+      ]
+    },
+    "classBonusText": "Enemies take 10% increased damage, enemies have 5% less speed, enemies deal 5% less damage",
+    "upgrades": [
+      {
+        "id": "increasedEvasionRatingAndEnergyShield",
+        "label": "Increased Evasion Rating and Energy Shield",
+        "valuePerPoint": 9.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackSpeedAndCastSpeed",
+        "label": "Increased Attack Speed and Cast Speed",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToDodge",
+        "label": "Increased Chance to Dodge",
+        "valuePerPoint": 2.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "gainEnergyShieldOnKill",
+        "label": "Gain Energy Shield on Kill",
+        "valuePerPoint": 45.0,
+        "isFlat": true,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAilmentDuration",
+        "label": "Increased Ailment Duration",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "archmage",
+    "name": "Archmage",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 0,
+      "dex": 0,
+      "int": 4
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "arcanist",
+        "druid"
+      ]
+    },
+    "classBonusText": "+2 to the level of all abilities, 100% increased effect of attunement modifiers from abilities",
+    "upgrades": [
+      {
+        "id": "increasedEnergyShield",
+        "label": "Increased Energy Shield",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedSpellDamage",
+        "label": "Increased Spell Damage",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedCastSpeed",
+        "label": "Increased Cast Speed",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedIntelligence",
+        "label": "Increased Intelligence",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMana",
+        "label": "Increased Mana",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "ascendant",
+    "name": "Ascendant",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 1,
+      "dex": 0,
+      "int": 3
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "guardian",
+        "druid"
+      ]
+    },
+    "classBonusText": "50% of non-chaos damage taken bypasses your energy shield, 50% of life regeneration per second also applies to your energy shield, regenerate 5% of life per second",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedEnergyShield",
+        "label": "Increased Energy Shield",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedElementalDamage",
+        "label": "Increased Elemental Damage",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMana",
+        "label": "Increased Mana",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedEffectOfNonDamagingAilments",
+        "label": "Increased Effect of Non-Damaging Ailments",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "templar",
+    "name": "Templar",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 2,
+      "dex": 0,
+      "int": 2
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "guardian",
+        "zealot"
+      ]
+    },
+    "classBonusText": "+50% to armour effectiveness against chaos damage, recover energy shield equal to 2% of armour when you block",
+    "upgrades": [
+      {
+        "id": "increasedArmourAndEnergyShield",
+        "label": "Increased Armour and Energy Shield",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedElementalDamage",
+        "label": "Increased Elemental Damage",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedCriticalHitChance",
+        "label": "Increased Critical Hit Chance",
+        "valuePerPoint": 16.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMana",
+        "label": "Increased Mana",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToBlock",
+        "label": "Increased Chance to Block",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "chieftain",
+    "name": "Chieftain",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 3,
+      "dex": 0,
+      "int": 1
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "juggernaut",
+        "zealot"
+      ]
+    },
+    "classBonusText": "Take 25% of physical damage as fire damage, +5% to maximum fire resistance, enemies take 40% increased elemental damage",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmourAndEnergyShield",
+        "label": "Increased Armour and Energy Shield",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedElementalDamageWithAttacks",
+        "label": "Increased Elemental Damage with Attacks",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAllElementalResistances",
+        "label": "Increased All Elemental Resistances",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAilmentDuration",
+        "label": "Increased Ailment Duration",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "destroyer",
+    "name": "Destroyer",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 4,
+      "dex": 0,
+      "int": 0
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "juggernaut",
+        "barbarian"
+      ]
+    },
+    "classBonusText": "+25% chance to deal double damage with attacks, +1% chance to deal triple damage with attacks per 2% chance to deal double damage with attacks",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmour",
+        "label": "Increased Armour",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMeleeDamage",
+        "label": "Increased Melee Damage",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedStrength",
+        "label": "Increased Strength",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "gainLifeOnKill",
+        "label": "Gain Life on Kill",
+        "valuePerPoint": 60.0,
+        "isFlat": true,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "berserker",
+    "name": "Berserker",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 3,
+      "dex": 1,
+      "int": 0
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "champion",
+        "barbarian"
+      ]
+    },
+    "classBonusText": "Leech 10% of hit damage as life, take 25% increased damage, 1% more melee attack speed per 1% missing life",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMeleeDamage",
+        "label": "Increased Melee Damage",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMeleeAttackSpeed",
+        "label": "Increased Melee Attack Speed",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackCriticalHitChance",
+        "label": "Increased Attack Critical Hit Chance",
+        "valuePerPoint": 16.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "gainManaOnKill",
+        "label": "Gain Mana on Kill",
+        "valuePerPoint": 60.0,
+        "isFlat": true,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "dragoon",
+    "name": "Dragoon",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 2,
+      "dex": 2,
+      "int": 0
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "champion",
+        "mercenary"
+      ]
+    },
+    "classBonusText": "+25% to maximum chance to block, enemies take 1% increased damage per 1% missing combined life and energy shield",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedArmourAndEvasionRating",
+        "label": "Increased Armour and Evasion Rating",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedMeleeDamage",
+        "label": "Increased Melee Damage",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedDamageOverTimeMultiplier",
+        "label": "Increased Damage Over Time Multiplier",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToBlock",
+        "label": "Increased Chance to Block",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "dervish",
+    "name": "Dervish",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 1,
+      "dex": 3,
+      "int": 0
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "windrunner",
+        "mercenary"
+      ]
+    },
+    "classBonusText": "During a stage gain 5% increased attack critical hit chance per non-critical hit dealt up to 100% and 2% more attack speed per critical hit dealt up to 30%",
+    "upgrades": [
+      {
+        "id": "increasedLife",
+        "label": "Increased Life",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedEvasionRating",
+        "label": "Increased Evasion Rating",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackSpeed",
+        "label": "Increased Attack Speed",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackCriticalHitChance",
+        "label": "Increased Attack Critical Hit Chance",
+        "valuePerPoint": 16.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedEffectOfNonDamagingAilments",
+        "label": "Increased Effect of Non-Damaging Ailments",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "mirage",
+    "name": "Mirage",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 0,
+      "dex": 4,
+      "int": 0
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "windrunner",
+        "pathfinder"
+      ]
+    },
+    "classBonusText": "+5% to final chance to evade, recover life equal to 2% of evasion rating when you evade",
+    "upgrades": [
+      {
+        "id": "increasedEvasionRating",
+        "label": "Increased Evasion Rating",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackDamage",
+        "label": "Increased Attack Damage",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackSpeed",
+        "label": "Increased Attack Speed",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedDexterity",
+        "label": "Increased Dexterity",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAllElementalResistances",
+        "label": "Increased All Elemental Resistances",
+        "valuePerPoint": 4.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "shadow",
+    "name": "Shadow",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 0,
+      "dex": 3,
+      "int": 1
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "assassin",
+        "pathfinder"
+      ]
+    },
+    "classBonusText": "The first attack or spell cast during an encounter deals 50% more damage, your action bar is filled by 35% when you evade or dodge",
+    "upgrades": [
+      {
+        "id": "increasedEvasionRating",
+        "label": "Increased Evasion Rating",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedCriticalHitChance",
+        "label": "Increased Critical Hit Chance",
+        "valuePerPoint": 16.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedDamageOverTimeMultiplier",
+        "label": "Increased Damage Over Time Multiplier",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToDodge",
+        "label": "Increased Chance to Dodge",
+        "valuePerPoint": 3.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAccuracyRating",
+        "label": "Increased Accuracy Rating",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "reaper",
+    "name": "Reaper",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 0,
+      "dex": 2,
+      "int": 2
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "assassin",
+        "trickster"
+      ]
+    },
+    "classBonusText": "Permanently inflict 20% chill on yourself, the effect of chill on you is reversed, at the beginning of an encounter chill effects on you are reflected to enemies",
+    "upgrades": [
+      {
+        "id": "increasedEvasionRatingAndEnergyShield",
+        "label": "Increased Evasion Rating and Energy Shield",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedAttackSpeedAndCastSpeed",
+        "label": "Increased Attack Speed and Cast Speed",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedCriticalHitChance",
+        "label": "Increased Critical Hit Chance",
+        "valuePerPoint": 16.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChanceToDodge",
+        "label": "Increased Chance to Dodge",
+        "valuePerPoint": 3.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "gainEnergyShieldOnHit",
+        "label": "Gain Energy Shield on Hit",
+        "valuePerPoint": 4.0,
+        "isFlat": true,
+        "maxPoints": 5
+      }
+    ]
+  },
+  {
+    "id": "occultist",
+    "name": "Occultist",
+    "tier": "major",
+    "maxLevel": 25,
+    "classBonusRequiredPoints": 15,
+    "perLevel": {
+      "str": 0,
+      "dex": 1,
+      "int": 3
+    },
+    "requirement": {
+      "type": "and",
+      "classIds": [
+        "arcanist",
+        "trickster"
+      ]
+    },
+    "classBonusText": "Your maximum life is 1, 40% more energy shield, deal 1% increased damage per 100 maximum energy shield",
+    "upgrades": [
+      {
+        "id": "increasedEnergyShield",
+        "label": "Increased Energy Shield",
+        "valuePerPoint": 12.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedCastSpeed",
+        "label": "Increased Cast Speed",
+        "valuePerPoint": 6.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedSpellCriticalHitChance",
+        "label": "Increased Spell Critical Hit Chance",
+        "valuePerPoint": 16.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedDamageOverTimeMultiplier",
+        "label": "Increased Damage Over Time Multiplier",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      },
+      {
+        "id": "increasedChaosResistance",
+        "label": "Increased Chaos Resistance",
+        "valuePerPoint": 8.0,
+        "isFlat": false,
+        "maxPoints": 5
+      }
+    ]
+  }
+]

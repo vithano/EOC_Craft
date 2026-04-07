@@ -4,6 +4,8 @@ import { simulateEncounter } from "../src/battle/engine";
 import { parseAbilityLineEffects, updateAbilityDefinitions } from "../src/data/eocAbilities";
 import { computeArmourDR, computeNonDamagingAilmentEffectPercent } from "../src/data/eocFormulas";
 import { getCrucibleTierRow } from "../src/data/nexusEnemyScaling";
+import { GAME_CLASSES } from "../src/data/gameClasses";
+import { parseClassBonusEffects } from "../src/data/classBonusEffects";
 import abilitiesJson from "../src/data/eocAbilities.generated.json";
 import { aggregateEquippedToEquipmentModifiers } from "../src/data/gameStats";
 import { updateUniqueDefinitions } from "../src/data/eocUniques";
@@ -33,6 +35,15 @@ function main() {
       const fx = parseAbilityLineEffects(def as any);
       const unknown = (fx as any).__unknownLines as string[] | undefined;
       assert(!unknown || unknown.length === 0, `Unrecognized ability lines for ${def.id} (${def.name}): ${unknown?.join(" | ")}`);
+    }
+  }
+
+  // Classes: every class bonus clause should be recognized by the parser.
+  {
+    for (const cls of GAME_CLASSES as any[]) {
+      const fx = parseClassBonusEffects(String(cls.classBonusDescription ?? ""));
+      const unknown = (fx as any).__unknownClauses as string[] | undefined;
+      assert(!unknown || unknown.length === 0, `Unrecognized class bonus clauses for ${cls.id} (${cls.name}): ${unknown?.join(" | ")}`);
     }
   }
 

@@ -11,13 +11,23 @@
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { parseUniquesCSV, parseAbilitiesCSV, parseFormulaConstantsCSV, parseEquipmentCSV, parseEquipmentModifiersCSV } from '../lib/parseSheetData';
+import {
+  buildClassDefsFromSheets,
+  parseAbilitiesCSV,
+  parseClassUpgradesCSV,
+  parseClassesCSV,
+  parseEquipmentCSV,
+  parseEquipmentModifiersCSV,
+  parseFormulaConstantsCSV,
+  parseUniquesCSV,
+} from '../lib/parseSheetData';
 import { updateUniqueDefinitions } from '../data/eocUniques';
 import { updateAbilityDefinitions } from '../data/eocAbilities';
 import { updateFormulaConstants } from '../data/formulaConstants';
 import { invalidateEquipmentItemsCache } from '../data/equipment';
 import { updateBaseEquipmentDefinitions } from '../data/eocBaseEquipment';
 import { updateModifierDefinitions } from '../data/eocModifiers';
+import { updateGameClassDefinitions } from '../data/gameClasses';
 
 export interface GameDataState {
   loading: boolean;
@@ -55,13 +65,15 @@ export function GameDataProvider({ children }: { children: React.ReactNode }) {
       const errors: string[] = [];
 
       // Fetch all tabs concurrently; each failure is non-fatal
-      const [uniquesResult, abilitiesResult, formulasResult, equipResult, modsResult] =
+      const [uniquesResult, abilitiesResult, formulasResult, equipResult, modsResult, classesResult, classUpgradesResult] =
         await Promise.allSettled([
           fetchSheetCSV('Uniques'),
           fetchSheetCSV('Abilities'),
           fetchSheetCSV('Formulas'),
           fetchSheetCSV('Equipment'),
           fetchSheetCSV('Equipment_Modifiers'),
+          fetchSheetCSV('Classes'),
+          fetchSheetCSV('Class_Upgrades'),
         ]);
       if (cancelled) return;
 
@@ -101,6 +113,17 @@ export function GameDataProvider({ children }: { children: React.ReactNode }) {
         if (defs.length > 0) updateModifierDefinitions(defs);
       } else {
         errors.push(`EquipmentModifiers: ${modsResult.reason}`);
+      }
+
+      // Classes (class specials / upgrades)
+      if (classesResult.status === 'fulfilled' && classUpgradesResult.status === 'fulfilled') {
+        const clsRows = parseClassesCSV(classesResult.value);
+        const upgRows = parseClassUpgradesCSV(classUpgradesResult.value);
+        const defs = buildClassDefsFromSheets(clsRows, upgRows);
+        if (defs.length > 0) updateGameClassDefinitions(defs);
+      } else {
+        if (classesResult.status !== 'fulfilled') errors.push(`Classes: ${classesResult.reason}`);
+        if (classUpgradesResult.status !== 'fulfilled') errors.push(`ClassUpgrades: ${classUpgradesResult.reason}`);
       }
 
       if (!cancelled) {

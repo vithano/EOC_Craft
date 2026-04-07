@@ -1,0 +1,139 @@
+classId,upgradeId,label,valuePerPoint,isFlat,maxPoints
+sorcerer,increasedLife,Increased Life,4,false,5
+sorcerer,increasedEnergyShield,Increased Energy Shield,6,false,5
+sorcerer,increasedSpellDamage,Increased Spell Damage,4,false,5
+rogue,increasedLife,Increased Life,4,false,5
+rogue,increasedEvasionRatingAndEnergyShield,Increased Evasion Rating and Energy Shield,6,false,5
+rogue,increasedDamage,Increased Damage,4,false,5
+hunter,increasedLife,Increased Life,4,false,5
+hunter,increasedEvasionRating,Increased Evasion Rating,6,false,5
+hunter,increasedAttackDamage,Increased Attack Damage,4,false,5
+fighter,increasedLife,Increased Life,4,false,5
+fighter,increasedArmourAndEvasionRating,Increased Armour and Evasion Rating,6,false,5
+fighter,increasedAttackDamage,Increased Attack Damage,4,false,5
+warrior,increasedLife,Increased Life,4,false,5
+warrior,increasedArmour,Increased Armour,6,false,5
+warrior,increasedMeleeDamage,Increased Melee Damage,4,false,5
+acolyte,increasedLife,Increased Life,4,false,5
+acolyte,increasedArmourAndEnergyShield,Increased Armour and Energy Shield,6,false,5
+acolyte,increasedDamage,Increased Damage,4,false,5
+arcanist,increasedEnergyShield,Increased Energy Shield,9,false,5
+arcanist,increasedSpellDamage,Increased Spell Damage,6,false,5
+arcanist,increasedSpellCriticalHitChance,Increased Spell Critical Hit Chance,12,false,5
+arcanist,increasedAllElementalResistances,Increased All Elemental Resistances,3,false,5
+arcanist,increasedManaRegeneration,Increased Mana Regeneration,15,false,5
+druid,increasedLife,Increased Life,6,false,5
+druid,increasedEnergyShield,Increased Energy Shield,9,false,5
+druid,increasedSpellDamage,Increased Spell Damage,6,false,5
+druid,increasedMana,Increased Mana,6,false,5
+druid,increasedChanceToInflictElementalAilments,Increased Chance to Inflict Elemental Ailments,10,false,5
+guardian,increasedLife,Increased Life,4,false,5
+guardian,increasedArmourAndEnergyShield,Increased Armour and Energy Shield,9,false,5
+guardian,increasedMana,Increased Mana,6,false,5
+guardian,increasedChanceToBlock,Increased Chance to Block,3,false,5
+guardian,increasedChaosResistance,Increased Chaos Resistance,6,false,5
+zealot,increasedLife,Increased Life,6,false,5
+zealot,increasedArmourAndEnergyShield,Increased Armour and Energy Shield,9,false,5
+zealot,increasedElementalDamage,Increased Elemental Damage,6,false,5
+zealot,increasedCriticalHitChance,Increased Critical Hit Chance,12,false,5
+zealot,increasedChanceToInflictElementalAilments,Increased Chance to Inflict Elemental Ailments,10,false,5
+juggernaut,increasedLife,Increased Life,6,false,5
+juggernaut,increasedArmour,Increased Armour,9,false,5
+juggernaut,increasedMeleeDamage,Increased Melee Damage,6,false,5
+juggernaut,increasedAllElementalResistances,Increased All Elemental Resistances,3,false,5
+juggernaut,increasedLifeRecovery,Increased Life Recovery,4,false,5
+barbarian,increasedLife,Increased Life,6,false,5
+barbarian,increasedMeleeDamage,Increased Melee Damage,6,false,5
+barbarian,increasedAttackSpeed,Increased Attack Speed,4,false,5
+barbarian,increasedAccuracyRating,Increased Accuracy Rating,9,false,5
+barbarian,gainLifeOnKill,Gain Life on Kill,45,true,5
+champion,increasedLife,Increased Life,6,false,5
+champion,increasedArmourAndEvasionRating,Increased Armour and Evasion Rating,9,false,5
+champion,increasedAttackSpeed,Increased Attack Speed,4,false,5
+champion,increasedChanceToInflictBleedingWithAttacks,Increased Chance to Inflict Bleeding with Attacks,10,false,5
+champion,increasedChanceToBlock,Increased Chance to Block,3,false,5
+mercenary,increasedLife,Increased Life,6,false,5
+mercenary,increasedArmourAndEvasionRating,Increased Armour and Evasion Rating,9,false,5
+mercenary,increasedAttackDamage,Increased Attack Damage,6,false,5
+mercenary,increasedAllElementalResistances,Increased All Elemental Resistances,3,false,5
+mercenary,increasedAccuracyRating,Increased Accuracy Rating,9,false,5
+windrunner,increasedEvasionRating,Increased Evasion Rating,9,false,5
+windrunner,increasedAttackSpeed,Increased Attack Speed,4,false,5
+windrunner,increasedAttackCriticalHitChance,Increased Attack Critical Hit Chance,12,false,5
+windrunner,increasedChanceToInflictElementalAilments,Increased Chance to Inflict Elemental Ailments,10,false,5
+windrunner,gainManaOnKill,Gain Mana on Kill,45,true,5
+pathfinder,increasedEvasionRating,Increased Evasion Rating,9,false,5
+pathfinder,increasedAttackDamage,Increased Attack Damage,6,false,5
+pathfinder,increasedChanceToInflictBleedingWithAttacks,Increased Chance to Inflict Bleeding with Attacks,10,false,5
+pathfinder,increasedAccuracyRating,Increased Accuracy Rating,9,false,5
+pathfinder,increasedAllElementalResistances,Increased All Elemental Resistances,3,false,5
+assassin,increasedLife,Increased Life,6,false,5
+assassin,increasedEvasionRatingAndEnergyShield,Increased Evasion Rating and Energy Shield,9,false,5
+assassin,increasedCriticalHitChance,Increased Critical Hit Chance,12,false,5
+assassin,increasedChanceToInflictPoisonWithAttacks,Increased Chance to Inflict Poison with Attacks,10,false,5
+assassin,gainLifeOnKill,Gain Life on Kill,45,true,5
+trickster,increasedEvasionRatingAndEnergyShield,Increased Evasion Rating and Energy Shield,9,false,5
+trickster,increasedAttackSpeedAndCastSpeed,Increased Attack Speed and Cast Speed,4,false,5
+trickster,increasedChanceToDodge,Increased Chance to Dodge,2,false,5
+trickster,gainEnergyShieldOnKill,Gain Energy Shield on Kill,45,true,5
+trickster,increasedAilmentDuration,Increased Ailment Duration,8,false,5
+archmage,increasedEnergyShield,Increased Energy Shield,12,false,5
+archmage,increasedSpellDamage,Increased Spell Damage,8,false,5
+archmage,increasedCastSpeed,Increased Cast Speed,6,false,5
+archmage,increasedIntelligence,Increased Intelligence,6,false,5
+archmage,increasedMana,Increased Mana,8,false,5
+ascendant,increasedLife,Increased Life,8,false,5
+ascendant,increasedEnergyShield,Increased Energy Shield,12,false,5
+ascendant,increasedElementalDamage,Increased Elemental Damage,8,false,5
+ascendant,increasedMana,Increased Mana,8,false,5
+ascendant,increasedEffectOfNonDamagingAilments,Increased Effect of Non-Damaging Ailments,12,false,5
+templar,increasedArmourAndEnergyShield,Increased Armour and Energy Shield,12,false,5
+templar,increasedElementalDamage,Increased Elemental Damage,8,false,5
+templar,increasedCriticalHitChance,Increased Critical Hit Chance,16,false,5
+templar,increasedMana,Increased Mana,8,false,5
+templar,increasedChanceToBlock,Increased Chance to Block,4,false,5
+chieftain,increasedLife,Increased Life,8,false,5
+chieftain,increasedArmourAndEnergyShield,Increased Armour and Energy Shield,12,false,5
+chieftain,increasedElementalDamageWithAttacks,Increased Elemental Damage with Attacks,8,false,5
+chieftain,increasedAllElementalResistances,Increased All Elemental Resistances,4,false,5
+chieftain,increasedAilmentDuration,Increased Ailment Duration,12,false,5
+destroyer,increasedLife,Increased Life,8,false,5
+destroyer,increasedArmour,Increased Armour,12,false,5
+destroyer,increasedMeleeDamage,Increased Melee Damage,8,false,5
+destroyer,increasedStrength,Increased Strength,6,false,5
+destroyer,gainLifeOnKill,Gain Life on Kill,60,true,5
+berserker,increasedLife,Increased Life,8,false,5
+berserker,increasedMeleeDamage,Increased Melee Damage,8,false,5
+berserker,increasedMeleeAttackSpeed,Increased Melee Attack Speed,6,false,5
+berserker,increasedAttackCriticalHitChance,Increased Attack Critical Hit Chance,16,false,5
+berserker,gainManaOnKill,Gain Mana on Kill,60,true,5
+dragoon,increasedLife,Increased Life,8,false,5
+dragoon,increasedArmourAndEvasionRating,Increased Armour and Evasion Rating,12,false,5
+dragoon,increasedMeleeDamage,Increased Melee Damage,8,false,5
+dragoon,increasedDamageOverTimeMultiplier,Increased Damage Over Time Multiplier,8,false,5
+dragoon,increasedChanceToBlock,Increased Chance to Block,4,false,5
+dervish,increasedLife,Increased Life,8,false,5
+dervish,increasedEvasionRating,Increased Evasion Rating,12,false,5
+dervish,increasedAttackSpeed,Increased Attack Speed,6,false,5
+dervish,increasedAttackCriticalHitChance,Increased Attack Critical Hit Chance,16,false,5
+dervish,increasedEffectOfNonDamagingAilments,Increased Effect of Non-Damaging Ailments,12,false,5
+mirage,increasedEvasionRating,Increased Evasion Rating,12,false,5
+mirage,increasedAttackDamage,Increased Attack Damage,8,false,5
+mirage,increasedAttackSpeed,Increased Attack Speed,6,false,5
+mirage,increasedDexterity,Increased Dexterity,6,false,5
+mirage,increasedAllElementalResistances,Increased All Elemental Resistances,4,false,5
+shadow,increasedEvasionRating,Increased Evasion Rating,12,false,5
+shadow,increasedCriticalHitChance,Increased Critical Hit Chance,16,false,5
+shadow,increasedDamageOverTimeMultiplier,Increased Damage Over Time Multiplier,8,false,5
+shadow,increasedChanceToDodge,Increased Chance to Dodge,3,false,5
+shadow,increasedAccuracyRating,Increased Accuracy Rating,12,false,5
+reaper,increasedEvasionRatingAndEnergyShield,Increased Evasion Rating and Energy Shield,12,false,5
+reaper,increasedAttackSpeedAndCastSpeed,Increased Attack Speed and Cast Speed,6,false,5
+reaper,increasedCriticalHitChance,Increased Critical Hit Chance,16,false,5
+reaper,increasedChanceToDodge,Increased Chance to Dodge,3,false,5
+reaper,gainEnergyShieldOnHit,Gain Energy Shield on Hit,4,true,5
+occultist,increasedEnergyShield,Increased Energy Shield,12,false,5
+occultist,increasedCastSpeed,Increased Cast Speed,6,false,5
+occultist,increasedSpellCriticalHitChance,Increased Spell Critical Hit Chance,16,false,5
+occultist,increasedDamageOverTimeMultiplier,Increased Damage Over Time Multiplier,8,false,5
+occultist,increasedChaosResistance,Increased Chaos Resistance,8,false,5
