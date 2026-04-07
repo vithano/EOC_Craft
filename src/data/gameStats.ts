@@ -411,6 +411,29 @@ export interface EquipmentModifiers {
   avoidAilmentsChanceFromGear: number
   /** +X% chance to avoid elemental ailments. */
   avoidElementalAilmentsChanceFromGear: number
+  enemyLoseMaxLifeAtStartPercentFromGear: number
+  executeEnemiesBelowLifePercentFromGear: number
+  executeEnemiesBelowLifePercentEqualToChillEffectFromGear: boolean
+  periodicShockPctFromGear: number
+  periodicShockEverySecFromGear: number
+  periodicLifeRegenPctFromGear: number
+  periodicLifeRegenEverySecFromGear: number
+  periodicLifeRegenDurationSecFromGear: number
+  armourNoEffectVsPhysicalFromGear: boolean
+  chaosDamageCanIgniteFromGear: boolean
+  lightningDamageCanPoisonFromGear: boolean
+  chaosDamageCanInflictAllElementalAilmentsFromGear: boolean
+  allElementalDamageTypesCanChillFromGear: boolean
+  allElementalDamageTypesCanIgniteFromGear: boolean
+  allElementalDamageTypesCanShockFromGear: boolean
+  critsAlwaysInflictPoisonFromGear: boolean
+  critsAlwaysInflictElementalAilmentsFromGear: boolean
+  ignoreMaxShockEffectFromGear: boolean
+  fixedShockEffectPercentFromGear: number
+  randomIgniteDurationLessPercentFromGear: number
+  randomIgniteDurationMorePercentFromGear: number
+  chillYouInflictInfiniteDurationFromGear: boolean
+  takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear: number
   pctIncreasedLifeFromGear: number
   pctIncreasedManaFromGear: number
   pctIncreasedArmourFromGear: number
@@ -727,6 +750,29 @@ export interface ComputedBuildStats {
   takeChaosDamagePerSecond: number
   avoidAilmentsChance: number
   avoidElementalAilmentsChance: number
+  enemyLoseMaxLifeAtStartPercent: number
+  executeEnemiesBelowLifePercent: number
+  executeEnemiesBelowLifePercentEqualToChillEffect: boolean
+  periodicShockPct: number
+  periodicShockEverySec: number
+  periodicLifeRegenPct: number
+  periodicLifeRegenEverySec: number
+  periodicLifeRegenDurationSec: number
+  armourNoEffectVsPhysical: boolean
+  chaosDamageCanIgnite: boolean
+  lightningDamageCanPoison: boolean
+  chaosDamageCanInflictAllElementalAilments: boolean
+  allElementalDamageTypesCanChill: boolean
+  allElementalDamageTypesCanIgnite: boolean
+  allElementalDamageTypesCanShock: boolean
+  critsAlwaysInflictPoison: boolean
+  critsAlwaysInflictElementalAilments: boolean
+  ignoreMaxShockEffect: boolean
+  fixedShockEffectPercent: number
+  randomIgniteDurationLessPercent: number
+  randomIgniteDurationMorePercent: number
+  chillYouInflictInfiniteDuration: boolean
+  takePhysicalDamagePercentOfMaxLifeWhenYouAttack: number
   pctDexIntConvertedToStr: number
   convertEvasionToArmour: boolean
   energyShieldCannotBeReducedBelowMaximum: boolean
@@ -893,6 +939,29 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     armourPer10IntFromGear: 0,
     avoidAilmentsChanceFromGear: 0,
     avoidElementalAilmentsChanceFromGear: 0,
+    enemyLoseMaxLifeAtStartPercentFromGear: 0,
+    executeEnemiesBelowLifePercentFromGear: 0,
+    executeEnemiesBelowLifePercentEqualToChillEffectFromGear: false,
+    periodicShockPctFromGear: 0,
+    periodicShockEverySecFromGear: 0,
+    periodicLifeRegenPctFromGear: 0,
+    periodicLifeRegenEverySecFromGear: 0,
+    periodicLifeRegenDurationSecFromGear: 0,
+    armourNoEffectVsPhysicalFromGear: false,
+    chaosDamageCanIgniteFromGear: false,
+    lightningDamageCanPoisonFromGear: false,
+    chaosDamageCanInflictAllElementalAilmentsFromGear: false,
+    allElementalDamageTypesCanChillFromGear: false,
+    allElementalDamageTypesCanIgniteFromGear: false,
+    allElementalDamageTypesCanShockFromGear: false,
+    critsAlwaysInflictPoisonFromGear: false,
+    critsAlwaysInflictElementalAilmentsFromGear: false,
+    ignoreMaxShockEffectFromGear: false,
+    fixedShockEffectPercentFromGear: 0,
+    randomIgniteDurationLessPercentFromGear: 0,
+    randomIgniteDurationMorePercentFromGear: 0,
+    chillYouInflictInfiniteDurationFromGear: false,
+    takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear: 0,
     pctIncreasedLifeFromGear: 0,
     pctIncreasedManaFromGear: 0,
     pctIncreasedArmourFromGear: 0,
@@ -1173,6 +1242,43 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.avoidAilmentsChanceFromGear !== undefined) addNum('avoidAilmentsChanceFromGear', p.avoidAilmentsChanceFromGear)
   if (p.avoidElementalAilmentsChanceFromGear !== undefined) {
     addNum('avoidElementalAilmentsChanceFromGear', p.avoidElementalAilmentsChanceFromGear)
+  }
+  if (p.enemyLoseMaxLifeAtStartPercentFromGear !== undefined) {
+    addNum('enemyLoseMaxLifeAtStartPercentFromGear', p.enemyLoseMaxLifeAtStartPercentFromGear)
+  }
+  if (p.executeEnemiesBelowLifePercentFromGear !== undefined) {
+    addNum('executeEnemiesBelowLifePercentFromGear', p.executeEnemiesBelowLifePercentFromGear)
+  }
+  if (p.executeEnemiesBelowLifePercentEqualToChillEffectFromGear) {
+    eq.executeEnemiesBelowLifePercentEqualToChillEffectFromGear = true
+  }
+  if (p.periodicShockPctFromGear !== undefined) addNum('periodicShockPctFromGear', p.periodicShockPctFromGear)
+  if (p.periodicShockEverySecFromGear !== undefined) addNum('periodicShockEverySecFromGear', p.periodicShockEverySecFromGear)
+  if (p.periodicLifeRegenPctFromGear !== undefined) addNum('periodicLifeRegenPctFromGear', p.periodicLifeRegenPctFromGear)
+  if (p.periodicLifeRegenEverySecFromGear !== undefined) addNum('periodicLifeRegenEverySecFromGear', p.periodicLifeRegenEverySecFromGear)
+  if (p.periodicLifeRegenDurationSecFromGear !== undefined) {
+    addNum('periodicLifeRegenDurationSecFromGear', p.periodicLifeRegenDurationSecFromGear)
+  }
+  if (p.armourNoEffectVsPhysicalFromGear) eq.armourNoEffectVsPhysicalFromGear = true
+  if (p.chaosDamageCanIgniteFromGear) eq.chaosDamageCanIgniteFromGear = true
+  if (p.lightningDamageCanPoisonFromGear) eq.lightningDamageCanPoisonFromGear = true
+  if (p.chaosDamageCanInflictAllElementalAilmentsFromGear) eq.chaosDamageCanInflictAllElementalAilmentsFromGear = true
+  if (p.allElementalDamageTypesCanChillFromGear) eq.allElementalDamageTypesCanChillFromGear = true
+  if (p.allElementalDamageTypesCanIgniteFromGear) eq.allElementalDamageTypesCanIgniteFromGear = true
+  if (p.allElementalDamageTypesCanShockFromGear) eq.allElementalDamageTypesCanShockFromGear = true
+  if (p.critsAlwaysInflictPoisonFromGear) eq.critsAlwaysInflictPoisonFromGear = true
+  if (p.critsAlwaysInflictElementalAilmentsFromGear) eq.critsAlwaysInflictElementalAilmentsFromGear = true
+  if (p.ignoreMaxShockEffectFromGear) eq.ignoreMaxShockEffectFromGear = true
+  if (p.fixedShockEffectPercentFromGear !== undefined) addNum('fixedShockEffectPercentFromGear', p.fixedShockEffectPercentFromGear)
+  if (p.randomIgniteDurationLessPercentFromGear !== undefined) {
+    addNum('randomIgniteDurationLessPercentFromGear', p.randomIgniteDurationLessPercentFromGear)
+  }
+  if (p.randomIgniteDurationMorePercentFromGear !== undefined) {
+    addNum('randomIgniteDurationMorePercentFromGear', p.randomIgniteDurationMorePercentFromGear)
+  }
+  if (p.chillYouInflictInfiniteDurationFromGear) eq.chillYouInflictInfiniteDurationFromGear = true
+  if (p.takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear !== undefined) {
+    addNum('takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear', p.takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear)
   }
   if (p.pctIncreasedLifeFromGear !== undefined) addNum('pctIncreasedLifeFromGear', p.pctIncreasedLifeFromGear)
   if (p.pctIncreasedManaFromGear !== undefined) addNum('pctIncreasedManaFromGear', p.pctIncreasedManaFromGear)
@@ -3073,6 +3179,32 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const takeChaosDamagePerSecond = eq.takeChaosDamagePerSecondFromGear
   const avoidAilmentsChance = Math.min(100, Math.max(0, eq.avoidAilmentsChanceFromGear))
   const avoidElementalAilmentsChance = Math.min(100, Math.max(0, eq.avoidElementalAilmentsChanceFromGear))
+  const enemyLoseMaxLifeAtStartPercent = Math.min(100, Math.max(0, eq.enemyLoseMaxLifeAtStartPercentFromGear))
+  const executeEnemiesBelowLifePercent = Math.min(100, Math.max(0, eq.executeEnemiesBelowLifePercentFromGear))
+  const executeEnemiesBelowLifePercentEqualToChillEffect = eq.executeEnemiesBelowLifePercentEqualToChillEffectFromGear
+  const periodicShockPct = Math.min(100, Math.max(0, eq.periodicShockPctFromGear))
+  const periodicShockEverySec = Math.max(0, eq.periodicShockEverySecFromGear)
+  const periodicLifeRegenPct = Math.min(100, Math.max(0, eq.periodicLifeRegenPctFromGear))
+  const periodicLifeRegenEverySec = Math.max(0, eq.periodicLifeRegenEverySecFromGear)
+  const periodicLifeRegenDurationSec = Math.max(0, eq.periodicLifeRegenDurationSecFromGear)
+  const armourNoEffectVsPhysical = eq.armourNoEffectVsPhysicalFromGear
+  const chaosDamageCanIgnite = eq.chaosDamageCanIgniteFromGear
+  const lightningDamageCanPoison = eq.lightningDamageCanPoisonFromGear
+  const chaosDamageCanInflictAllElementalAilments = eq.chaosDamageCanInflictAllElementalAilmentsFromGear
+  const allElementalDamageTypesCanChill = eq.allElementalDamageTypesCanChillFromGear
+  const allElementalDamageTypesCanIgnite = eq.allElementalDamageTypesCanIgniteFromGear
+  const allElementalDamageTypesCanShock = eq.allElementalDamageTypesCanShockFromGear
+  const critsAlwaysInflictPoison = eq.critsAlwaysInflictPoisonFromGear
+  const critsAlwaysInflictElementalAilments = eq.critsAlwaysInflictElementalAilmentsFromGear
+  const ignoreMaxShockEffect = eq.ignoreMaxShockEffectFromGear
+  const fixedShockEffectPercent = Math.min(100, Math.max(0, eq.fixedShockEffectPercentFromGear))
+  const randomIgniteDurationLessPercent = Math.max(0, eq.randomIgniteDurationLessPercentFromGear)
+  const randomIgniteDurationMorePercent = Math.max(0, eq.randomIgniteDurationMorePercentFromGear)
+  const chillYouInflictInfiniteDuration = eq.chillYouInflictInfiniteDurationFromGear
+  const takePhysicalDamagePercentOfMaxLifeWhenYouAttack = Math.min(
+    100,
+    Math.max(0, eq.takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear)
+  )
   const convertEvasionToArmour = eq.convertEvasionToArmourFromGear
   const energyShieldCannotBeReducedBelowMaximum = eq.energyShieldCannotBeReducedBelowMaximumFromGear
   const countsAsDualWielding = eq.countsAsDualWieldingFromGear
@@ -3879,6 +4011,29 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     takeChaosDamagePerSecond,
     avoidAilmentsChance,
     avoidElementalAilmentsChance,
+    enemyLoseMaxLifeAtStartPercent,
+    executeEnemiesBelowLifePercent,
+    executeEnemiesBelowLifePercentEqualToChillEffect,
+    periodicShockPct,
+    periodicShockEverySec,
+    periodicLifeRegenPct,
+    periodicLifeRegenEverySec,
+    periodicLifeRegenDurationSec,
+    armourNoEffectVsPhysical,
+    chaosDamageCanIgnite,
+    lightningDamageCanPoison,
+    chaosDamageCanInflictAllElementalAilments,
+    allElementalDamageTypesCanChill,
+    allElementalDamageTypesCanIgnite,
+    allElementalDamageTypesCanShock,
+    critsAlwaysInflictPoison,
+    critsAlwaysInflictElementalAilments,
+    ignoreMaxShockEffect,
+    fixedShockEffectPercent,
+    randomIgniteDurationLessPercent,
+    randomIgniteDurationMorePercent,
+    chillYouInflictInfiniteDuration,
+    takePhysicalDamagePercentOfMaxLifeWhenYouAttack,
     pctDexIntConvertedToStr,
     convertEvasionToArmour,
     energyShieldCannotBeReducedBelowMaximum,

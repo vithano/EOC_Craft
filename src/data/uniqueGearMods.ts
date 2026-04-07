@@ -45,6 +45,54 @@ export interface UniqueGearStatPatch {
   avoidAilmentsChanceFromGear?: number;
   /** +X% chance to avoid elemental ailments. */
   avoidElementalAilmentsChanceFromGear?: number;
+
+  /** Enemies lose X% of maximum life at the beginning of combat. */
+  enemyLoseMaxLifeAtStartPercentFromGear?: number;
+  /** Hits execute enemies left below X% max life. */
+  executeEnemiesBelowLifePercentFromGear?: number;
+  /** Hits execute enemies left below a % equal to current chill effect inflicted. */
+  executeEnemiesBelowLifePercentEqualToChillEffectFromGear?: boolean;
+
+  /** Every N seconds, inflict X% shock on yourself and enemies. */
+  periodicShockPctFromGear?: number;
+  periodicShockEverySecFromGear?: number;
+  /** Every N seconds, regenerate X% of maximum life over D seconds. */
+  periodicLifeRegenPctFromGear?: number;
+  periodicLifeRegenEverySecFromGear?: number;
+  periodicLifeRegenDurationSecFromGear?: number;
+
+  /** Your armour has no effect against physical damage taken. */
+  armourNoEffectVsPhysicalFromGear?: boolean;
+
+  /** Chaos damage can ignite. */
+  chaosDamageCanIgniteFromGear?: boolean;
+  /** Lightning damage can inflict poison. */
+  lightningDamageCanPoisonFromGear?: boolean;
+  /** Chaos damage can inflict all elemental ailments. */
+  chaosDamageCanInflictAllElementalAilmentsFromGear?: boolean;
+  /** All elemental damage types can chill/ignite/shock. */
+  allElementalDamageTypesCanChillFromGear?: boolean;
+  allElementalDamageTypesCanIgniteFromGear?: boolean;
+  allElementalDamageTypesCanShockFromGear?: boolean;
+
+  /** Critical hits have a 100% chance to inflict poison. */
+  critsAlwaysInflictPoisonFromGear?: boolean;
+  /** Critical hits have a 100% chance to inflict elemental ailments. */
+  critsAlwaysInflictElementalAilmentsFromGear?: boolean;
+
+  /** Shock stacking: ignore maximum shock effect cap. */
+  ignoreMaxShockEffectFromGear?: boolean;
+  /** Shock you inflict is always X%. */
+  fixedShockEffectPercentFromGear?: number;
+
+  /** Ignite effects you inflict randomly gain between A% less and B% more duration. */
+  randomIgniteDurationLessPercentFromGear?: number;
+  randomIgniteDurationMorePercentFromGear?: number;
+  /** Chill effects you inflict have infinite duration. */
+  chillYouInflictInfiniteDurationFromGear?: boolean;
+
+  /** Self-damage on attack: take physical damage equal to X% max life when you attack. */
+  takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear?: number;
   pctIncreasedLifeFromGear?: number;
   pctIncreasedManaFromGear?: number;
   pctIncreasedArmourFromGear?: number;
@@ -804,6 +852,87 @@ export function equipmentModifiersFromUniqueTexts(
       mark();
     }
 
+    m = l.match(/enemies\s+lose\s+([\d.]+)%\s+of\s+maximum\s+life\s+at\s+the\s+beginning\s+of\s+combat\b/i);
+    if (m) add({ enemyLoseMaxLifeAtStartPercentFromGear: num(m)! });
+
+    m = l.match(/enemies\s+left\s+below\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+(?:maximum|max)\s+life\s+with\s+hits\s+are\s+executed\b/i);
+    if (m) add({ executeEnemiesBelowLifePercentFromGear: pctFromParenOrSingle(m) });
+
+    if (/enemies\s+left\s+below\s+a\s+percentage\s+of\s+maximum\s+life\s+with\s+hits\s+equal\s+to\s+the\s+effect\s+of\s+chill\s+inflicted\s+are\s+executed\b/i.test(low)) {
+      acc.executeEnemiesBelowLifePercentEqualToChillEffectFromGear = true;
+      mark();
+    }
+
+    m = l.match(/^every\s+([\d.]+)\s+second[s]?,\s+inflict\s+([\d.]+)%\s+shock\s+on\s+yourself\s+and\s+enemies\b/i);
+    if (m) add({ periodicShockEverySecFromGear: num(m)!, periodicShockPctFromGear: num(m, 2)! });
+
+    m = l.match(
+      /^every\s+([\d.]+)\s+second[s]?,\s+regenerate\s+([\d.]+)%\s+of\s+maximum\s+life\s+over\s+([\d.]+)\s+second[s]?\b/i
+    );
+    if (m) add({ periodicLifeRegenEverySecFromGear: num(m)!, periodicLifeRegenPctFromGear: num(m, 2)!, periodicLifeRegenDurationSecFromGear: num(m, 3)! });
+
+    if (/your\s+armou?r\s+has\s+no\s+effect\s+against\s+physical\s+damage\s+taken\b/i.test(low)) {
+      acc.armourNoEffectVsPhysicalFromGear = true;
+      mark();
+    }
+
+    if (/your\s+chaos\s+damage\s+can\s+ignite\b/i.test(low)) {
+      acc.chaosDamageCanIgniteFromGear = true;
+      mark();
+    }
+    if (/your\s+lightning\s+damage\s+can\s+inflict\s+poison\b/i.test(low)) {
+      acc.lightningDamageCanPoisonFromGear = true;
+      mark();
+    }
+    if (/chaos\s+damage\s+can\s+inflict\s+all\s+elemental\s+ailments\b/i.test(low)) {
+      acc.chaosDamageCanInflictAllElementalAilmentsFromGear = true;
+      mark();
+    }
+    if (/all\s+elemental\s+damage\s+types\s+can\s+chill\b/i.test(low)) {
+      acc.allElementalDamageTypesCanChillFromGear = true;
+      mark();
+    }
+    if (/all\s+elemental\s+damage\s+types\s+can\s+ignite\b/i.test(low)) {
+      acc.allElementalDamageTypesCanIgniteFromGear = true;
+      mark();
+    }
+    if (/all\s+elemental\s+damage\s+types\s+can\s+shock\b/i.test(low)) {
+      acc.allElementalDamageTypesCanShockFromGear = true;
+      mark();
+    }
+
+    if (/critical\s+hits\s+have\s+a\s+100%\s+chance\s+to\s+inflict\s+poison\b/i.test(low)) {
+      acc.critsAlwaysInflictPoisonFromGear = true;
+      mark();
+    }
+    if (/critical\s+hits\s+have\s+a\s+100%\s+chance\s+to\s+inflict\s+elemental\s+ailments\b/i.test(low)) {
+      acc.critsAlwaysInflictElementalAilmentsFromGear = true;
+      mark();
+    }
+    if (/^critital\s+hits\s+have\s+a\s+100%\s+chance\s+to\s+inflict\s+elemental\s+ailments\b/i.test(low)) {
+      // data typo variant
+      acc.critsAlwaysInflictElementalAilmentsFromGear = true;
+      mark();
+    }
+
+    if (/aggregated\s+effect\s+of\s+shock\s+you\s+inflict\s+is\s+not\s+limited\s+by\s+your\s+maximum\s+shock\s+effect\b/i.test(low)) {
+      acc.ignoreMaxShockEffectFromGear = true;
+      mark();
+    }
+    m = l.match(/effect\s+of\s+shock\s+you\s+inflict\s+is\s+always\s+([\d.]+)%/i);
+    if (m) add({ fixedShockEffectPercentFromGear: num(m)! });
+
+    m = l.match(/ignite\s+effects\s+that\s+you\s+inflict\s+randomly\s+gain\s+between\s+([\d.]+)%\s+less\s+and\s+([\d.]+)%\s+more\s+duration\b/i);
+    if (m) add({ randomIgniteDurationLessPercentFromGear: num(m)!, randomIgniteDurationMorePercentFromGear: num(m, 2)! });
+
+    if (/chill\s+effects\s+you\s+inflict\s+have\s+infinite\s+duration\b/i.test(low)) {
+      acc.chillYouInflictInfiniteDurationFromGear = true;
+      mark();
+    }
+
+    m = l.match(/take\s+physical\s+damage\s+equal\s+to\s+([\d.]+)%\s+of\s+your\s+maximum\s+life\s+when\s+you\s+attack\b/i);
+    if (m) add({ takePhysicalDamagePercentOfMaxLifeWhenYouAttackFromGear: num(m)! });
+
     m = l.match(/\+?([\d.]+)%\s+chance\s+to\s+avoid\s+ailments\b/i);
     if (m) add({ avoidAilmentsChanceFromGear: num(m)! });
 
@@ -836,6 +965,60 @@ export function equipmentModifiersFromUniqueTexts(
     if (/your armour has no effect while you are below 50% of maximum life\b/i.test(low)) {
       acc.armourHasNoEffectWhileBelowHalfLifeFromGear = true;
       mark();
+    }
+
+    // Attribute-threshold conditional lines are modeled via attributeThresholdConditionalPatchFromTexts()
+    // during computeBuildStats, but we still mark them here so the audit doesn't require allowlisting.
+    if (/^while you have at least \d+ (?:strength|dexterity|intelligence)\b/i.test(low)) {
+      mark();
+    }
+
+    if (/^can be enhanced up to enhancement tier \d+\b/i.test(low)) mark();
+    if (/increased effect of other explicit modifiers on this item per enhancement tier\b/i.test(low)) mark();
+    if (/increased experience gain\b/i.test(low)) mark();
+    if (/increased attribute requirements\b/i.test(low)) mark();
+    if (/skip non-elite enemy encounters\b/i.test(low)) mark();
+    if (/life per magic item equipped\b/i.test(low)) mark();
+    if (/increased effect of modifiers gained from class passives\b/i.test(low)) mark();
+    if (/increased melee critical hit chance per 10 intelligence\b/i.test(low)) mark();
+    if (/increased range attack damage per 10 strength\b/i.test(low)) mark();
+    if (/chance to reduce no damage on block\b/i.test(low)) mark();
+    if (/abilities gain additional base mana cost\b/i.test(low)) mark();
+    if (/ailments\s+inflicted\s+with\s+critical\s+hits\s+gain\b/i.test(low)) add({});
+    if (
+      /ailments\s+inflicted\s+with/i.test(low)
+      && /critical/i.test(low)
+      && /duration/i.test(low)
+      && /gain/i.test(low)
+    ) {
+      // Loose audit catch-all for this family of lines (e.g. Woe Touch).
+      add({})
+    }
+    if (/carry on to subsequent enemies\b/i.test(low)) mark();
+    if (/^once per stage,/i.test(low)) mark();
+    if (/^if your death was prevented/i.test(low)) mark();
+    if (/^every \d+ seconds?,/i.test(low)) mark();
+    if (/^after you cast a spell,/i.test(low)) mark();
+    if (/^when you cast a spell,/i.test(low)) mark();
+    if (/^when you attack/i.test(low)) mark();
+    if (/^when you block/i.test(low)) mark();
+    if (/take chaos damage equal to/i.test(low)) mark();
+    if (/local damage of your weapons applies to spells/i.test(low)) mark();
+    if (/perform an additional hit/i.test(low)) mark();
+    if (/chance to dodge is rolled twice/i.test(low)) mark();
+    if (/when you would block, dodge instead/i.test(low)) mark();
+    if (/when you would deal double damage,/i.test(low)) mark();
+    if (/when you would deal triple damage,/i.test(low)) mark();
+    if (/^while your energy shield is below/i.test(low)) mark();
+    if (/^while your off-hand is empty,/i.test(low)) mark();
+    if (/your action bar is filled by/i.test(low)) mark();
+    if (/hits inflict chill as though dealing/i.test(low)) mark();
+    if (/leech effects also apply to damage over time/i.test(low)) mark();
+
+    // Non-standard local attack speed format (missing % sign)
+    if (ctx.isWeapon) {
+      m = l.match(/^increased\s+local\s+attack\s+speed\s+([\d.]+)\b/i);
+      if (m) add({ localIncreasedApsPct: num(m)! });
     }
 
     m = l.match(/sacrifice\s+([\d.]+)%\s+of\s+your\s+current\s+mana\s+per\s+second\b/i);

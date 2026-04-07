@@ -410,6 +410,11 @@ function activeChillMult(state: EnemyAilmentRuntime, t: number): number {
   return 1 - Math.min(30, totalPct) / 100
 }
 
+function activeChillPct(state: EnemyAilmentRuntime, t: number): number {
+  const totalPct = state.chills.reduce((sum, c) => c.expiresAt > t ? sum + c.magnitudePct : sum, 0)
+  return Math.min(30, totalPct)
+}
+
 function formatActiveEnemyAilmentSuffix(state: EnemyAilmentRuntime, t: number): string {
   const shockLive = activeShockPct(state, t)
   const chillM = activeChillMult(state, t)
@@ -430,6 +435,7 @@ function applyPlayerAilmentsOnHit(
   t: number,
   state: EnemyAilmentRuntime,
   playerAilments: PlayerAilmentRuntime,
+  hitWasCritical: boolean,
   log: BattleLogEntry[],
   maxLog: number,
   debuffEvents: EnemyDebuffEvent[]
@@ -456,7 +462,8 @@ function applyPlayerAilmentsOnHit(
     tryLogAilment(`Ailment — Bleed (DoT): ~${dps.toFixed(1)} DPS for ${(BASE_BLEED_SEC * durMult).toFixed(1)}s`)
   }
 
-  if (Math.random() * 100 < stats.poisonChance) {
+  const poisonChance = (stats.critsAlwaysInflictPoison && hitWasCritical) ? 100 : stats.poisonChance
+  if (Math.random() * 100 < poisonChance) {
     const dps = ((mitigatedDamage * poisonInherentMult) / BASE_POISON_SEC) * dotMult
     state.dots.push({
       kind: 'poison',
@@ -475,23 +482,34 @@ function applyPlayerAilmentsOnHit(
     }
   }
 
-  const gen = stats.elementalAilmentChance
+  const gen = (stats.critsAlwaysInflictElementalAilments && hitWasCritical) ? 100 : stats.elementalAilmentChance
   const noEle = stats.cannotInflictElementalAilments
   const ndMult = 1 + (stats.nonDamagingAilmentEffectIncreasedPercent ?? 0) / 100
   const chillOutMult = stats.chillInflictEffectMult ?? 1
 
-  if (!noEle && portions.fire > 0.01) {
+  const canIgniteFromElement = portions.fire > 0.01
+    || (stats.allElementalDamageTypesCanIgnite && (portions.cold + portions.lightning) > 0.01)
+    || (stats.chaosDamageCanInflictAllElementalAilments && portions.chaos > 0.01)
+    || (stats.chaosDamageCanIgnite && portions.chaos > 0.01)
+  if (!noEle && canIgniteFromElement) {
     const pIgn = Math.min(100, gen + stats.igniteInflictChanceBonus)
     if (Math.random() * 100 < pIgn) {
       const dps = ((portions.fire * igniteInherentMult) / BASE_IGNITE_SEC) * dotMult
       const ignDur = stats.igniteAilmentDurationMultiplier
+      const randIgn =
+        (stats.randomIgniteDurationLessPercent > 0 || stats.randomIgniteDurationMorePercent > 0)
+          ? 1
+            + ((Math.random()
+              * (stats.randomIgniteDurationMorePercent + stats.randomIgniteDurationLessPercent)
+              - stats.randomIgniteDurationLessPercent) / 100)
+          : 1
       state.dots.push({
         kind: 'ignite',
         dps,
-        expiresAt: t + BASE_IGNITE_SEC * ignDur,
+        expiresAt: t + BASE_IGNITE_SEC * ignDur * Math.max(0.05, randIgn),
       })
       tryLogAilment(
-        `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${(BASE_IGNITE_SEC * ignDur).toFixed(1)}s`
+        `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${(BASE_IGNITE_SEC * ignDur * Math.max(0.05, randIgn)).toFixed(1)}s`
       )
       if (stats.elementalAilmentsYouInflictReflectedToYou ?? false) {
         const avoidAll = Math.min(100, Math.max(0, stats.avoidAilmentsChance ?? 0))
@@ -507,13 +525,18 @@ function applyPlayerAilmentsOnHit(
     }
   }
 
-  if (!noEle && portions.lightning > 0.01) {
+  const canShockFromElement = portions.lightning > 0.01
+    || (stats.allElementalDamageTypesCanShock && (portions.fire + portions.cold) > 0.01)
+    || (stats.chaosDamageCanInflictAllElementalAilments && portions.chaos > 0.01)
+  if (!noEle && canShockFromElement) {
     const pShock = Math.min(100, gen + stats.shockInflictChanceBonus)
     if (Math.random() * 100 < pShock) {
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.lightning, enemyMaxLife, 0)
-      const shockCap = stats.maxShockEffect ?? 50
+      const shockCap = (stats.ignoreMaxShockEffect ?? false) ? Number.POSITIVE_INFINITY : (stats.maxShockEffect ?? 50)
       const shockIncMult = 1 + (stats.increasedShockEffect ?? 0) / 100
-      const shock = Math.min(shockCap, Math.max(5, effectPct * 1.15 * ndMult * shockIncMult))
+      const computedShock = Math.max(5, effectPct * 1.15 * ndMult * shockIncMult)
+      const shockFixed = stats.fixedShockEffectPercent ?? 0
+      const shock = shockFixed > 0 ? shockFixed : Math.min(shockCap, computedShock)
       const dur = getBaseShockChillDurationSec() * durMult * (stats.shockDurationMultiplier ?? 1)
       state.shocks.push({ magnitudePct: shock, expiresAt: t + dur })
       debuffEvents.push({ t, kind: 'shock', magnitudePct: shock, durationSec: dur })
@@ -539,7 +562,10 @@ function applyPlayerAilmentsOnHit(
     }
   }
 
-  if (!noEle && portions.cold > 0.01) {
+  const canChillFromElement = portions.cold > 0.01
+    || (stats.allElementalDamageTypesCanChill && (portions.fire + portions.lightning) > 0.01)
+    || (stats.chaosDamageCanInflictAllElementalAilments && portions.chaos > 0.01)
+  if (!noEle && canChillFromElement) {
     const pChill = Math.min(100, gen + stats.chillInflictChanceBonus)
     if (Math.random() * 100 < pChill) {
       const effectPct = computeNonDamagingAilmentEffectPercent(portions.cold, enemyMaxLife, 0)
@@ -551,8 +577,15 @@ function applyPlayerAilmentsOnHit(
       const chillCap = stats.maxChillEffect ?? 30
       const chillPct = Math.min(chillCap, Math.max(5, effectPct * 0.85 * ndMult * chillOutMult))
       const dur = getBaseShockChillDurationSec() * durMult
-      state.chills.push({ magnitudePct: chillPct, expiresAt: t + dur })
-      debuffEvents.push({ t, kind: 'chill', magnitudePct: chillPct, durationSec: dur })
+      const chillExpiresAt =
+        (stats.chillYouInflictInfiniteDuration ?? false) ? Number.POSITIVE_INFINITY : (t + dur)
+      state.chills.push({ magnitudePct: chillPct, expiresAt: chillExpiresAt })
+      debuffEvents.push({
+        t,
+        kind: 'chill',
+        magnitudePct: chillPct,
+        durationSec: (stats.chillYouInflictInfiniteDuration ?? false) ? Number.POSITIVE_INFINITY : dur,
+      })
       tryLogAilment(
         `Ailment — Chill: enemy action speed −${chillPct.toFixed(0)}% (${dur.toFixed(1)}s)`
       )
@@ -659,6 +692,7 @@ function resolveEnemyAttack(
 
   // Demo enemy uses physical hits only → full armour effectiveness (armourVsPhysical = 1.0).
   let armour = stats.armour
+  if (stats.armourNoEffectVsPhysical ?? false) armour = 0
   if (
     (stats.armourHasNoEffectWhileBelowHalfLife ?? false) &&
     playerState.life < stats.maxLife * 0.5
@@ -717,6 +751,10 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   }
 
   let enemyLife = enemy.maxLife
+  const startLosePct = Math.min(100, Math.max(0, stats.enemyLoseMaxLifeAtStartPercent ?? 0))
+  if (startLosePct > 0) {
+    enemyLife = Math.max(0, enemyLife - enemy.maxLife * (startLosePct / 100))
+  }
   let t = 0
   let nextPlayer = 0
   let nextEnemy = 0
@@ -747,10 +785,46 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   let lastDebuffPulseT = -DOT_LOG_INTERVAL
   let dotLogAcc = { bleed: 0, poison: 0, ignite: 0 }
   const enemyDebuffEvents: EnemyDebuffEvent[] = []
+  let nextPeriodicShockT = 0
+  let nextPeriodicLifeRegenT = 0
+  let periodicLifeRegenActiveUntil = 0
 
   while (t < maxDuration) {
     if (player.life <= 0) break
     if (enemyLife <= 0) break
+
+    // Timed gear triggers
+    if ((stats.periodicShockEverySec ?? 0) > 0 && (stats.periodicShockPct ?? 0) > 0) {
+      if (t + 1e-9 >= nextPeriodicShockT) {
+        const shockPct = stats.periodicShockPct
+        const dur = getBaseShockChillDurationSec() * (stats.ailmentDurationMultiplier ?? 1)
+        ailmentState.shocks.push({ magnitudePct: shockPct, expiresAt: t + dur })
+        enemyDebuffEvents.push({ t, kind: 'shock', magnitudePct: shockPct, durationSec: dur })
+        playerAilments.shock = { magnitudePct: shockPct, expiresAt: t + dur }
+        nextPeriodicShockT = t + stats.periodicShockEverySec
+      }
+    }
+    if (
+      (stats.periodicLifeRegenEverySec ?? 0) > 0
+      && (stats.periodicLifeRegenPct ?? 0) > 0
+      && (stats.periodicLifeRegenDurationSec ?? 0) > 0
+    ) {
+      if (t + 1e-9 >= nextPeriodicLifeRegenT) {
+        periodicLifeRegenActiveUntil = Math.max(
+          periodicLifeRegenActiveUntil,
+          t + stats.periodicLifeRegenDurationSec
+        )
+        nextPeriodicLifeRegenT = t + stats.periodicLifeRegenEverySec
+      }
+      if (t < periodicLifeRegenActiveUntil && player.life > 0) {
+        const rec = stats.lifeRecoveryRateMult ?? 1
+        if (lifeRecoveryAllowed(player, stats)) {
+          const d = stats.periodicLifeRegenDurationSec
+          const pctPerSec = stats.periodicLifeRegenPct / d
+          player.life = Math.min(stats.maxLife, player.life + stats.maxLife * (pctPerSec / 100) * dt * rec)
+        }
+      }
+    }
 
     ailmentState.dots = ailmentState.dots.filter((d) => d.expiresAt > t)
     ailmentState.shocks = ailmentState.shocks.filter((s) => s.expiresAt > t)
@@ -847,6 +921,10 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         if (payLife) player.life -= cost
         else if (payEs) player.energyShield -= cost
         else player.mana -= cost
+        const selfPhysPct = stats.takePhysicalDamagePercentOfMaxLifeWhenYouAttack ?? 0
+        if (selfPhysPct > 0) {
+          player.life = Math.max(0, player.life - stats.maxLife * (selfPhysPct / 100))
+        }
         const shockNow = activeShockPct(ailmentState, t)
         const enemyLifeBeforeHit = enemyLife
         const { damage, outcome } = resolvePlayerAttack(enemy, enemyLife, stats, {
@@ -889,6 +967,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           log.push({ t, kind: 'player_attack', message: msg, damage })
         }
         if (damage > 0) {
+          const hitWasCritical = Math.random() * 100 < stats.critChance
           applyPlayerAilmentsOnHit(
             stats,
             damage,
@@ -896,10 +975,21 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
             t,
             ailmentState,
             playerAilments,
+            hitWasCritical,
             log,
             maxLog,
             enemyDebuffEvents
           )
+          if (enemyLife > 0) {
+            const fixedExec = stats.executeEnemiesBelowLifePercent ?? 0
+            const chillExec = (stats.executeEnemiesBelowLifePercentEqualToChillEffect ?? false)
+              ? activeChillPct(ailmentState, t)
+              : 0
+            const execPct = Math.max(fixedExec, chillExec)
+            if (execPct > 0 && enemyLife <= enemy.maxLife * (execPct / 100)) {
+              enemyLife = 0
+            }
+          }
         }
       } else if (log.length < maxLog) {
         log.push({
