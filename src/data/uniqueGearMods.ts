@@ -1580,10 +1580,10 @@ export function equipmentModifiersFromUniqueTexts(
     m = l.match(/([\d.]+)%\s+to\s+all\s+elemental\s+resistances\b/i);
     if (m) add({ pctToAllElementalResFromGear: num(m)! });
 
-    m = l.match(/\+\s*\(?([\d.-]+)\)?%?\s+to\s+chaos\s+resistance\b/i);
-    if (m) add({ pctChaosResFromGear: num(m)! });
-
-    m = l.match(/\(?([\d.-]+)\)?%?\s+to\s+chaos\s+resistance\b/i);
+    // Chaos resistance:
+    // - Allow optional leading "+" and optional parentheses around the number.
+    // - Avoid matching scaling lines like "... per X".
+    m = l.match(/\+?\s*\(?([\d.-]+)\)?%?\s+to\s+chaos\s+resistance\b/i);
     if (m && !l.toLowerCase().includes("per")) add({ pctChaosResFromGear: num(m)! });
 
     m = l.match(

@@ -2279,7 +2279,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const fireRes =  resistAllFlat + eq.pctFireResFromGear;
   const coldRes = resistAllFlat + eq.pctColdResFromGear;
   const lightningRes = resistAllFlat + eq.pctLightningResFromGear;
-  const chaosRes = u('increasedChaosResistance') + eq.pctChaosResFromGear + fighterBonus;
+  // Chaos resistance is separate from "all elemental resistances", but DOES include "to all resistances".
+  const chaosRes =
+    u('increasedChaosResistance')
+    + eq.pctChaosResFromGear
+    + eq.pctToAllResistancesFromGear
+    + fighterBonus;
 
   // -------------------------------------------------------------------------
   // 14. Offense — accuracy

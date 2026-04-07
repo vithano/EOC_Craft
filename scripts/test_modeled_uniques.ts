@@ -303,6 +303,72 @@ function main() {
     assert(Boolean(stats.excessLifeLeechRecoveryToEnergyShield), "Expected stats.excessLifeLeechRecoveryToEnergyShield true");
   }
 
+  // Armour effectiveness vs chaos damage is NOT chaos resistance
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["+50% to armour effectiveness against chaos damage"],
+      { isWeapon: false }
+    );
+    assert(
+      patch.armourEffectivenessVsChaosFromGear === 0.5,
+      `Expected armourEffectivenessVsChaosFromGear=0.5, got ${patch.armourEffectivenessVsChaosFromGear}`
+    );
+    assert(
+      patch.pctChaosResFromGear === undefined,
+      `Expected armour effectiveness line to NOT set pctChaosResFromGear, got ${patch.pctChaosResFromGear}`
+    );
+
+    const base = computeBuildStats(buildWithEqMods(emptyEquipmentModifiers()));
+    const eq = emptyEquipmentModifiers();
+    eq.armourEffectivenessVsChaosFromGear = 0.5;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(stats.chaosRes === base.chaosRes, `Expected chaosRes unchanged, got ${stats.chaosRes} vs ${base.chaosRes}`);
+    assert(stats.armourVsChaosMultiplier > base.armourVsChaosMultiplier, "Expected armourVsChaosMultiplier increased");
+  }
+
+  // Resistances: "to all elemental resistances" does NOT affect chaos resistance
+  {
+    const base = computeBuildStats(buildWithEqMods(emptyEquipmentModifiers()));
+    const eq = emptyEquipmentModifiers();
+    eq.pctToAllElementalResFromGear = 12;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(stats.fireRes === base.fireRes + 12, `Expected +12 fireRes, got ${stats.fireRes} vs ${base.fireRes}`);
+    assert(stats.coldRes === base.coldRes + 12, `Expected +12 coldRes, got ${stats.coldRes} vs ${base.coldRes}`);
+    assert(
+      stats.lightningRes === base.lightningRes + 12,
+      `Expected +12 lightningRes, got ${stats.lightningRes} vs ${base.lightningRes}`
+    );
+    assert(stats.chaosRes === base.chaosRes, `Expected chaosRes unchanged, got ${stats.chaosRes} vs ${base.chaosRes}`);
+  }
+
+  // Resistances: "to all resistances" DOES affect chaos resistance
+  {
+    const base = computeBuildStats(buildWithEqMods(emptyEquipmentModifiers()));
+    const eq = emptyEquipmentModifiers();
+    eq.pctToAllResistancesFromGear = 7;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(stats.fireRes === base.fireRes + 7, `Expected +7 fireRes, got ${stats.fireRes} vs ${base.fireRes}`);
+    assert(stats.coldRes === base.coldRes + 7, `Expected +7 coldRes, got ${stats.coldRes} vs ${base.coldRes}`);
+    assert(
+      stats.lightningRes === base.lightningRes + 7,
+      `Expected +7 lightningRes, got ${stats.lightningRes} vs ${base.lightningRes}`
+    );
+    assert(stats.chaosRes === base.chaosRes + 7, `Expected +7 chaosRes, got ${stats.chaosRes} vs ${base.chaosRes}`);
+  }
+
+  // Gilden Apex-style chaos res line should not double-apply (was matching twice)
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["+(30)% to chaos resistance", "+30% to all elemental resistances"],
+      { isWeapon: false }
+    );
+    assert(patch.pctChaosResFromGear === 30, `Expected pctChaosResFromGear=30, got ${patch.pctChaosResFromGear}`);
+    assert(
+      patch.pctToAllElementalResFromGear === 30,
+      `Expected pctToAllElementalResFromGear=30, got ${patch.pctToAllElementalResFromGear}`
+    );
+  }
+
   // Divinarius: increased recovery from all sources
   {
     const patch = equipmentModifiersFromUniqueTexts(
