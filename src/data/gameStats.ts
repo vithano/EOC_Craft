@@ -328,6 +328,48 @@ export interface HitDamageComputationBreakdown {
   }
 }
 
+/** Spell hit pipeline: base, gear added-to-spells, crit, cast time, DPS (planner). */
+export interface SpellDamageComputationBreakdown {
+  abilityId: string
+  abilityName: string
+  level: number
+  element: string
+  /** Raw spell hit range from the ability scaling, before gear added-to-spells and before increased. */
+  baseHit: { min: number; max: number }
+  /** Flat added-to-spells contributions by type (already in display-space low/high). */
+  addedFromGearByType: Array<{ type: HitDamageTypeRow['type']; min: number; max: number }>
+  /** Added-damage multiplier on the ability (addedDamageMultiplierPct/100). */
+  addedDamageMultiplier: number
+  /** Total increased% used for spell hit (spell+global+ability+elemental). */
+  increasedDamagePercent: number
+  enemiesTakeIncreasedDamage: {
+    gearPercent: number
+    tricksterPercent: number
+    totalPercent: number
+    multiplier: number
+  }
+  afterIncreasedByType: HitDamageTypeRow[]
+  avgHit: number
+  critical: {
+    critChance: number
+    critMultiplier: number
+    effectiveDamageMultiplier: number
+  }
+  cast: {
+    baseCastTimeSeconds: number
+    increasedCastSpeedPercent: StatContributionLine[]
+    castSpeedLessMultipliers: Array<{ label: string; factor: number }>
+    effectiveCastTimeSeconds: number
+    castsPerSecond: number
+  }
+  dps: {
+    avgEffectiveDamage: number
+    value: number
+    strikesPerCast: number
+    notes: string[]
+  }
+}
+
 export interface EquipmentModifiers {
   flatLife: number
   flatMana: number
@@ -698,6 +740,8 @@ export interface ComputedBuildStats {
   abilityContribution: AbilityContributionSummary | null
   /** Attack hit math (null when a spell replaces hit damage). */
   hitDamageComputationBreakdown: HitDamageComputationBreakdown | null
+  /** Spell hit math (non-null when a spell ability is selected). */
+  spellDamageComputationBreakdown: SpellDamageComputationBreakdown | null
 
   /** Source lines for every computed stat (planner UI breakdown). */
   statBreakdowns: StatBreakdowns
@@ -2157,6 +2201,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const baselineAps = aps
   const baselineCritChance = critChance
   let abilityContribution: AbilityContributionSummary | null = null
+  let spellDamageComputationBreakdown: SpellDamageComputationBreakdown | null = null
+  let spellBaseCastTimeSeconds: number | null = null
+  let spellAttunementCastSpeedIncPct: number | null = null
+  let spellBaseCritChancePct: number | null = null
+  let spellCritFlatBasePct: number | null = null
+  let spellCritIncreasedTotalPct: number | null = null
 
   const sel = config.ability
 
@@ -2267,10 +2317,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           const spellBaseCrit = def.baseCritChancePct ?? BASE_GAME_STATS.baseCritChance
           const spellCritFlatBase =
             spellBaseCrit + critFromAssassin + eq.critChanceBonus + eq.spellBaseCritChanceBonusFromGear
-          critChance = Math.min(
-            100,
-            spellCritFlatBase * (1 + (critFromUpgrades + spellAttCritInc) / 100)
-          )
+          const spellCritIncreased =
+            u('increasedCriticalHitChance')
+            + u('increasedSpellCriticalHitChance')
+            + eq.pctIncreasedCriticalHitChanceFromGear
+            + critFromDex
+            + spellAttCritInc
+          critChance = Math.min(100, spellCritFlatBase * (1 + spellCritIncreased / 100))
+          spellBaseCritChancePct = spellBaseCrit
+          spellCritFlatBasePct = spellCritFlatBase
+          spellCritIncreasedTotalPct = spellCritIncreased
           const spellRows: HitDamageTypeRow[] = [];
           const baseType = spellElementToHitDamageType(scaledHit.element);
 
@@ -2318,6 +2374,68 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           avgHit = (hitDamageMin + hitDamageMax) / 2
           avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
           dps = avgEffectiveDamage * aps
+          // Spell breakdown (planner)
+          const addedFromGearByType = [
+            { type: 'physical' as const, ...localFlatDamageDisplayRange(eq.flatSpellDamageMin, eq.flatSpellDamageMax) },
+            { type: 'fire' as const, ...localFlatDamageDisplayRange(eq.flatSpellFireMin, eq.flatSpellFireMax) },
+            { type: 'cold' as const, ...localFlatDamageDisplayRange(eq.flatSpellColdMin, eq.flatSpellColdMax) },
+            { type: 'lightning' as const, ...localFlatDamageDisplayRange(eq.flatSpellLightningMin, eq.flatSpellLightningMax) },
+            { type: 'chaos' as const, ...localFlatDamageDisplayRange(eq.flatSpellChaosMin, eq.flatSpellChaosMax) },
+          ].filter((r) => r.min !== 0 || r.max !== 0)
+
+          const castIncLines: StatContributionLine[] = []
+          // These mirror the same terms used in castSpeedInc.
+          if (u('increasedCastSpeed') !== 0) castIncLines.push({ label: 'Upgrades: increased cast speed', value: u('increasedCastSpeed') })
+          if (u('increasedAttackSpeedAndCastSpeed') !== 0) castIncLines.push({ label: 'Upgrades: increased attack & cast speed', value: u('increasedAttackSpeedAndCastSpeed') })
+          if (spellAttCast !== 0) castIncLines.push({ label: 'Ability attunement: increased cast speed', value: spellAttCast })
+          if (eq.pctIncreasedCastSpeedFromGear !== 0) castIncLines.push({ label: 'Gear: increased cast speed', value: eq.pctIncreasedCastSpeedFromGear })
+          if (eq.castSpeedIncPctPer10DexFromGear !== 0) castIncLines.push({ label: 'Gear: increased cast speed per 10 dexterity', value: eq.castSpeedIncPctPer10DexFromGear * (dex / 10) })
+
+          const baseCast = def.castTimeSeconds != null && def.castTimeSeconds > 0 ? def.castTimeSeconds : 0.5
+          spellBaseCastTimeSeconds = baseCast
+          spellAttunementCastSpeedIncPct = spellAttCast
+          spellDamageComputationBreakdown = {
+            abilityId: def.id,
+            abilityName: def.name,
+            level,
+            element: scaledHit.element,
+            baseHit: { min: scaledHit.min, max: scaledHit.max },
+            addedFromGearByType,
+            addedDamageMultiplier: added,
+            increasedDamagePercent: incFrac * 100,
+            enemiesTakeIncreasedDamage: {
+              gearPercent: eq.enemyDamageTakenIncreasedFromGear,
+              tricksterPercent: enemyDamageTakenIncreasedFromTricksterPct,
+              totalPercent: enemyDamageTakenIncreasedTotalPct,
+              multiplier: enemyDamageTakenIncreasedMult,
+            },
+            afterIncreasedByType: hitDamageByType,
+            avgHit,
+            critical: {
+              critChance,
+              critMultiplier,
+              effectiveDamageMultiplier: 1 + (critChance / 100) * (critMultiplier - 1),
+            },
+            cast: {
+              baseCastTimeSeconds: baseCast,
+              increasedCastSpeedPercent: castIncLines,
+              castSpeedLessMultipliers: [
+                { label: 'Gear: cast speed less / more multiplier', factor: eq.castSpeedLessMultFromGear },
+              ],
+              effectiveCastTimeSeconds: effectiveCastTime,
+              castsPerSecond: castsPerSec,
+            },
+            dps: {
+              avgEffectiveDamage,
+              value: dps,
+              strikesPerCast: 1,
+              notes: [
+                enemyDamageTakenIncreasedTotalPct !== 0
+                  ? `Enemies take +${enemyDamageTakenIncreasedTotalPct.toFixed(1)}% increased damage (gear + Trickster): ×${enemyDamageTakenIncreasedMult.toFixed(4)} on spell hit (included).`
+                  : 'No “enemies take increased damage” from gear or Trickster.',
+              ],
+            },
+          }
           abilityContribution = {
             id: def.id,
             name: def.name,
@@ -2965,10 +3083,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   )
 
   const critFlatLines: StatContributionLine[] = [
-    { label: 'Base crit chance % (weapon or game)', value: baseCritChance },
+    { label: spellCombat ? 'Base crit chance % (spell or game)' : 'Base crit chance % (weapon or game)', value: spellCombat ? (spellBaseCritChancePct ?? BASE_GAME_STATS.baseCritChance) : baseCritChance },
   ]
-  if (critFromAssassin !== 0) critFlatLines.push({ label: 'Assassin: +8% attack crit chance', value: critFromAssassin })
-  dmgPushIf(critFlatLines, 'Gear: attack base crit chance', eq.attackBaseCritChanceBonusFromGear)
+  if (critFromAssassin !== 0) critFlatLines.push({ label: 'Assassin: +8% crit chance', value: critFromAssassin })
+  if (!spellCombat) {
+    dmgPushIf(critFlatLines, 'Gear: attack base crit chance', eq.attackBaseCritChanceBonusFromGear)
+  } else {
+    dmgPushIf(critFlatLines, 'Gear: spell base crit chance', eq.spellBaseCritChanceBonusFromGear)
+  }
   dmgPushIf(critFlatLines, 'Gear: global crit chance bonus', eq.critChanceBonus)
   if (critFromDex !== 0) {
     critFlatLines.push({
@@ -2979,27 +3101,54 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   const critChanceIncLines: StatContributionLine[] = []
   dmgPushIf(critChanceIncLines, 'Upgrades: increased critical hit chance', u('increasedCriticalHitChance'))
-  dmgPushIf(critChanceIncLines, 'Upgrades: increased attack critical hit chance', u('increasedAttackCriticalHitChance'))
+  if (!spellCombat) {
+    dmgPushIf(critChanceIncLines, 'Upgrades: increased attack critical hit chance', u('increasedAttackCriticalHitChance'))
+  } else {
+    dmgPushIf(critChanceIncLines, 'Upgrades: increased spell critical hit chance', u('increasedSpellCriticalHitChance'))
+  }
   dmgPushIf(critChanceIncLines, 'Gear: increased critical hit chance', eq.pctIncreasedCriticalHitChanceFromGear)
 
-  const apsLines: StatContributionLine[] = [
-    { label: 'Weapon base APS (or unarmed base)', value: apsFlatBase },
-  ]
-  dmgPushIf(apsLines, 'Upgrades: increased attack speed', u('increasedAttackSpeed'))
-  dmgPushIf(apsLines, 'Upgrades: increased attack speed and cast speed', u('increasedAttackSpeedAndCastSpeed'))
-  if (mercenaryAspIncPct !== 0) {
-    apsLines.push({
-      label: 'Mercenary: 1% increased attack speed per 10 Str or Dex (lower)',
-      value: mercenaryAspIncPct,
-    })
-  }
-  dmgPushIf(apsLines, 'Gear: increased attack speed', eq.pctIncreasedAttackSpeedFromGear)
-  if (rogueMult !== 1) apsLines.push({ label: 'Rogue: 10% more attack speed (mult)', value: 10 })
-  if (eq.attackSpeedLessMultFromGear !== 1) {
-    apsLines.push({
-      label: 'Gear: attack speed less/more (mult)',
-      value: (eq.attackSpeedLessMultFromGear - 1) * 100,
-    })
+  const apsLines: StatContributionLine[] = []
+  if (!spellCombat) {
+    apsLines.push({ label: 'Weapon base APS (or unarmed base)', value: apsFlatBase })
+    dmgPushIf(apsLines, 'Upgrades: increased attack speed', u('increasedAttackSpeed'))
+    dmgPushIf(apsLines, 'Upgrades: increased attack speed and cast speed', u('increasedAttackSpeedAndCastSpeed'))
+    if (mercenaryAspIncPct !== 0) {
+      apsLines.push({
+        label: 'Mercenary: 1% increased attack speed per 10 Str or Dex (lower)',
+        value: mercenaryAspIncPct,
+      })
+    }
+    dmgPushIf(apsLines, 'Gear: increased attack speed', eq.pctIncreasedAttackSpeedFromGear)
+    if (rogueMult !== 1) apsLines.push({ label: 'Rogue: 10% more attack speed (mult)', value: 10 })
+    if (eq.attackSpeedLessMultFromGear !== 1) {
+      apsLines.push({
+        label: 'Gear: attack speed less/more (mult)',
+        value: (eq.attackSpeedLessMultFromGear - 1) * 100,
+      })
+    }
+  } else {
+    apsLines.push({ label: 'Base cast time (s)', value: spellBaseCastTimeSeconds ?? 0 })
+    apsLines.push({ label: 'Effective cast time (s)', value: abilityContribution?.effectiveCastTimeSeconds ?? 0 })
+    apsLines.push({ label: 'Casts per second', value: aps })
+    dmgPushIf(apsLines, 'Upgrades: increased cast speed', u('increasedCastSpeed'))
+    dmgPushIf(apsLines, 'Upgrades: increased attack speed and cast speed', u('increasedAttackSpeedAndCastSpeed'))
+    if ((spellAttunementCastSpeedIncPct ?? 0) !== 0) {
+      apsLines.push({ label: 'Ability attunement: increased cast speed', value: spellAttunementCastSpeedIncPct ?? 0 })
+    }
+    dmgPushIf(apsLines, 'Gear: increased cast speed', eq.pctIncreasedCastSpeedFromGear)
+    if (eq.castSpeedIncPctPer10DexFromGear !== 0) {
+      apsLines.push({
+        label: 'Gear: increased cast speed per 10 dexterity',
+        value: eq.castSpeedIncPctPer10DexFromGear * (dex / 10),
+      })
+    }
+    if (eq.castSpeedLessMultFromGear !== 1) {
+      apsLines.push({
+        label: 'Gear: cast speed less/more (mult)',
+        value: (eq.castSpeedLessMultFromGear - 1) * 100,
+      })
+    }
   }
 
   const accuracyLines: StatContributionLine[] = [
@@ -3149,7 +3298,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     accuracy: blk(accuracyLines, `round(flat × (1 + inc%) × less) = ${accuracy}`),
     critChance: blk(
       [...critFlatLines, ...critChanceIncLines],
-      `min(100, Σ flat × (1 + Σ inc%/100)) = ${critChance.toFixed(1)}%`
+      spellCombat
+        ? `min(100, Σ spell flat × (1 + Σ inc%/100)) = ${critChance.toFixed(1)}%`
+        : `min(100, Σ attack flat × (1 + Σ inc%/100)) = ${critChance.toFixed(1)}%`
     ),
     critMultiplier: blk(critMultLines, `final multiplier = ${critMultiplier.toFixed(2)}`),
     avgHit: blk([{ label: '(hit min + hit max) / 2', value: avgHit }]),
@@ -3431,6 +3582,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
     abilityContribution,
     hitDamageComputationBreakdown,
+    spellDamageComputationBreakdown,
 
     statBreakdowns,
   }

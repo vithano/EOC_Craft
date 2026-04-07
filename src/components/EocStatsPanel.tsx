@@ -1,6 +1,11 @@
 "use client";
 
-import type { ComputedBuildStats, StatBreakdownBlock, StatBreakdowns } from "../data/gameStats";
+import type {
+  ComputedBuildStats,
+  SpellDamageComputationBreakdown,
+  StatBreakdownBlock,
+  StatBreakdowns,
+} from "../data/gameStats";
 import {
   BASE_SHOCK_CHILL_DURATION_SEC,
   computeEvasionChancePercent,
@@ -327,6 +332,97 @@ function MultiplierBreakdownPanel({ b }: { b: HitDamageComputationBreakdown }) {
   );
 }
 
+function SpellMultiplierBreakdownPanel({ b }: { b: SpellDamageComputationBreakdown }) {
+  return (
+    <details className="mt-3 border border-zinc-800 rounded-lg p-3">
+      <summary className="cursor-pointer text-zinc-400 text-[10px] uppercase tracking-wider select-none hover:text-zinc-300">
+        Spell hit / cast / DPS breakdown
+      </summary>
+      <div className="mt-3 grid gap-3 md:grid-cols-2 text-[10px]">
+        <div>
+          <div className="text-zinc-500 font-semibold mb-0.5">Base spell hit (ability)</div>
+          <div className="font-mono text-zinc-300">
+            {Math.round(b.baseHit.min)}–{Math.round(b.baseHit.max)} {b.element}
+          </div>
+
+          {b.addedFromGearByType.length > 0 && (
+            <>
+              <div className="text-zinc-500 font-semibold mt-2 mb-0.5">Added damage to spells (gear)</div>
+              <ul className="list-disc pl-4 font-mono space-y-0.5">
+                {b.addedFromGearByType.map((r) => (
+                  <li key={r.type} className={HIT_DAMAGE_TYPE_COLOR_CLASS[r.type]}>
+                    {HIT_DAMAGE_TYPE_LABEL[r.type]} +{Math.round(r.min)}–{Math.round(r.max)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <div className="text-zinc-500 font-semibold mt-2 mb-0.5">Multipliers</div>
+          <div className="font-mono text-zinc-300 space-y-0.5">
+            <div>Added damage multiplier: ×{b.addedDamageMultiplier.toFixed(3)}</div>
+            <div>Σ increased: +{b.increasedDamagePercent.toFixed(1)}% → ×{(1 + b.increasedDamagePercent / 100).toFixed(4)}</div>
+          </div>
+        </div>
+
+        <div>
+          <div className="text-zinc-500 font-semibold mb-0.5">After increased (by type)</div>
+          <div className="font-mono space-y-0.5">
+            {b.afterIncreasedByType.map((r) => (
+              <div key={r.type} className={HIT_DAMAGE_TYPE_COLOR_CLASS[r.type]}>
+                {HIT_DAMAGE_TYPE_LABEL[r.type]} {r.min}–{r.max}
+              </div>
+            ))}
+          </div>
+          <div className="mt-1 text-zinc-300 font-mono">Average hit: {b.avgHit.toFixed(1)}</div>
+
+          <div className="text-zinc-500 font-semibold mt-2 mb-0.5">Critical strikes (expected)</div>
+          <div className="font-mono space-y-0.5">
+            <div>
+              Crit chance {b.critical.critChance.toFixed(1)}%, multiplier ×{b.critical.critMultiplier.toFixed(2)}
+            </div>
+            <div>
+              Effective damage vs non-crit: ×{b.critical.effectiveDamageMultiplier.toFixed(4)}
+            </div>
+          </div>
+
+          <div className="text-zinc-500 font-semibold mt-2 mb-0.5">Cast time</div>
+          <div className="font-mono text-zinc-300">
+            {b.cast.effectiveCastTimeSeconds.toFixed(3)}s (base {b.cast.baseCastTimeSeconds.toFixed(3)}s) →{" "}
+            {b.cast.castsPerSecond.toFixed(2)} casts/s
+          </div>
+          <div className="text-zinc-500 mt-1 mb-0.5">Increased cast speed (additive)</div>
+          <ul className="list-disc pl-4 font-mono space-y-0.5">
+            {b.cast.increasedCastSpeedPercent.map((l, i) => (
+              <li key={i}>
+                {l.label}: +{l.value.toFixed(1)}%
+              </li>
+            ))}
+          </ul>
+          <div className="text-zinc-500 mt-1 mb-0.5">Multiplicative cast speed</div>
+          <ul className="list-disc pl-4 font-mono space-y-0.5">
+            {b.cast.castSpeedLessMultipliers.map((m, i) => (
+              <li key={i}>
+                {m.label}: ×{m.factor.toFixed(3)}
+              </li>
+            ))}
+          </ul>
+
+          <div className="text-zinc-500 font-semibold mt-2 mb-0.5">DPS</div>
+          <div className="font-mono text-zinc-300">
+            {b.dps.value.toFixed(1)} = {b.dps.avgEffectiveDamage.toFixed(1)} × {b.cast.castsPerSecond.toFixed(2)} casts/s × {b.dps.strikesPerCast} strike(s)
+          </div>
+          {b.dps.notes.map((n, i) => (
+            <p key={i} className="mt-1 text-zinc-500 italic">
+              {n}
+            </p>
+          ))}
+        </div>
+      </div>
+    </details>
+  )
+}
+
 export interface EocStatsPanelProps {
   stats: ComputedBuildStats;
   incomingDamage: number;
@@ -526,16 +622,28 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
         {stats.hitDamageComputationBreakdown && (
           <MultiplierBreakdownPanel b={stats.hitDamageComputationBreakdown} />
         )}
+        {stats.spellDamageComputationBreakdown && (
+          <SpellMultiplierBreakdownPanel b={stats.spellDamageComputationBreakdown} />
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-x-6">
         {/* ── Left column ── */}
         <div>
           <SectionHeader label="Offensive" />
+          {(() => {
+            const isSpell = Boolean(stats.spellDamageComputationBreakdown);
+            const castTime = isSpell ? (stats.aps > 0 ? 1 / stats.aps : 0) : null;
+            const apsLabel = isSpell ? "Cast time" : "Attacks per second";
+            const apsValue = isSpell ? `${castTime?.toFixed(3)}s` : `${stats.aps.toFixed(2)}`;
+            const apsSub = isSpell ? `(${stats.aps.toFixed(2)} casts/s, 1 hit/cast)` : `(${stats.strikesPerAttack} hits/atk)`;
+            const manaLabel = isSpell ? "Mana cost (per cast)" : "Mana cost (per attack)";
+            return (
+              <>
           <BreakdownStatRow
-            label="Attacks per second"
-            value={`${stats.aps.toFixed(2)}`}
-            sub={`(${stats.strikesPerAttack} hits/atk)`}
+            label={apsLabel}
+            value={apsValue}
+            sub={apsSub}
             breakdown={sb.aps}
           />
           <BreakdownStatRow
@@ -545,10 +653,13 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
             breakdown={sb.dps}
           />
           <BreakdownStatRow
-            label="Mana cost"
+            label={manaLabel}
             value={stats.manaCostPerAttack.toFixed(0)}
             breakdown={sb.manaCostPerAttack}
           />
+              </>
+            );
+          })()}
           <BreakdownStatRow
             label="Accuracy rating"
             value={stats.accuracy}
