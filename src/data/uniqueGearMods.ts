@@ -14,6 +14,18 @@ export interface UniqueGearStatPatch {
   flatLightningMax?: number;
   flatChaosMin?: number;
   flatChaosMax?: number;
+
+  /** Flat damage that applies to spell hits only (does NOT affect weapon/attack hit base). */
+  flatSpellDamageMin?: number;
+  flatSpellDamageMax?: number;
+  flatSpellFireMin?: number;
+  flatSpellFireMax?: number;
+  flatSpellColdMin?: number;
+  flatSpellColdMax?: number;
+  flatSpellLightningMin?: number;
+  flatSpellLightningMax?: number;
+  flatSpellChaosMin?: number;
+  flatSpellChaosMax?: number;
   /** +N strikes per attack from unique lines. */
   flatStrikesPerAttack?: number;
   /** % increased strikes per attack (global, non-dex-scaled). */
@@ -716,6 +728,32 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/([\d.]+)%\s+increased\s+critical\s+hit\s+chance\b/i);
     if (m) add({ pctIncreasedCriticalHitChanceFromGear: num(m)! });
+
+    // Flat added damage to spells (spell-only, NOT weapon local). Stored using the same min×0.5 convention.
+    const pushFlatToSpells = (element: string, lo: number, hi: number) => {
+      const a = Math.min(lo, hi);
+      const b = Math.max(lo, hi);
+      const minF = a * 0.5;
+      const maxF = b;
+      const el = element.toLowerCase();
+      if (el === "fire") add({ flatSpellFireMin: minF, flatSpellFireMax: maxF });
+      else if (el === "cold") add({ flatSpellColdMin: minF, flatSpellColdMax: maxF });
+      else if (el === "lightning" || el === "lighting") add({ flatSpellLightningMin: minF, flatSpellLightningMax: maxF });
+      else if (el === "chaos") add({ flatSpellChaosMin: minF, flatSpellChaosMax: maxF });
+      else if (el === "physical") add({ flatSpellDamageMin: minF, flatSpellDamageMax: maxF });
+      else add({ flatSpellDamageMin: minF, flatSpellDamageMax: maxF });
+    };
+    m = l.match(
+      /adds\s+([\d.]+)\s+to\s+([\d.]+)\s+(fire|cold|lightning|lighting|chaos|physical)\s+damage\s+to\s+spells\b/i
+    );
+    if (m) {
+      pushFlatToSpells(m[3]!, num(m, 1)!, num(m, 2)!);
+    } else {
+      m = l.match(
+        /adds\s+([\d.]+)\s*-\s*([\d.]+)\s+(fire|cold|lightning|lighting|chaos|physical)\s+damage\s+to\s+spells\b/i
+      );
+      if (m) pushFlatToSpells(m[3]!, num(m, 1)!, num(m, 2)!);
+    }
 
     m = l.match(/([\d.]+)%\s+increased\s+elemental\s+damage\b/i);
     if (m) add({ increasedElementalDamageFromGear: num(m)! });

@@ -86,10 +86,10 @@ const MOD_TEXT_FORMATTER: Record<string, (v1: number, v2?: number) => string | n
   'Added Local Lightning Damage':     (v1, v2) => `Adds ${v1} to ${v2 ?? v1} local lightning damage`,
   'Added Local Cold Damage':          (v1, v2) => `Adds ${v1} to ${v2 ?? v1} local cold damage`,
   'Added Local Fire Damage':          (v1, v2) => `Adds ${v1} to ${v2 ?? v1} local fire damage`,
-  // Spell added damage (Wand/Magestaff are weapons, so treated as local)
-  'Added Lightning Damage To Spells': (v1, v2) => `Adds ${v1} to ${v2 ?? v1} local lightning damage`,
-  'Added Cold Damage To Spells':      (v1, v2) => `Adds ${v1} to ${v2 ?? v1} local cold damage`,
-  'Added Fire Damage To Spells':      (v1, v2) => `Adds ${v1} to ${v2 ?? v1} local fire damage`,
+  // Spell added damage (should apply to spells, not weapon local damage)
+  'Added Lightning Damage To Spells': (v1, v2) => `Adds ${v1} to ${v2 ?? v1} lightning damage to spells`,
+  'Added Cold Damage To Spells':      (v1, v2) => `Adds ${v1} to ${v2 ?? v1} cold damage to spells`,
+  'Added Fire Damage To Spells':      (v1, v2) => `Adds ${v1} to ${v2 ?? v1} fire damage to spells`,
   // % increased local physical damage (weapon-local)
   'Increased Local Physical Damage':  (v1) => `${v1}% increased local physical damage`,
   // Flat resources

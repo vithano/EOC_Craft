@@ -278,7 +278,9 @@ export default function EquipmentPanel({
     const suffixes: AppliedModifier[] = [];
     if (regSuffixDef0) suffixes.push({ modifierId: regSuffixId0, roll1: regSuffixRoll0[0], roll2: getModSpec(regSuffixDef0)?.range2 != null ? regSuffixRoll0[1] : undefined });
     if (regSuffixDef1) suffixes.push({ modifierId: regSuffixId1, roll1: regSuffixRoll1[0], roll2: getModSpec(regSuffixDef1)?.range2 != null ? regSuffixRoll1[1] : undefined });
-    return { slot: regBaseDef.slot, itemId: regBaseDef.id, prefixes, suffixes };
+    // Use the planner slot (Ring 1 / Ring 2) so crafted rings display & equip correctly.
+    // Base equipment definitions use "Ring" for both.
+    return { slot: regSlot, itemId: regBaseDef.id, prefixes, suffixes };
   }
 
   const clampRollAt = useCallback((index: number, v: number) => {

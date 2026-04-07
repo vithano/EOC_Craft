@@ -371,9 +371,10 @@ export default function BuildPlanner() {
     (slot: string, itemId: string, craftedPrefixes: AppliedModifier[], craftedSuffixes: AppliedModifier[]) => {
       setInventory((inv) => {
         if (inv.length >= INVENTORY_MAX_SLOTS) return inv;
+        const bagSlot = slot === "Ring" ? "Ring 1" : slot;
         return addOrMergeStack(
           inv,
-          slot,
+          bagSlot,
           itemId,
           1,
           undefined,

@@ -344,6 +344,17 @@ export interface EquipmentModifiers {
   flatLightningMax: number
   flatChaosMin: number
   flatChaosMax: number
+  /** Spell-only flat added hit damage (does not affect attack base). Stored with local min×0.5 convention. */
+  flatSpellDamageMin: number
+  flatSpellDamageMax: number
+  flatSpellFireMin: number
+  flatSpellFireMax: number
+  flatSpellColdMin: number
+  flatSpellColdMax: number
+  flatSpellLightningMin: number
+  flatSpellLightningMax: number
+  flatSpellChaosMin: number
+  flatSpellChaosMax: number
   critChanceBonus: number // percentage points
   strBonus: number
   dexBonus: number
@@ -651,7 +662,7 @@ export interface ComputedBuildStats {
   physicalDamageTakenAsColdPercent: number
   physicalDamageTakenAsLightningPercent: number
   elementalDamageTakenAsChaosPercent: number
-  /** Flat reduced physical damage taken (from gear + Arcanist bonus). */
+  /** % reduced physical damage taken (from gear + Arcanist bonus). */
   reducedPhysicalDamageTaken: number
   /** % increased shock/chill effect you inflict (demo). */
   nonDamagingAilmentEffectIncreasedPercent: number
@@ -712,6 +723,16 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     flatLightningMax: 0,
     flatChaosMin: 0,
     flatChaosMax: 0,
+    flatSpellDamageMin: 0,
+    flatSpellDamageMax: 0,
+    flatSpellFireMin: 0,
+    flatSpellFireMax: 0,
+    flatSpellColdMin: 0,
+    flatSpellColdMax: 0,
+    flatSpellLightningMin: 0,
+    flatSpellLightningMax: 0,
+    flatSpellChaosMin: 0,
+    flatSpellChaosMax: 0,
     critChanceBonus: 0,
     strBonus: 0,
     dexBonus: 0,
@@ -923,6 +944,16 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.flatLightningMax !== undefined) addNum('flatLightningMax', p.flatLightningMax)
   if (p.flatChaosMin !== undefined) addNum('flatChaosMin', p.flatChaosMin)
   if (p.flatChaosMax !== undefined) addNum('flatChaosMax', p.flatChaosMax)
+  if (p.flatSpellDamageMin !== undefined) addNum('flatSpellDamageMin', p.flatSpellDamageMin)
+  if (p.flatSpellDamageMax !== undefined) addNum('flatSpellDamageMax', p.flatSpellDamageMax)
+  if (p.flatSpellFireMin !== undefined) addNum('flatSpellFireMin', p.flatSpellFireMin)
+  if (p.flatSpellFireMax !== undefined) addNum('flatSpellFireMax', p.flatSpellFireMax)
+  if (p.flatSpellColdMin !== undefined) addNum('flatSpellColdMin', p.flatSpellColdMin)
+  if (p.flatSpellColdMax !== undefined) addNum('flatSpellColdMax', p.flatSpellColdMax)
+  if (p.flatSpellLightningMin !== undefined) addNum('flatSpellLightningMin', p.flatSpellLightningMin)
+  if (p.flatSpellLightningMax !== undefined) addNum('flatSpellLightningMax', p.flatSpellLightningMax)
+  if (p.flatSpellChaosMin !== undefined) addNum('flatSpellChaosMin', p.flatSpellChaosMin)
+  if (p.flatSpellChaosMax !== undefined) addNum('flatSpellChaosMax', p.flatSpellChaosMax)
   if (p.flatStrikesPerAttack !== undefined) addNum('flatStrikesPerAttack', p.flatStrikesPerAttack)
   if (p.increasedStrikesPerAttack !== undefined) {
     addNum('increasedStrikesPerAttackFromGear', p.increasedStrikesPerAttack)
@@ -2240,17 +2271,45 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             100,
             spellCritFlatBase * (1 + (critFromUpgrades + spellAttCritInc) / 100)
           )
-          hitDamageByType = buildHitDamageByType([
-            {
-              type: spellElementToHitDamageType(scaledHit.element),
-              min: roundDamageNearest(
-                scaledHit.min * added * (1 + incFrac) * enemyDamageTakenIncreasedMult
-              ),
-              max: roundDamageNearest(
-                scaledHit.max * added * (1 + incFrac) * enemyDamageTakenIncreasedMult
-              ),
-            },
-          ])
+          const spellRows: HitDamageTypeRow[] = [];
+          const baseType = spellElementToHitDamageType(scaledHit.element);
+
+          const spellFlatRanges = {
+            physical: localFlatDamageDisplayRange(eq.flatSpellDamageMin, eq.flatSpellDamageMax),
+            fire: localFlatDamageDisplayRange(eq.flatSpellFireMin, eq.flatSpellFireMax),
+            cold: localFlatDamageDisplayRange(eq.flatSpellColdMin, eq.flatSpellColdMax),
+            lightning: localFlatDamageDisplayRange(eq.flatSpellLightningMin, eq.flatSpellLightningMax),
+            chaos: localFlatDamageDisplayRange(eq.flatSpellChaosMin, eq.flatSpellChaosMax),
+          };
+
+          // Base spell hit
+          const baseAdded =
+            baseType === "physical" ? spellFlatRanges.physical
+              : baseType === "fire" ? spellFlatRanges.fire
+              : baseType === "cold" ? spellFlatRanges.cold
+              : baseType === "lightning" ? spellFlatRanges.lightning
+              : /* chaos */ spellFlatRanges.chaos;
+          const baseMin = scaledHit.min + baseAdded.min;
+          const baseMax = scaledHit.max + baseAdded.max;
+          spellRows.push({
+            type: baseType,
+            min: roundDamageNearest(baseMin * added * (1 + incFrac) * enemyDamageTakenIncreasedMult),
+            max: roundDamageNearest(baseMax * added * (1 + incFrac) * enemyDamageTakenIncreasedMult),
+          });
+
+          // Additional spell-only flat types (non-base elements)
+          for (const t of ["physical", "fire", "cold", "lightning", "chaos"] as const) {
+            if (t === baseType) continue;
+            const r = spellFlatRanges[t];
+            if (!r || (r.min === 0 && r.max === 0)) continue;
+            spellRows.push({
+              type: t,
+              min: roundDamageNearest(r.min * added * (1 + incFrac) * enemyDamageTakenIncreasedMult),
+              max: roundDamageNearest(r.max * added * (1 + incFrac) * enemyDamageTakenIncreasedMult),
+            });
+          }
+
+          hitDamageByType = buildHitDamageByType(spellRows);
           hitSum = sumHitDamageRange(hitDamageByType)
           hitDamageMin = hitSum.min
           hitDamageMax = hitSum.max
