@@ -465,8 +465,13 @@ function applyPlayerAilmentsOnHit(
     })
     tryLogAilment(`Ailment — Poison (DoT): ~${dps.toFixed(1)} DPS for ${(BASE_POISON_SEC * durMult).toFixed(1)}s`)
     if (stats.poisonYouInflictReflectedToYou ?? false) {
-      playerAilments.poisons.push({ expiresAt: t + BASE_POISON_SEC * durMult, dps })
-      tryLogAilment(`Ailment — Poison reflected to you (${(BASE_POISON_SEC * durMult).toFixed(1)}s)`)
+      const avoid = Math.min(100, Math.max(0, stats.avoidAilmentsChance ?? 0))
+      if (Math.random() * 100 >= avoid) {
+        playerAilments.poisons.push({ expiresAt: t + BASE_POISON_SEC * durMult, dps })
+        tryLogAilment(`Ailment — Poison reflected to you (${(BASE_POISON_SEC * durMult).toFixed(1)}s)`)
+      } else {
+        tryLogAilment(`Ailment — Poison reflected to you (avoided)`)
+      }
     }
   }
 
@@ -489,8 +494,15 @@ function applyPlayerAilmentsOnHit(
         `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${(BASE_IGNITE_SEC * ignDur).toFixed(1)}s`
       )
       if (stats.elementalAilmentsYouInflictReflectedToYou ?? false) {
-        playerAilments.igniteUntil = Math.max(playerAilments.igniteUntil, t + BASE_IGNITE_SEC * ignDur)
-        tryLogAilment(`Ailment — Ignite reflected to you (${(BASE_IGNITE_SEC * ignDur).toFixed(1)}s)`)
+        const avoidAll = Math.min(100, Math.max(0, stats.avoidAilmentsChance ?? 0))
+        const avoidEle = Math.min(100, Math.max(0, stats.avoidElementalAilmentsChance ?? 0))
+        const avoid = Math.min(100, avoidAll + avoidEle)
+        if (Math.random() * 100 >= avoid) {
+          playerAilments.igniteUntil = Math.max(playerAilments.igniteUntil, t + BASE_IGNITE_SEC * ignDur)
+          tryLogAilment(`Ailment — Ignite reflected to you (${(BASE_IGNITE_SEC * ignDur).toFixed(1)}s)`)
+        } else {
+          tryLogAilment(`Ailment — Ignite reflected to you (avoided)`)
+        }
       }
     }
   }
@@ -509,13 +521,20 @@ function applyPlayerAilmentsOnHit(
         `Ailment — Shock: enemy takes +${shock.toFixed(0)}% damage from your hits (${dur.toFixed(1)}s)`
       )
       if (stats.elementalAilmentsYouInflictReflectedToYou ?? false) {
-        if (!playerAilments.shock || playerAilments.shock.expiresAt <= t) {
-          playerAilments.shock = { magnitudePct: shock, expiresAt: t + dur }
+        const avoidAll = Math.min(100, Math.max(0, stats.avoidAilmentsChance ?? 0))
+        const avoidEle = Math.min(100, Math.max(0, stats.avoidElementalAilmentsChance ?? 0))
+        const avoid = Math.min(100, avoidAll + avoidEle)
+        if (Math.random() * 100 >= avoid) {
+          if (!playerAilments.shock || playerAilments.shock.expiresAt <= t) {
+            playerAilments.shock = { magnitudePct: shock, expiresAt: t + dur }
+          } else {
+            playerAilments.shock.magnitudePct = Math.max(playerAilments.shock.magnitudePct, shock)
+            playerAilments.shock.expiresAt = Math.max(playerAilments.shock.expiresAt, t + dur)
+          }
+          tryLogAilment(`Ailment — Shock reflected to you (+${shock.toFixed(0)}%, ${dur.toFixed(1)}s)`)
         } else {
-          playerAilments.shock.magnitudePct = Math.max(playerAilments.shock.magnitudePct, shock)
-          playerAilments.shock.expiresAt = Math.max(playerAilments.shock.expiresAt, t + dur)
+          tryLogAilment(`Ailment — Shock reflected to you (avoided)`)
         }
-        tryLogAilment(`Ailment — Shock reflected to you (+${shock.toFixed(0)}%, ${dur.toFixed(1)}s)`)
       }
     }
   }
@@ -538,13 +557,20 @@ function applyPlayerAilmentsOnHit(
         `Ailment — Chill: enemy action speed −${chillPct.toFixed(0)}% (${dur.toFixed(1)}s)`
       )
       if ((stats.elementalAilmentsYouInflictReflectedToYou ?? false) && !(stats.unaffectedByChill ?? false)) {
-        if (!playerAilments.chill || playerAilments.chill.expiresAt <= t) {
-          playerAilments.chill = { magnitudePct: chillPct, expiresAt: t + dur }
+        const avoidAll = Math.min(100, Math.max(0, stats.avoidAilmentsChance ?? 0))
+        const avoidEle = Math.min(100, Math.max(0, stats.avoidElementalAilmentsChance ?? 0))
+        const avoid = Math.min(100, avoidAll + avoidEle)
+        if (Math.random() * 100 >= avoid) {
+          if (!playerAilments.chill || playerAilments.chill.expiresAt <= t) {
+            playerAilments.chill = { magnitudePct: chillPct, expiresAt: t + dur }
+          } else {
+            playerAilments.chill.magnitudePct = Math.max(playerAilments.chill.magnitudePct, chillPct)
+            playerAilments.chill.expiresAt = Math.max(playerAilments.chill.expiresAt, t + dur)
+          }
+          tryLogAilment(`Ailment — Chill reflected to you (−${chillPct.toFixed(0)}%, ${dur.toFixed(1)}s)`)
         } else {
-          playerAilments.chill.magnitudePct = Math.max(playerAilments.chill.magnitudePct, chillPct)
-          playerAilments.chill.expiresAt = Math.max(playerAilments.chill.expiresAt, t + dur)
+          tryLogAilment(`Ailment — Chill reflected to you (avoided)`)
         }
-        tryLogAilment(`Ailment — Chill reflected to you (−${chillPct.toFixed(0)}%, ${dur.toFixed(1)}s)`)
       }
     }
   }

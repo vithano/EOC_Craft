@@ -44,7 +44,7 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
 
   // Not-yet-modeled combat mechanics / scaling rules
   { re: /increased attribute requirements$/i, reason: "Attribute requirement scaling not modeled" },
-  { re: /chance to avoid (?:elemental )?ailments$/i, reason: "Ailment avoidance not modeled" },
+  // (modeled) chance to avoid ailments / elemental ailments (applied to self-inflicted reflected ailments in battle sim)
   // (modeled) max shock/chill caps now affect battle sim
   { re: /more speed per/i, reason: "Conditional self-state speed scaling not modeled" },
   // (modeled) speed scaling from current mana (battle sim)
@@ -95,7 +95,7 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /^while your energy shield is below/i, reason: "Conditional self-sacrifice to restore ES not modeled" },
   { re: /^while your off-hand is empty, your first attack/i, reason: "Encounter-first-hit mechanics not modeled" },
   // (modeled) chill immunity (battle sim: ignores chill on you)
-  { re: /you cannot evade(?: or dodge)?$/i, reason: "Evasion/dodge disable not modeled" },
+  // (modeled) you cannot evade / you cannot evade or dodge
   { re: /you cannot evade while you have energy shield/i, reason: "Conditional evasion disable not modeled" },
   // (modeled) no-mana build state
   { re: /your armour has no effect against physical damage taken/i, reason: "Armour disable rules not modeled" },
@@ -109,7 +109,7 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   // (modeled) crit damage multiplier per 20 accuracy rating
   { re: /life per magic item equipped/i, reason: "Per-equipped-item scaling not modeled" },
   // (modeled) armour per 10 intelligence
-  { re: /^\d+\s+increased\s+defences$/i, reason: "Non-standard defences text format not modeled" },
+  // (modeled) "X increased defences" (implicit %)
   // (modeled) less ailment duration
   { re: /more shock duration$/i, reason: "Shock duration scaling not modeled" },
   // (modeled) less ignite duration

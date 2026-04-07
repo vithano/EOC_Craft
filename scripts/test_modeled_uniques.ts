@@ -1,5 +1,6 @@
 import { computeBuildStats, emptyEquipmentModifiers, type BuildConfig } from "../src/data/gameStats";
 import { equipmentModifiersFromUniqueTexts } from "../src/data/uniqueGearMods";
+import { simulateEncounter } from "../src/battle/engine";
 
 function assert(cond: unknown, msg: string): void {
   if (!cond) throw new Error(msg);
@@ -364,6 +365,51 @@ function main() {
     );
     // +1% per 20 accuracy, with ~ (base + 2000) accuracy. Use a delta assertion vs baseline to avoid base constant coupling.
     assert(stats.critMultiplier > baseStats.critMultiplier, `Expected critMultiplier increased, got ${stats.critMultiplier} vs ${baseStats.critMultiplier}`);
+  }
+
+  // Adorned Lineage: "X increased defences" (implicit % sign)
+  {
+    const patch = equipmentModifiersFromUniqueTexts(["40 increased defences"], { isWeapon: false });
+    assert(patch.pctIncreasedArmourFromGear === 40, `Expected pctIncreasedArmourFromGear=40, got ${patch.pctIncreasedArmourFromGear}`);
+    assert(patch.pctIncreasedEvasionFromGear === 40, `Expected pctIncreasedEvasionFromGear=40, got ${patch.pctIncreasedEvasionFromGear}`);
+    assert(
+      patch.pctIncreasedEnergyShieldFromGear === 40,
+      `Expected pctIncreasedEnergyShieldFromGear=40, got ${patch.pctIncreasedEnergyShieldFromGear}`
+    );
+  }
+
+  // Mother's Embrace / Primordial Aegis: chance to avoid ailments (affects reflected self-ailments in sim)
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["+50% chance to avoid ailments", "+100% chance to avoid elemental ailments"],
+      { isWeapon: false }
+    );
+    assert(patch.avoidAilmentsChanceFromGear === 50, `Expected avoidAilmentsChanceFromGear=50, got ${patch.avoidAilmentsChanceFromGear}`);
+    assert(
+      patch.avoidElementalAilmentsChanceFromGear === 100,
+      `Expected avoidElementalAilmentsChanceFromGear=100, got ${patch.avoidElementalAilmentsChanceFromGear}`
+    );
+
+    const eq = emptyEquipmentModifiers();
+    eq.poisonInflictChanceFromGear = 100;
+    eq.poisonYouInflictReflectedToYouFromGear = true;
+    eq.avoidAilmentsChanceFromGear = 100;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(stats.avoidAilmentsChance === 100, `Expected stats.avoidAilmentsChance=100, got ${stats.avoidAilmentsChance}`);
+
+    const enemy = {
+      id: "dummy",
+      name: "Dummy",
+      maxLife: 1_000_000,
+      armour: 0,
+      evasionRating: 0,
+      accuracy: 0,
+      damageMin: 0,
+      damageMax: 0,
+      aps: 0.01,
+    };
+    const res = simulateEncounter({ stats, enemy, options: { maxDurationSeconds: 1.0, dt: 0.02, maxLogEntries: 0 } });
+    assert(res.playerFinal.life === stats.maxLife, `Expected no self-poison damage taken, got life=${res.playerFinal.life}/${stats.maxLife}`);
   }
 
   // Broken Legacy: fixed crit chance = 50%

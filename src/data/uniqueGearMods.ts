@@ -41,6 +41,10 @@ export interface UniqueGearStatPatch {
   armourPer10IntFromGear?: number;
   /** X in “+X% to critical damage multiplier per 20 accuracy rating”. */
   critMultiPctPer20AccuracyFromGear?: number;
+  /** +X% chance to avoid ailments. */
+  avoidAilmentsChanceFromGear?: number;
+  /** +X% chance to avoid elemental ailments. */
+  avoidElementalAilmentsChanceFromGear?: number;
   pctIncreasedLifeFromGear?: number;
   pctIncreasedManaFromGear?: number;
   pctIncreasedArmourFromGear?: number;
@@ -800,6 +804,12 @@ export function equipmentModifiersFromUniqueTexts(
       mark();
     }
 
+    m = l.match(/\+?([\d.]+)%\s+chance\s+to\s+avoid\s+ailments\b/i);
+    if (m) add({ avoidAilmentsChanceFromGear: num(m)! });
+
+    m = l.match(/\+?([\d.]+)%\s+chance\s+to\s+avoid\s+elemental\s+ailments\b/i);
+    if (m) add({ avoidElementalAilmentsChanceFromGear: num(m)! });
+
     if (/mana cost of abilities is paid with energy shield instead\b/i.test(low)) {
       acc.manaCostPaidWithEnergyShieldFromGear = true;
       mark();
@@ -1118,6 +1128,10 @@ export function equipmentModifiersFromUniqueTexts(
 
     // "increased defences" (global, no "local") — applies % globally to all armour/evasion
     m = l.match(/([\d.]+)%\s+increased\s+defences\b/i);
+    if (m && !/local/i.test(l)) add({ pctIncreasedArmourFromGear: num(m)!, pctIncreasedEvasionFromGear: num(m)!, pctIncreasedEnergyShieldFromGear: num(m)! });
+
+    // Some uniques omit the "%" sign in this line (e.g. "40 increased defences") — interpret as percent.
+    m = l.match(/^([\d.]+)\s+increased\s+defences\b/i);
     if (m && !/local/i.test(l)) add({ pctIncreasedArmourFromGear: num(m)!, pctIncreasedEvasionFromGear: num(m)!, pctIncreasedEnergyShieldFromGear: num(m)! });
 
 

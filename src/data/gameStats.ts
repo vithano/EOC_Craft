@@ -227,6 +227,8 @@ export interface StatBreakdowns {
   flatEsOnBlock: StatBreakdownBlock
   energyShieldOnHit: StatBreakdownBlock
   manaCostPaidWithLife: StatBreakdownBlock
+  avoidAilmentsChance: StatBreakdownBlock
+  avoidElementalAilmentsChance: StatBreakdownBlock
   manaShieldActive: StatBreakdownBlock
   chaosNotBypassES: StatBreakdownBlock
   armourVsElementalMultiplier: StatBreakdownBlock
@@ -405,6 +407,10 @@ export interface EquipmentModifiers {
   flatAccuracy: number
   /** Flat armour gained per 10 intelligence (e.g. "+16 armour per 10 intelligence" → 16). */
   armourPer10IntFromGear: number
+  /** +X% chance to avoid ailments. */
+  avoidAilmentsChanceFromGear: number
+  /** +X% chance to avoid elemental ailments. */
+  avoidElementalAilmentsChanceFromGear: number
   pctIncreasedLifeFromGear: number
   pctIncreasedManaFromGear: number
   pctIncreasedArmourFromGear: number
@@ -719,6 +725,8 @@ export interface ComputedBuildStats {
   flatLifeRegenPerSecond: number
   loseLifePerSecond: number
   takeChaosDamagePerSecond: number
+  avoidAilmentsChance: number
+  avoidElementalAilmentsChance: number
   pctDexIntConvertedToStr: number
   convertEvasionToArmour: boolean
   energyShieldCannotBeReducedBelowMaximum: boolean
@@ -883,6 +891,8 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     intBonus: 0,
     flatAccuracy: 0,
     armourPer10IntFromGear: 0,
+    avoidAilmentsChanceFromGear: 0,
+    avoidElementalAilmentsChanceFromGear: 0,
     pctIncreasedLifeFromGear: 0,
     pctIncreasedManaFromGear: 0,
     pctIncreasedArmourFromGear: 0,
@@ -1160,6 +1170,10 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.intBonus !== undefined) addNum('intBonus', p.intBonus)
   if (p.flatAccuracy !== undefined) addNum('flatAccuracy', p.flatAccuracy)
   if (p.armourPer10IntFromGear !== undefined) addNum('armourPer10IntFromGear', p.armourPer10IntFromGear)
+  if (p.avoidAilmentsChanceFromGear !== undefined) addNum('avoidAilmentsChanceFromGear', p.avoidAilmentsChanceFromGear)
+  if (p.avoidElementalAilmentsChanceFromGear !== undefined) {
+    addNum('avoidElementalAilmentsChanceFromGear', p.avoidElementalAilmentsChanceFromGear)
+  }
   if (p.pctIncreasedLifeFromGear !== undefined) addNum('pctIncreasedLifeFromGear', p.pctIncreasedLifeFromGear)
   if (p.pctIncreasedManaFromGear !== undefined) addNum('pctIncreasedManaFromGear', p.pctIncreasedManaFromGear)
   if (p.pctIncreasedArmourFromGear !== undefined) addNum('pctIncreasedArmourFromGear', p.pctIncreasedArmourFromGear)
@@ -3057,6 +3071,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const poisonDamageTakenLessPercent = eq.poisonDamageTakenLessPercentFromGear
   const loseLifePerSecond = eq.loseLifePerSecondFromGear
   const takeChaosDamagePerSecond = eq.takeChaosDamagePerSecondFromGear
+  const avoidAilmentsChance = Math.min(100, Math.max(0, eq.avoidAilmentsChanceFromGear))
+  const avoidElementalAilmentsChance = Math.min(100, Math.max(0, eq.avoidElementalAilmentsChanceFromGear))
   const convertEvasionToArmour = eq.convertEvasionToArmourFromGear
   const energyShieldCannotBeReducedBelowMaximum = eq.energyShieldCannotBeReducedBelowMaximumFromGear
   const countsAsDualWielding = eq.countsAsDualWieldingFromGear
@@ -3780,6 +3796,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     flatEsOnBlock: blk([{ label: 'Gear', value: flatEsOnBlock }]),
     energyShieldOnHit: blk([{ label: 'Gear', value: energyShieldOnHit }]),
     manaCostPaidWithLife: blk([boolLine('Gear: mana cost paid with life', manaCostPaidWithLife)]),
+    avoidAilmentsChance: blk([{ label: 'Gear', value: avoidAilmentsChance }]),
+    avoidElementalAilmentsChance: blk([{ label: 'Gear', value: avoidElementalAilmentsChance }]),
     manaShieldActive: blk([boolLine('Druid class bonus', manaShieldActive)]),
     chaosNotBypassES: blk([boolLine('Arcanist class bonus', chaosNotBypassES)]),
     armourVsElementalMultiplier: blk([
@@ -3859,6 +3877,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     poisonDamageTakenLessPercent,
     loseLifePerSecond,
     takeChaosDamagePerSecond,
+    avoidAilmentsChance,
+    avoidElementalAilmentsChance,
     pctDexIntConvertedToStr,
     convertEvasionToArmour,
     energyShieldCannotBeReducedBelowMaximum,
