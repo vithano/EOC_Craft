@@ -680,6 +680,31 @@ function main() {
     assert(avgLeech > avgBase + 0.05, `Expected higher avg life with bleed DoT leech, got ${avgLeech} vs ${avgBase}`);
   }
 
+  // The Ascetic: increased effect of modifiers gained from class passives while not wearing helmet/gloves/boots
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["100% increased effect of modifiers gained from class passives while you are not wearing a helmet gloves and boots"],
+      { isWeapon: false }
+    );
+    assert(
+      patch.classPassivesEffectIncreasedPercentFromGear === 100,
+      `Expected classPassivesEffectIncreasedPercentFromGear=100, got ${patch.classPassivesEffectIncreasedPercentFromGear}`
+    );
+    // Condition should be detected only when those slots are empty.
+    const eq = aggregateEquippedToEquipmentModifiers(
+      ["Chest", "Helmet", "Gloves", "Boots"],
+      (slot) => {
+        if (slot === "Chest") return { itemId: "unique_the_ascetic", rolls: [0, 0], enhancement: 0 };
+        return { itemId: "none" };
+      }
+    );
+    assert(Boolean(eq.classPassivesEffectConditionMetFromGear), "Expected Ascetic condition met with empty slots");
+
+    const base = computeBuildStats({ ...buildWithEqMods(emptyEquipmentModifiers()), upgradeLevels: { "warrior/flatLife": 1 } as any });
+    const withAscetic = computeBuildStats({ ...buildWithEqMods(eq), upgradeLevels: { "warrior/flatLife": 1 } as any });
+    assert(withAscetic.maxLife > base.maxLife, `Expected class passive effect scaling increased maxLife, got ${withAscetic.maxLife} vs ${base.maxLife}`);
+  }
+
   // Broken Legacy: fixed crit chance = 50%
   {
     const patch = equipmentModifiersFromUniqueTexts(

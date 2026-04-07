@@ -124,6 +124,9 @@ export interface UniqueGearStatPatch {
   /** "Your leech effects also apply to damage over time inflicted through bleeding". */
   leechAppliesToBleedDotFromGear?: boolean;
 
+  /** "X% increased effect of modifiers gained from class passives ..." */
+  classPassivesEffectIncreasedPercentFromGear?: number;
+
   /** When you deal a critical hit, perform an additional hit with X% chance. */
   extraHitOnCritChanceFromGear?: number;
   /** When you would block, dodge instead. */
@@ -1084,7 +1087,8 @@ export function equipmentModifiersFromUniqueTexts(
         mark()
       }
     }
-    if (/increased effect of modifiers gained from class passives\b/i.test(low)) mark();
+    m = l.match(/([\d.]+)%\s+increased\s+effect\s+of\s+modifiers\s+gained\s+from\s+class\s+passives\b/i);
+    if (m) add({ classPassivesEffectIncreasedPercentFromGear: num(m)! });
     m = l.match(/([\d.]+)%\s+increased\s+melee\s+critical\s+hit\s+chance\s+per\s+10\s+intelligence\b/i);
     if (m) add({ meleeCritChanceIncPctPer10IntFromGear: num(m)! });
     m = l.match(/([\d.]+)%\s+increased\s+range\s+attack\s+damage\s+per\s+10\s+strength\b/i);

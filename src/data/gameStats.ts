@@ -445,6 +445,8 @@ export interface EquipmentModifiers {
   flatLifePerMagicItemEquippedFromGear: number
   hitsInflictChillAsThoughDealingMoreDamagePctFromGear: number
   leechAppliesToBleedDotFromGear: boolean
+  classPassivesEffectIncreasedPercentFromGear: number
+  classPassivesEffectConditionMetFromGear: boolean
   extraHitOnCritChanceFromGear: number
   blockReplacedByDodgeFromGear: boolean
   dodgeRolledTwiceAtMaxLifeBetterFromGear: boolean
@@ -1010,6 +1012,8 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     flatLifePerMagicItemEquippedFromGear: 0,
     hitsInflictChillAsThoughDealingMoreDamagePctFromGear: 0,
     leechAppliesToBleedDotFromGear: false,
+    classPassivesEffectIncreasedPercentFromGear: 0,
+    classPassivesEffectConditionMetFromGear: false,
     extraHitOnCritChanceFromGear: 0,
     blockReplacedByDodgeFromGear: false,
     dodgeRolledTwiceAtMaxLifeBetterFromGear: false,
@@ -1361,6 +1365,9 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
     addNum('hitsInflictChillAsThoughDealingMoreDamagePctFromGear', p.hitsInflictChillAsThoughDealingMoreDamagePctFromGear)
   }
   if (p.leechAppliesToBleedDotFromGear) eq.leechAppliesToBleedDotFromGear = true
+  if (p.classPassivesEffectIncreasedPercentFromGear !== undefined) {
+    addNum('classPassivesEffectIncreasedPercentFromGear', p.classPassivesEffectIncreasedPercentFromGear)
+  }
   if (p.extraHitOnCritChanceFromGear !== undefined) addNum('extraHitOnCritChanceFromGear', p.extraHitOnCritChanceFromGear)
   if (p.blockReplacedByDodgeFromGear) eq.blockReplacedByDodgeFromGear = true
   if (p.dodgeRolledTwiceAtMaxLifeBetterFromGear) eq.dodgeRolledTwiceAtMaxLifeBetterFromGear = true
@@ -1811,10 +1818,13 @@ export function aggregateEquippedToEquipmentModifiers(
 ): EquipmentModifiers {
   const eq = emptyEquipmentModifiers()
   let magicItemCount = 0
+  const asceticNoArmorSlots = { Helmet: true, Gloves: true, Boots: true }
+  const worn: Record<string, boolean> = {}
   for (const slot of slots) {
     const entry = getEquipped(slot)
     const itemId = entry?.itemId ?? 'none'
     if (itemId === 'none') continue
+    worn[slot] = true
 
     if (isUniqueItemId(itemId)) {
       const def = EOC_UNIQUE_BY_ID[itemId]
@@ -1922,6 +1932,16 @@ export function aggregateEquippedToEquipmentModifiers(
     addItemModifiersToEquipment(eq, item.modifiers)
   }
 
+  // "…while you are not wearing a helmet gloves and boots" (The Ascetic)
+  if (
+    eq.classPassivesEffectIncreasedPercentFromGear > 0
+    && !worn['Helmet']
+    && !worn['Gloves']
+    && !worn['Boots']
+  ) {
+    eq.classPassivesEffectConditionMetFromGear = true
+  }
+
   if (eq.flatLifePerMagicItemEquippedFromGear > 0 && magicItemCount > 0) {
     eq.flatLife += eq.flatLifePerMagicItemEquippedFromGear * magicItemCount
   }
@@ -1979,7 +1999,11 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     const cls = GAME_CLASSES_BY_ID[classId]
     const upg = cls?.upgrades.find(u => u.id === upgradeId)
     if (!upg || points <= 0) continue
-    const total = upg.valuePerPoint * points
+    const effectMult =
+      eq.classPassivesEffectConditionMetFromGear && eq.classPassivesEffectIncreasedPercentFromGear > 0
+        ? 1 + (eq.classPassivesEffectIncreasedPercentFromGear / 100)
+        : 1
+    const total = upg.valuePerPoint * points * effectMult
     upgAcc[upg.id as UpgradeModifierKey] = (upgAcc[upg.id as UpgradeModifierKey] ?? 0) + total
   }
 
