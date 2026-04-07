@@ -271,6 +271,17 @@ export interface UniqueGearStatPatch {
   blockChanceMultiplierFromGear?: number;
   cannotEvadeFromGear?: boolean;
   cannotDodgeFromGear?: boolean;
+
+  // Cost/regen state mechanics
+  manaCostPaidWithEnergyShieldFromGear?: boolean;
+  noManaFromGear?: boolean;
+  manaRegenToEnergyShieldPercentFromGear?: number;
+
+  // Conditional state mechanics (evaluated in battle engine where possible)
+  cannotEvadeWhileAboveHalfLifeFromGear?: boolean;
+  cannotRecoverLifeWhileAboveHalfLifeFromGear?: boolean;
+  armourHasNoEffectWhileBelowHalfLifeFromGear?: boolean;
+  sacrificeCurrentManaPercentPerSecondFromGear?: number;
 }
 
 function num(m: RegExpMatchArray | null, g = 1): number | null {
@@ -744,6 +755,37 @@ export function equipmentModifiersFromUniqueTexts(
       acc.cannotEvadeFromGear = true;
       mark();
     }
+
+    if (/mana cost of abilities is paid with energy shield instead\b/i.test(low)) {
+      acc.manaCostPaidWithEnergyShieldFromGear = true;
+      mark();
+    }
+
+    if (/you have no mana\b/i.test(low)) {
+      acc.noManaFromGear = true;
+      mark();
+    }
+
+    m = l.match(/([\d.]+)%\s+of\s+mana\s+regeneration\s+per\s+second\s+applies\s+to\s+your\s+energy\s+shield\s+instead\b/i);
+    if (m) add({ manaRegenToEnergyShieldPercentFromGear: num(m)! });
+
+    if (/cannot evade while you are above 50% of maximum life\b/i.test(low)) {
+      acc.cannotEvadeWhileAboveHalfLifeFromGear = true;
+      mark();
+    }
+
+    if (/cannot recover life while above 50% of maximum life\b/i.test(low)) {
+      acc.cannotRecoverLifeWhileAboveHalfLifeFromGear = true;
+      mark();
+    }
+
+    if (/your armour has no effect while you are below 50% of maximum life\b/i.test(low)) {
+      acc.armourHasNoEffectWhileBelowHalfLifeFromGear = true;
+      mark();
+    }
+
+    m = l.match(/sacrifice\s+([\d.]+)%\s+of\s+your\s+current\s+mana\s+per\s+second\b/i);
+    if (m) add({ sacrificeCurrentManaPercentPerSecondFromGear: num(m)! });
 
     m = l.match(
       /regenerate\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+life\s+per\s+second\b/i

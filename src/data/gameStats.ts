@@ -610,6 +610,15 @@ export interface EquipmentModifiers {
   blockChanceMultiplierFromGear: number
   cannotEvadeFromGear: boolean
   cannotDodgeFromGear: boolean
+
+  manaCostPaidWithEnergyShieldFromGear: boolean
+  noManaFromGear: boolean
+  manaRegenToEnergyShieldPercentFromGear: number
+
+  cannotEvadeWhileAboveHalfLifeFromGear: boolean
+  cannotRecoverLifeWhileAboveHalfLifeFromGear: boolean
+  armourHasNoEffectWhileBelowHalfLifeFromGear: boolean
+  sacrificeCurrentManaPercentPerSecondFromGear: number
 }
 
 export interface ComputedBuildStats {
@@ -659,6 +668,13 @@ export interface ComputedBuildStats {
 
   // Recovery
   manaRegenPerSecond: number
+  manaRegenAppliesToEnergyShieldPercent: number
+  manaCostPaidWithEnergyShield: boolean
+  noMana: boolean
+  cannotEvadeWhileAboveHalfLife: boolean
+  cannotRecoverLifeWhileAboveHalfLife: boolean
+  armourHasNoEffectWhileBelowHalfLife: boolean
+  sacrificeCurrentManaPercentPerSecond: number
   lifeRecoveryPct: number
   esRecoveryPct: number
 
@@ -999,6 +1015,13 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     blockChanceMultiplierFromGear: 1,
     cannotEvadeFromGear: false,
     cannotDodgeFromGear: false,
+    manaCostPaidWithEnergyShieldFromGear: false,
+    noManaFromGear: false,
+    manaRegenToEnergyShieldPercentFromGear: 0,
+    cannotEvadeWhileAboveHalfLifeFromGear: false,
+    cannotRecoverLifeWhileAboveHalfLifeFromGear: false,
+    armourHasNoEffectWhileBelowHalfLifeFromGear: false,
+    sacrificeCurrentManaPercentPerSecondFromGear: 0,
   }
 }
 
@@ -1412,6 +1435,17 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.blockChanceMultiplierFromGear !== undefined) addNum('blockChanceMultiplierFromGear', p.blockChanceMultiplierFromGear)
   if (p.cannotEvadeFromGear) eq.cannotEvadeFromGear = true
   if (p.cannotDodgeFromGear) eq.cannotDodgeFromGear = true
+  if (p.manaCostPaidWithEnergyShieldFromGear) eq.manaCostPaidWithEnergyShieldFromGear = true
+  if (p.noManaFromGear) eq.noManaFromGear = true
+  if (p.manaRegenToEnergyShieldPercentFromGear !== undefined) {
+    addNum('manaRegenToEnergyShieldPercentFromGear', p.manaRegenToEnergyShieldPercentFromGear)
+  }
+  if (p.cannotEvadeWhileAboveHalfLifeFromGear) eq.cannotEvadeWhileAboveHalfLifeFromGear = true
+  if (p.cannotRecoverLifeWhileAboveHalfLifeFromGear) eq.cannotRecoverLifeWhileAboveHalfLifeFromGear = true
+  if (p.armourHasNoEffectWhileBelowHalfLifeFromGear) eq.armourHasNoEffectWhileBelowHalfLifeFromGear = true
+  if (p.sacrificeCurrentManaPercentPerSecondFromGear !== undefined) {
+    addNum('sacrificeCurrentManaPercentPerSecondFromGear', p.sacrificeCurrentManaPercentPerSecondFromGear)
+  }
 }
 
 /**
@@ -1711,9 +1745,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const manaFlat =
     BASE_GAME_STATS.baseMana + manaFromInt + levelFlatMana + eq.flatMana
   const totalIncreasedMana = u('increasedMana') + eq.pctIncreasedManaFromGear
-  const maxMana = Math.round(
-    manaFlat * (1 + totalIncreasedMana / 100) * eq.manaMoreMultFromGear
-  )
+  const maxMana = eq.noManaFromGear
+    ? 0
+    : Math.round(manaFlat * (1 + totalIncreasedMana / 100) * eq.manaMoreMultFromGear)
 
   // -------------------------------------------------------------------------
   // 9. Energy shield
@@ -2088,8 +2122,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + maxMana * (eq.manaRegenPercentOfMaxManaPerSecondFromGear / 100)
   const totalIncreasedManaRegen =
     u('increasedManaRegeneration') + eq.pctIncreasedManaRegenFromGear
-  const manaRegenPerSecond =
+  const manaRegenPerSecondRaw =
     manaRegenFlatPerSecond * (1 + totalIncreasedManaRegen / 100)
+
+  const manaRegenAppliesToEnergyShieldPercent = Math.max(
+    0,
+    Math.min(100, eq.manaRegenToEnergyShieldPercentFromGear)
+  )
+
+  const manaRegenPerSecond =
+    eq.noManaFromGear ? 0 : manaRegenPerSecondRaw
 
   // -------------------------------------------------------------------------
   // 20. Damage modifiers — per hit instance (after §15 conversion lineage):
@@ -2847,6 +2889,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const flatEsOnBlock = eq.flatEsOnBlockFromGear
   const energyShieldOnHit = eq.energyShieldOnHitFromGear
   const manaCostPaidWithLife = eq.manaCostPaidWithLifeFromGear
+  const manaCostPaidWithEnergyShield = eq.manaCostPaidWithEnergyShieldFromGear
+  const noMana = eq.noManaFromGear
+  const cannotEvadeWhileAboveHalfLife = eq.cannotEvadeWhileAboveHalfLifeFromGear
+  const cannotRecoverLifeWhileAboveHalfLife = eq.cannotRecoverLifeWhileAboveHalfLifeFromGear
+  const armourHasNoEffectWhileBelowHalfLife = eq.armourHasNoEffectWhileBelowHalfLifeFromGear
+  const sacrificeCurrentManaPercentPerSecond = eq.sacrificeCurrentManaPercentPerSecondFromGear
 
   // -------------------------------------------------------------------------
   // Planner stat breakdowns (every ComputedBuildStats field)
@@ -3607,8 +3655,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
     // Recovery
     manaRegenPerSecond,
+    manaRegenAppliesToEnergyShieldPercent,
     lifeRecoveryPct,
     esRecoveryPct,
+    cannotEvadeWhileAboveHalfLife,
+    cannotRecoverLifeWhileAboveHalfLife,
+    armourHasNoEffectWhileBelowHalfLife,
+    sacrificeCurrentManaPercentPerSecond,
 
     // Ailments
     bleedChance,
@@ -3681,6 +3734,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     flatEsOnBlock,
     energyShieldOnHit,
     manaCostPaidWithLife,
+    manaCostPaidWithEnergyShield,
+    noMana,
     manaShieldActive,
     chaosNotBypassES,
     armourVsElementalMultiplier,

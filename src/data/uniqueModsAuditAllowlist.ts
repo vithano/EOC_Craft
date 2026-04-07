@@ -56,7 +56,7 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   // (modeled) increased shock effect now affects battle sim
   { re: /increased recovery from all sources/i, reason: "Global recovery scaling not modeled" },
   { re: /chance to reduce no damage on block/i, reason: "Block variance not modeled" },
-  { re: /mana regeneration per second applies to your energy shield instead/i, reason: "Mana→ES regen conversion not modeled" },
+  // (modeled) mana regen can be diverted to ES
   { re: /abilities gain additional base mana cost/i, reason: "Ability cost scaling by max energy not modeled" },
   { re: /ailments inflicted with critical hits gain/i, reason: "Ailment duration scaling by crit stats not modeled" },
   { re: /all elemental damage types can (?:chill|ignite|shock)/i, reason: "Cross-element ailment eligibility not modeled" },
@@ -75,12 +75,12 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /leech .* from spells as energy shield/i, reason: "Spell leech to ES not modeled" },
   { re: /life leech effects apply to your energy shield instead/i, reason: "Leech to ES replacement not modeled" },
   { re: /lose \d+ life per second/i, reason: "Self-damage over time from gear not modeled" },
-  { re: /mana cost of abilities is paid with energy shield instead/i, reason: "Pay-cost-with-ES not modeled" },
+  // (modeled) ability costs can be paid with ES
   { re: /poison you inflict is reflected to you/i, reason: "Ailment reflection not modeled" },
   { re: /recover \d+% of mana on kill/i, reason: "Mana on kill % not modeled" },
   { re: /regenerate \d+ life per second per character level/i, reason: "Level-scaled regen not modeled" },
   { re: /regenerate \d+% of maximum life per second while you are ignited/i, reason: "Conditional regen not modeled" },
-  { re: /sacrifice \d+% of your current mana per second/i, reason: "Self-resource drain not modeled" },
+  // (modeled) current-mana sacrifice per second
   { re: /take \d+% less poison damage/i, reason: "Poison taken multiplier not modeled" },
   { re: /take chaos damage equal to/i, reason: "Self-damage on cast not modeled" },
   { re: /take physical damage equal to/i, reason: "Self-damage on attack not modeled" },
@@ -98,8 +98,8 @@ export const UNIQUE_MODS_AUDIT_ALLOWLIST: UniqueModsAuditAllowlistEntry[] = [
   { re: /you are unaffected by chill/i, reason: "Ailment immunity not modeled" },
   { re: /you cannot evade(?: or dodge)?$/i, reason: "Evasion/dodge disable not modeled" },
   { re: /you cannot evade while you have energy shield/i, reason: "Conditional evasion disable not modeled" },
-  { re: /you have no mana/i, reason: "No-mana build state not modeled" },
-  { re: /your armour has no effect/i, reason: "Armour disable rules not modeled" },
+  // (modeled) no-mana build state
+  { re: /your armour has no effect against physical damage taken/i, reason: "Armour disable rules not modeled" },
   { re: /chance to block is (?:doubled|halved)/i, reason: "Block chance overrides not modeled" },
   { re: /your chaos damage can ignite/i, reason: "Chaos ignite eligibility not modeled" },
   { re: /your critical hit chance is \d+%/i, reason: "Fixed crit chance override not modeled" },
