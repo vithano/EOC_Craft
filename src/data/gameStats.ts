@@ -81,7 +81,8 @@ export function normalizeAbilitySelection(raw: unknown): AbilitySelectionState {
   // (abilityForStats in BuildPlanner) so data can load asynchronously without
   // wiping a saved ability that isn't in the lookup yet.
   const abilityId = typeof idRaw === 'string' && idRaw.length > 0 ? idRaw : null
-  const abilityLevel = Math.min(20, Math.max(0, Math.floor(Number(o.abilityLevel) || 0)))
+  // Ability level can exceed 20 via gear/upgrades; keep it unbounded (but non-negative).
+  const abilityLevel = Math.max(0, Math.floor(Number(o.abilityLevel) || 0))
   const attunementPct = Math.min(100, Math.max(0, Math.floor(Number(o.attunementPct) || 0)))
   return { abilityId, abilityLevel, attunementPct }
 }
@@ -352,10 +353,22 @@ export interface SpellDamageComputationBreakdown {
   baseHit: { min: number; max: number }
   /** Flat added-to-spells contributions by type (already in display-space low/high). */
   addedFromGearByType: Array<{ type: HitDamageTypeRow['type']; min: number; max: number }>
+  /**
+   * Same as `addedFromGearByType`, but with per-item provenance when `BuildConfig.equipped` is present.
+   * Each entry is one contributing source (slot:item or a derived effect line).
+   */
+  addedFromGearByTypeSources?: Array<{
+    sourceLabel: string
+    rows: Array<{ type: HitDamageTypeRow['type']; min: number; max: number }>
+  }>
   /** Added-damage multiplier on the ability (addedDamageMultiplierPct/100). */
   addedDamageMultiplier: number
   /** Total increased% used for spell hit (spell+global+ability+elemental). */
   increasedDamagePercent: number
+  /** Source lines that sum to `increasedDamagePercent`. */
+  increasedDamagePercentSources?: StatContributionLine[]
+  /** Source lines for `addedDamageMultiplier` (typically the ability’s added multiplier). */
+  addedDamageMultiplierSources?: StatContributionLine[]
   enemiesTakeIncreasedDamage: {
     gearPercent: number
     tricksterPercent: number
@@ -2327,6 +2340,124 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     if (v !== 0) arr.push({ label, value: v })
   }
 
+  // -------------------------------------------------------------------------
+  // 15a. Per-item gear sources (for full provenance in stats panel)
+  // -------------------------------------------------------------------------
+  type GearSource = { label: string; eq: EquipmentModifiers }
+  const gearSources: GearSource[] = (() => {
+    const equipped = config.equipped
+    if (!equipped) return []
+    const out: GearSource[] = []
+    for (const slot of EQUIPMENT_SLOTS) {
+      const ent = equipped[slot]
+      const itemId = ent?.itemId ?? 'none'
+      if (!ent || itemId === 'none') continue
+
+      const patchEq = emptyEquipmentModifiers()
+
+      if (isUniqueItemId(itemId)) {
+        const def = EOC_UNIQUE_BY_ID[itemId]
+        if (!def) continue
+        const { innateText, lineTexts } = resolveUniqueMods(def, ent.rolls, ent.enhancement ?? 0)
+        const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
+        const isWeapon = slot === 'Weapon'
+        const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
+
+        if (isWeapon) {
+          const baseDmgMin = def.baseDamageMin ?? 0
+          const baseDmgMax = def.baseDamageMax ?? 0
+          if (baseDmgMin > 0 || baseDmgMax > 0) {
+            const localPhysPct = patch.localIncreasedPhysDamagePct ?? 0
+            patchEq.flatDamageMin += baseDmgMin * (1 + localPhysPct / 100)
+            patchEq.flatDamageMax += baseDmgMax * (1 + localPhysPct / 100)
+          }
+          if (def.baseAttackSpeed != null) {
+            const localApsPct = patch.localIncreasedApsPct ?? 0
+            patchEq.weaponEffectiveAps = def.baseAttackSpeed * (1 + localApsPct / 100)
+          }
+          if (def.baseCritChance != null) patchEq.weaponBaseCritChance = def.baseCritChance
+        } else {
+          const localDefPct = patch.localIncreasedDefencesPct ?? 0
+          if (def.baseArmour != null) patchEq.flatArmour += Math.round(def.baseArmour * (1 + localDefPct / 100))
+          if (def.baseEvasion != null) patchEq.flatEvasion += Math.round(def.baseEvasion * (1 + localDefPct / 100))
+          if (def.baseEnergyShield != null) {
+            patchEq.flatEnergyShieldFromGear += Math.round(def.baseEnergyShield * (1 + localDefPct / 100))
+          }
+          if (slot === 'Off-hand' && def.baseBlockChance != null) {
+            const localBlockPct = patch.localIncreasedBlockPct ?? 0
+            patchEq.blockChanceFromGear += def.baseBlockChance * (1 + localBlockPct / 100)
+          }
+        }
+        mergeUniqueGearPatch(patchEq, patch)
+        out.push({ label: `${slot}: ${def.name}`, eq: patchEq })
+        continue
+      }
+
+      if (isCraftedEquipItemId(itemId)) {
+        const def = EOC_BASE_EQUIPMENT_BY_ID[itemId]
+        if (!def) continue
+        const prefixes = ent.craftedPrefixes ?? []
+        const suffixes = ent.craftedSuffixes ?? []
+        const texts = appliedModifiersToStatTexts(prefixes, suffixes)
+        const isWeapon = slot === 'Weapon'
+        const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
+        applyExtraCraftedModPatterns(patch, texts)
+
+        if (isWeapon) {
+          const baseDmgMin = def.baseDamageMin ?? 0
+          const baseDmgMax = def.baseDamageMax ?? 0
+          if (baseDmgMin > 0 || baseDmgMax > 0) {
+            const localPhysPct = patch.localIncreasedPhysDamagePct ?? 0
+            patchEq.flatDamageMin += baseDmgMin * (1 + localPhysPct / 100)
+            patchEq.flatDamageMax += baseDmgMax * (1 + localPhysPct / 100)
+          }
+          if (def.baseAttackSpeed != null) {
+            const localApsPct = patch.localIncreasedApsPct ?? 0
+            patchEq.weaponEffectiveAps = def.baseAttackSpeed * (1 + localApsPct / 100)
+          }
+          if (def.baseCritChance != null) patchEq.weaponBaseCritChance = def.baseCritChance
+        } else {
+          const localDefPct = patch.localIncreasedDefencesPct ?? 0
+          if (def.baseArmour != null) patchEq.flatArmour += Math.round(def.baseArmour * (1 + localDefPct / 100))
+          if (def.baseEvasion != null) patchEq.flatEvasion += Math.round(def.baseEvasion * (1 + localDefPct / 100))
+          if (def.baseEnergyShield != null) {
+            patchEq.flatEnergyShieldFromGear += Math.round(def.baseEnergyShield * (1 + localDefPct / 100))
+          }
+          if (slot === 'Off-hand' && def.baseBlockChance != null) {
+            const localBlockPct = patch.localIncreasedBlockPct ?? 0
+            patchEq.blockChanceFromGear += def.baseBlockChance * (1 + localBlockPct / 100)
+          }
+        }
+        mergeUniqueGearPatch(patchEq, patch)
+        out.push({ label: `${slot}: ${def.name}`, eq: patchEq })
+        continue
+      }
+
+      const item = getItemDefinition(slot, itemId)
+      if (!item) continue
+      addItemModifiersToEquipment(patchEq, item.modifiers)
+      out.push({ label: `${slot}: ${item.name}`, eq: patchEq })
+    }
+    return out
+  })()
+
+  const pushGear = (
+    lines: StatContributionLine[],
+    totalLabel: string,
+    totalValue: number,
+    get: (eq: EquipmentModifiers) => number
+  ) => {
+    if (gearSources.length === 0) {
+      dmgPushIf(lines, totalLabel, totalValue)
+      return
+    }
+    for (const s of gearSources) {
+      const v = get(s.eq)
+      if (v !== 0) lines.push({ label: `${totalLabel} (${s.label})`, value: v })
+    }
+    if (totalValue !== 0) lines.push({ label: `${totalLabel} (total)`, value: totalValue })
+  }
+
   let abilityHitDmBreak: HitDamageComputationBreakdown['abilityDamageMultiplier'] = null
   let hitDamageBreakdownPartial: Omit<
     HitDamageComputationBreakdown,
@@ -2365,7 +2496,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const selForHit = config.ability
   if (selForHit?.abilityId) {
     const abDef = EOC_ABILITY_BY_ID[selForHit.abilityId]
-    const abLevel = Math.min(20, Math.max(0, Math.floor(selForHit.abilityLevel ?? 0)))
+    const abLevel = Math.max(0, Math.floor(selForHit.abilityLevel ?? 0))
     if (
       abDef
       && abilityMatchesWeapon(abDef, weaponTag)
@@ -2703,7 +2834,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       value: occultistDmgFromEsPct,
     })
   }
-  dmgPushIf(attackIncLines, 'Gear: increased damage', eq.increasedDamageFromGear)
+  pushGear(
+    attackIncLines,
+    'Gear: increased damage',
+    eq.increasedDamageFromGear,
+    (x) => x.increasedDamageFromGear
+  )
   if (levelPctIncreasedDamage !== 0) {
     attackIncLines.push({
       label: 'Character level: +1% increased damage per level above 1',
@@ -2717,7 +2853,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     })
   }
   dmgPushIf(attackIncLines, 'Upgrades: increased attack damage', u('increasedAttackDamage'))
-  dmgPushIf(attackIncLines, 'Gear: increased attack damage', eq.increasedAttackDamageFromGear)
+  pushGear(
+    attackIncLines,
+    'Gear: increased attack damage',
+    eq.increasedAttackDamageFromGear,
+    (x) => x.increasedAttackDamageFromGear
+  )
   if (rangedAttackDmgFromGear !== 0) {
     attackIncLines.push({
       label: 'Gear: increased attack damage per 10 strength (ranged)',
@@ -2735,7 +2876,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         value: meleeDmgFromStr,
       })
     }
-    dmgPushIf(attackIncLines, 'Gear: increased melee damage', eq.increasedMeleeDamageFromGear)
+    pushGear(
+      attackIncLines,
+      'Gear: increased melee damage',
+      eq.increasedMeleeDamageFromGear,
+      (x) => x.increasedMeleeDamageFromGear
+    )
   }
 
   const physStyleIncLines: StatContributionLine[] = [...attackIncLines]
@@ -2750,7 +2896,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     'Upgrades: increased elemental damage with attacks',
     u('increasedElementalDamageWithAttacks')
   )
-  dmgPushIf(elementalLines, 'Gear: increased elemental damage', eq.increasedElementalDamageFromGear)
+  pushGear(
+    elementalLines,
+    'Gear: increased elemental damage',
+    eq.increasedElementalDamageFromGear,
+    (x) => x.increasedElementalDamageFromGear
+  )
 
   const provIncCtx = {
     physStyleIncTotal,
@@ -2851,7 +3002,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   if (sel?.abilityId) {
     const def = EOC_ABILITY_BY_ID[sel.abilityId]
-    const baseLevel = Math.min(20, Math.max(0, Math.floor(sel.abilityLevel)))
+    const baseLevel = Math.max(0, Math.floor(sel.abilityLevel))
     const isColdAbility = def?.spellHit?.element?.toLowerCase?.() === 'cold'
     const level =
       baseLevel
@@ -2945,6 +3096,47 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           const isEle = ['fire', 'cold', 'lightning'].includes(scaledHit.element)
           const incFrac =
             (increasedSpellDamage + increasedDamage + spellAttIncDmg + (isEle ? increasedElementalDamage : 0)) / 100
+          const increasedDamagePercentSources: StatContributionLine[] = []
+          dmgPushIf(increasedDamagePercentSources, 'Upgrades: increased spell damage', u('increasedSpellDamage'))
+          if (spellDmgFromInt !== 0) {
+            increasedDamagePercentSources.push({
+              label: 'Intelligence: +1% increased spell damage per 10 Int (floored)',
+              value: spellDmgFromInt,
+            })
+          }
+          pushGear(
+            increasedDamagePercentSources,
+            'Gear: increased spell damage',
+            eq.increasedSpellDamageFromGear,
+            (x) => x.increasedSpellDamageFromGear
+          )
+          dmgPushIf(increasedDamagePercentSources, 'Upgrades: increased damage', u('increasedDamage'))
+          pushGear(
+            increasedDamagePercentSources,
+            'Gear: increased damage',
+            eq.increasedDamageFromGear,
+            (x) => x.increasedDamageFromGear
+          )
+          if (spellAttIncDmg !== 0) {
+            increasedDamagePercentSources.push({ label: 'Ability attunement: increased damage', value: spellAttIncDmg })
+          }
+          if (isEle) {
+            dmgPushIf(increasedDamagePercentSources, 'Upgrades: increased elemental damage', u('increasedElementalDamage'))
+            dmgPushIf(
+              increasedDamagePercentSources,
+              'Upgrades: increased elemental damage with attacks (not spells)',
+              0
+            )
+            pushGear(
+              increasedDamagePercentSources,
+              'Gear: increased elemental damage',
+              eq.increasedElementalDamageFromGear,
+              (x) => x.increasedElementalDamageFromGear
+            )
+          }
+          const addedDamageMultiplierSources: StatContributionLine[] = [
+            { label: 'Ability: added damage multiplier', value: (def.addedDamageMultiplierPct ?? 100) },
+          ]
           const castBase = def.castTimeSeconds != null && def.castTimeSeconds > 0 ? def.castTimeSeconds : 0.5
           const castSpeedInc =
             u('increasedCastSpeed')
@@ -3083,12 +3275,47 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             { type: 'chaos' as const, ...localFlatDamageDisplayRange(eq.flatSpellChaosMin, eq.flatSpellChaosMax) },
           ].filter((r) => r.min !== 0 || r.max !== 0)
 
+          const addedFromGearByTypeSources = (() => {
+            if (gearSources.length === 0) return undefined
+            const out: NonNullable<SpellDamageComputationBreakdown['addedFromGearByTypeSources']> = []
+            for (const s of gearSources) {
+              const rows = [
+                { type: 'physical' as const, ...localFlatDamageDisplayRange(s.eq.flatSpellDamageMin, s.eq.flatSpellDamageMax) },
+                { type: 'fire' as const, ...localFlatDamageDisplayRange(s.eq.flatSpellFireMin, s.eq.flatSpellFireMax) },
+                { type: 'cold' as const, ...localFlatDamageDisplayRange(s.eq.flatSpellColdMin, s.eq.flatSpellColdMax) },
+                { type: 'lightning' as const, ...localFlatDamageDisplayRange(s.eq.flatSpellLightningMin, s.eq.flatSpellLightningMax) },
+                { type: 'chaos' as const, ...localFlatDamageDisplayRange(s.eq.flatSpellChaosMin, s.eq.flatSpellChaosMax) },
+              ].filter((r) => r.min !== 0 || r.max !== 0)
+              if (rows.length) out.push({ sourceLabel: s.label, rows })
+            }
+            if (eq.weaponLocalDamageAppliesToSpellsFromGear) {
+              const rows = [
+                { type: 'physical' as const, ...localFlatDamageDisplayRange(eq.flatDamageMin, eq.flatDamageMax) },
+                { type: 'fire' as const, ...localFlatDamageDisplayRange(eq.flatFireMin, eq.flatFireMax) },
+                { type: 'cold' as const, ...localFlatDamageDisplayRange(eq.flatColdMin, eq.flatColdMax) },
+                { type: 'lightning' as const, ...localFlatDamageDisplayRange(eq.flatLightningMin, eq.flatLightningMax) },
+                { type: 'chaos' as const, ...localFlatDamageDisplayRange(eq.flatChaosMin, eq.flatChaosMax) },
+              ].filter((r) => r.min !== 0 || r.max !== 0)
+              if (rows.length) {
+                out.push({ sourceLabel: 'Gear effect: weapon local damage applies to spells', rows })
+              }
+            }
+            return out.length ? out : undefined
+          })()
+
           const castIncLines: StatContributionLine[] = []
           // These mirror the same terms used in castSpeedInc.
           if (u('increasedCastSpeed') !== 0) castIncLines.push({ label: 'Upgrades: increased cast speed', value: u('increasedCastSpeed') })
           if (u('increasedAttackSpeedAndCastSpeed') !== 0) castIncLines.push({ label: 'Upgrades: increased attack & cast speed', value: u('increasedAttackSpeedAndCastSpeed') })
           if (spellAttCast !== 0) castIncLines.push({ label: 'Ability attunement: increased cast speed', value: spellAttCast })
-          if (eq.pctIncreasedCastSpeedFromGear !== 0) castIncLines.push({ label: 'Gear: increased cast speed', value: eq.pctIncreasedCastSpeedFromGear })
+          if (eq.pctIncreasedCastSpeedFromGear !== 0) {
+            pushGear(
+              castIncLines,
+              'Gear: increased cast speed',
+              eq.pctIncreasedCastSpeedFromGear,
+              (x) => x.pctIncreasedCastSpeedFromGear
+            )
+          }
           if (eq.castSpeedIncPctPer10DexFromGear !== 0) castIncLines.push({ label: 'Gear: increased cast speed per 10 dexterity', value: eq.castSpeedIncPctPer10DexFromGear * (dex / 10) })
 
           const baseCast = def.castTimeSeconds != null && def.castTimeSeconds > 0 ? def.castTimeSeconds : 0.5
@@ -3101,15 +3328,18 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             element: scaledHit.element,
             baseHit: { min: scaledHit.min, max: scaledHit.max },
             addedFromGearByType,
+            addedFromGearByTypeSources,
             addedDamageMultiplier: added,
+            addedDamageMultiplierSources,
             increasedDamagePercent: incFrac * 100,
+            increasedDamagePercentSources,
             enemiesTakeIncreasedDamage: {
               gearPercent: eq.enemyDamageTakenIncreasedFromGear,
               tricksterPercent: enemyDamageTakenIncreasedFromTricksterPct,
               totalPercent: enemyDamageTakenIncreasedTotalPct,
               multiplier: enemyDamageTakenIncreasedMult,
             },
-            afterIncreasedByType: hitDamageByType,
+            afterIncreasedByType: spellRows,
             avgHit,
             critical: {
               critChance,
@@ -3119,9 +3349,17 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             cast: {
               baseCastTimeSeconds: baseCast,
               increasedCastSpeedPercent: castIncLines,
-              castSpeedLessMultipliers: [
-                { label: 'Gear: cast speed less / more multiplier', factor: eq.castSpeedLessMultFromGear },
-              ],
+              castSpeedLessMultipliers: gearSources.length
+                ? [
+                    ...gearSources
+                      .map((s) => ({
+                        label: `Gear: cast speed less/more (mult) (${s.label})`,
+                        factor: s.eq.castSpeedLessMultFromGear,
+                      }))
+                      .filter((m) => m.factor !== 1),
+                    { label: 'Gear: cast speed less/more (mult) (total)', factor: eq.castSpeedLessMultFromGear },
+                  ]
+                : [{ label: 'Gear: cast speed less/more (mult)', factor: eq.castSpeedLessMultFromGear }],
               effectiveCastTimeSeconds: effectiveCastTime,
               castsPerSecond: castsPerSec,
             },
@@ -3639,45 +3877,56 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   const strLines2: StatContributionLine[] = [{ label: 'Base strength', value: BASE_GAME_STATS.baseStr }]
   strLines2.push(...pushClassAttr('str'))
-  dmgPushIf(strLines2, 'Gear: strength', eq.strBonus)
+  pushGear(strLines2, 'Gear: strength', eq.strBonus, (x) => x.strBonus)
   if (bonus('guardian')) strLines2.push({ label: 'Guardian: +30 strength', value: 30 })
   const strIncLines: StatContributionLine[] = []
   dmgPushIf(strIncLines, 'Upgrades: increased strength', u('increasedStrength'))
   if (bonus('warrior')) strIncLines.push({ label: 'Warrior: 15% increased strength (multiplier)', value: 15 })
-  dmgPushIf(strIncLines, 'Gear: increased strength', eq.pctIncreasedStrengthFromGear)
+  pushGear(strIncLines, 'Gear: increased strength', eq.pctIncreasedStrengthFromGear, (x) => x.pctIncreasedStrengthFromGear)
   if (eq.pctIncreasedAllAttributesFromGear !== 0) {
-    strIncLines.push({
-      label: 'Gear: increased all attributes (applies to Str)',
-      value: eq.pctIncreasedAllAttributesFromGear,
-    })
+    pushGear(
+      strIncLines,
+      'Gear: increased all attributes (applies to Str)',
+      eq.pctIncreasedAllAttributesFromGear,
+      (x) => x.pctIncreasedAllAttributesFromGear
+    )
   }
 
   const dexLines2: StatContributionLine[] = [{ label: 'Base dexterity', value: BASE_GAME_STATS.baseDex }]
   dexLines2.push(...pushClassAttr('dex'))
-  dmgPushIf(dexLines2, 'Gear: dexterity', eq.dexBonus)
+  pushGear(dexLines2, 'Gear: dexterity', eq.dexBonus, (x) => x.dexBonus)
   if (bonus('guardian')) dexLines2.push({ label: 'Guardian: +30 dexterity', value: 30 })
   const dexIncLines: StatContributionLine[] = []
   dmgPushIf(dexIncLines, 'Upgrades: increased dexterity', u('increasedDexterity'))
-  dmgPushIf(dexIncLines, 'Gear: increased dexterity', eq.pctIncreasedDexterityFromGear)
+  pushGear(dexIncLines, 'Gear: increased dexterity', eq.pctIncreasedDexterityFromGear, (x) => x.pctIncreasedDexterityFromGear)
   if (eq.pctIncreasedAllAttributesFromGear !== 0) {
-    dexIncLines.push({
-      label: 'Gear: increased all attributes (applies to Dex)',
-      value: eq.pctIncreasedAllAttributesFromGear,
-    })
+    pushGear(
+      dexIncLines,
+      'Gear: increased all attributes (applies to Dex)',
+      eq.pctIncreasedAllAttributesFromGear,
+      (x) => x.pctIncreasedAllAttributesFromGear
+    )
   }
 
   const intLines2: StatContributionLine[] = [{ label: 'Base intelligence', value: BASE_GAME_STATS.baseInt }]
   intLines2.push(...pushClassAttr('int'))
-  dmgPushIf(intLines2, 'Gear: intelligence', eq.intBonus)
+  pushGear(intLines2, 'Gear: intelligence', eq.intBonus, (x) => x.intBonus)
   if (bonus('guardian')) intLines2.push({ label: 'Guardian: +30 intelligence', value: 30 })
   const intIncLines: StatContributionLine[] = []
   dmgPushIf(intIncLines, 'Upgrades: increased intelligence', u('increasedIntelligence'))
-  dmgPushIf(intIncLines, 'Gear: increased intelligence', eq.pctIncreasedIntelligenceFromGear)
+  pushGear(
+    intIncLines,
+    'Gear: increased intelligence',
+    eq.pctIncreasedIntelligenceFromGear,
+    (x) => x.pctIncreasedIntelligenceFromGear
+  )
   if (eq.pctIncreasedAllAttributesFromGear !== 0) {
-    intIncLines.push({
-      label: 'Gear: increased all attributes (applies to Int)',
-      value: eq.pctIncreasedAllAttributesFromGear,
-    })
+    pushGear(
+      intIncLines,
+      'Gear: increased all attributes (applies to Int)',
+      eq.pctIncreasedAllAttributesFromGear,
+      (x) => x.pctIncreasedAllAttributesFromGear
+    )
   }
 
   const strBeforeMult = strPreGuardian + (bonus('guardian') ? 30 : 0)
@@ -3721,11 +3970,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     { label: 'Life from character level (10 per level above 1)', value: levelFlatLife },
   ]
   dmgPushIf(lifeLines, 'Warrior bonus: +100 life', bonus('warrior') ? 100 : 0)
-  dmgPushIf(lifeLines, 'Gear: flat life', eq.flatLife)
+  pushGear(lifeLines, 'Gear: flat life', eq.flatLife, (x) => x.flatLife)
   dmgPushIf(lifeLines, 'Upgrades: increased life', u('increasedLife'))
-  dmgPushIf(lifeLines, 'Gear: increased life', eq.pctIncreasedLifeFromGear)
+  pushGear(lifeLines, 'Gear: increased life', eq.pctIncreasedLifeFromGear, (x) => x.pctIncreasedLifeFromGear)
   if (eq.lifeMoreMultFromGear !== 1) {
-    lifeLines.push({ label: 'Gear: more maximum life (mult)', value: (eq.lifeMoreMultFromGear - 1) * 100 })
+    pushGear(
+      lifeLines,
+      'Gear: more maximum life (mult)',
+      (eq.lifeMoreMultFromGear - 1) * 100,
+      (x) => (x.lifeMoreMultFromGear - 1) * 100
+    )
   }
   const maxLifeBreak: StatBreakdownBlock = blk(
     lifeLines,
@@ -3739,11 +3993,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     { label: 'Mana from intelligence (10 per 10 Int × guardian mana mult)', value: manaFromInt },
     { label: 'Mana from character level', value: levelFlatMana },
   ]
-  dmgPushIf(manaLines, 'Gear: flat mana', eq.flatMana)
+  pushGear(manaLines, 'Gear: flat mana', eq.flatMana, (x) => x.flatMana)
   dmgPushIf(manaLines, 'Upgrades: increased mana', u('increasedMana'))
-  dmgPushIf(manaLines, 'Gear: increased mana', eq.pctIncreasedManaFromGear)
+  pushGear(manaLines, 'Gear: increased mana', eq.pctIncreasedManaFromGear, (x) => x.pctIncreasedManaFromGear)
   if (eq.manaMoreMultFromGear !== 1) {
-    manaLines.push({ label: 'Gear: more maximum mana (mult)', value: (eq.manaMoreMultFromGear - 1) * 100 })
+    pushGear(
+      manaLines,
+      'Gear: more maximum mana (mult)',
+      (eq.manaMoreMultFromGear - 1) * 100,
+      (x) => (x.manaMoreMultFromGear - 1) * 100
+    )
   }
   const maxManaBreak: StatBreakdownBlock = blk(
     manaLines,
@@ -3752,7 +4011,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   const esLines: StatContributionLine[] = []
   if (bonus('sorcerer')) esLines.push({ label: 'Sorcerer: 10% of max mana as base ES', value: maxMana * 0.1 })
-  dmgPushIf(esLines, 'Gear: flat energy shield', eq.flatEnergyShieldFromGear)
+  pushGear(esLines, 'Gear: flat energy shield', eq.flatEnergyShieldFromGear, (x) => x.flatEnergyShieldFromGear)
   if (eq.lifeAsExtraEsPercentFromGear !== 0) {
     esLines.push({
       label: 'Gear: life as extra ES',
@@ -3768,17 +4027,24 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   dmgPushIf(esLines, 'Upgrades: increased energy shield', u('increasedEnergyShield'))
   dmgPushIf(esLines, 'Upgrades: increased armour and energy shield', u('increasedArmourAndEnergyShield'))
   dmgPushIf(esLines, 'Upgrades: increased evasion and energy shield', u('increasedEvasionRatingAndEnergyShield'))
-  dmgPushIf(esLines, 'Gear: increased energy shield', eq.pctIncreasedEnergyShieldFromGear)
+  pushGear(
+    esLines,
+    'Gear: increased energy shield',
+    eq.pctIncreasedEnergyShieldFromGear,
+    (x) => x.pctIncreasedEnergyShieldFromGear
+  )
   esLines.push({
     label: 'Defences from dexterity: +2% ES per 10 Dex (× guardian)',
     value: defFromDex,
   })
   if (bonus('occultist')) esLines.push({ label: 'Occultist: 40% more energy shield', value: 40 })
   if (eq.energyShieldLessMultFromGear !== 1) {
-    esLines.push({
-      label: 'Gear: less energy shield (mult)',
-      value: (eq.energyShieldLessMultFromGear - 1) * 100,
-    })
+    pushGear(
+      esLines,
+      'Gear: less energy shield (mult)',
+      (eq.energyShieldLessMultFromGear - 1) * 100,
+      (x) => (x.energyShieldLessMultFromGear - 1) * 100
+    )
   }
   if (attunementDefencesPct !== 0) {
     esLines.push({ label: 'Ability attunement: increased defences (applied to ES)', value: attunementDefencesPct })
@@ -3791,7 +4057,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const armourLines: StatContributionLine[] = [
     { label: 'Base armour', value: BASE_GAME_STATS.baseArmour },
   ]
-  dmgPushIf(armourLines, 'Gear: flat armour', eq.flatArmour)
+  pushGear(armourLines, 'Gear: flat armour', eq.flatArmour, (x) => x.flatArmour)
   if (armourFromMaxMana !== 0) {
     armourLines.push({ label: 'Gear: armour from max mana (flat)', value: armourFromMaxMana })
   }
@@ -3801,16 +4067,23 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   dmgPushIf(armourLines, 'Upgrades: increased armour', u('increasedArmour'))
   dmgPushIf(armourLines, 'Upgrades: increased armour and evasion', u('increasedArmourAndEvasionRating'))
   dmgPushIf(armourLines, 'Upgrades: increased armour and energy shield', u('increasedArmourAndEnergyShield'))
-  dmgPushIf(armourLines, 'Gear: increased armour', eq.pctIncreasedArmourFromGear)
+  pushGear(
+    armourLines,
+    'Gear: increased armour',
+    eq.pctIncreasedArmourFromGear,
+    (x) => x.pctIncreasedArmourFromGear
+  )
   armourLines.push({
     label: 'Defences from dexterity: +2% armour per 10 Dex (× guardian)',
     value: defFromDex,
   })
   if (eq.defencesLessMultFromGear !== 1) {
-    armourLines.push({
-      label: 'Gear: less defences (mult on armour)',
-      value: (eq.defencesLessMultFromGear - 1) * 100,
-    })
+    pushGear(
+      armourLines,
+      'Gear: less defences (mult on armour)',
+      (eq.defencesLessMultFromGear - 1) * 100,
+      (x) => (x.defencesLessMultFromGear - 1) * 100
+    )
   }
   if (attunementDefencesPct !== 0) {
     armourLines.push({ label: 'Ability attunement: increased defences', value: attunementDefencesPct })
@@ -3821,26 +4094,35 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   )
 
   const evasionLines: StatContributionLine[] = [{ label: 'Base evasion', value: BASE_GAME_STATS.baseEvasion }]
-  dmgPushIf(evasionLines, 'Gear: flat evasion', eq.flatEvasion)
+  pushGear(evasionLines, 'Gear: flat evasion', eq.flatEvasion, (x) => x.flatEvasion)
   dmgPushIf(evasionLines, 'Upgrades: increased evasion', u('increasedEvasionRating'))
   dmgPushIf(evasionLines, 'Upgrades: increased armour and evasion', u('increasedArmourAndEvasionRating'))
   dmgPushIf(evasionLines, 'Upgrades: increased evasion and energy shield', u('increasedEvasionRatingAndEnergyShield'))
-  dmgPushIf(evasionLines, 'Gear: increased evasion', eq.pctIncreasedEvasionFromGear)
+  pushGear(
+    evasionLines,
+    'Gear: increased evasion',
+    eq.pctIncreasedEvasionFromGear,
+    (x) => x.pctIncreasedEvasionFromGear
+  )
   evasionLines.push({
     label: 'Defences from dexterity: +2% evasion per 10 Dex (× guardian)',
     value: defFromDex,
   })
   if (eq.evasionMoreMultFromGear !== 1) {
-    evasionLines.push({
-      label: 'Gear: more evasion (mult)',
-      value: (eq.evasionMoreMultFromGear - 1) * 100,
-    })
+    pushGear(
+      evasionLines,
+      'Gear: more evasion (mult)',
+      (eq.evasionMoreMultFromGear - 1) * 100,
+      (x) => (x.evasionMoreMultFromGear - 1) * 100
+    )
   }
   if (eq.defencesLessMultFromGear !== 1) {
-    evasionLines.push({
-      label: 'Gear: less defences (mult on evasion)',
-      value: (eq.defencesLessMultFromGear - 1) * 100,
-    })
+    pushGear(
+      evasionLines,
+      'Gear: less defences (mult on evasion)',
+      (eq.defencesLessMultFromGear - 1) * 100,
+      (x) => (x.defencesLessMultFromGear - 1) * 100
+    )
   }
   if (attunementDefencesPct !== 0) {
     evasionLines.push({ label: 'Ability attunement: increased defences', value: attunementDefencesPct })
@@ -3875,31 +4157,71 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const fireResLines: StatContributionLine[] = []
   dmgPushIf(fireResLines, 'Upgrades: all elemental resistances', u('increasedAllElementalResistances'))
   if (fighterBonus !== 0) fireResLines.push({ label: 'Fighter: +15% to all elemental resistances', value: fighterBonus })
-  dmgPushIf(fireResLines, 'Gear: all elemental resistances', eq.pctToAllElementalResFromGear)
-  dmgPushIf(fireResLines, 'Gear: to all resistances', eq.pctToAllResistancesFromGear)
-  dmgPushIf(fireResLines, 'Gear: fire resistance', eq.pctFireResFromGear)
+  pushGear(
+    fireResLines,
+    'Gear: all elemental resistances',
+    eq.pctToAllElementalResFromGear,
+    (x) => x.pctToAllElementalResFromGear
+  )
+  pushGear(
+    fireResLines,
+    'Gear: to all resistances',
+    eq.pctToAllResistancesFromGear,
+    (x) => x.pctToAllResistancesFromGear
+  )
+  pushGear(fireResLines, 'Gear: fire resistance', eq.pctFireResFromGear, (x) => x.pctFireResFromGear)
   const fireResBreak: StatBreakdownBlock = blk(fireResLines, `fire res total (before cap) = ${fireRes}`)
 
   const coldResLines: StatContributionLine[] = []
   dmgPushIf(coldResLines, 'Upgrades: all elemental resistances', u('increasedAllElementalResistances'))
   if (fighterBonus !== 0) coldResLines.push({ label: 'Fighter: +15% to all elemental resistances', value: fighterBonus })
-  dmgPushIf(coldResLines, 'Gear: all elemental resistances', eq.pctToAllElementalResFromGear)
-  dmgPushIf(coldResLines, 'Gear: to all resistances', eq.pctToAllResistancesFromGear)
-  dmgPushIf(coldResLines, 'Gear: cold resistance', eq.pctColdResFromGear)
+  pushGear(
+    coldResLines,
+    'Gear: all elemental resistances',
+    eq.pctToAllElementalResFromGear,
+    (x) => x.pctToAllElementalResFromGear
+  )
+  pushGear(
+    coldResLines,
+    'Gear: to all resistances',
+    eq.pctToAllResistancesFromGear,
+    (x) => x.pctToAllResistancesFromGear
+  )
+  pushGear(coldResLines, 'Gear: cold resistance', eq.pctColdResFromGear, (x) => x.pctColdResFromGear)
   const coldResBreak: StatBreakdownBlock = blk(coldResLines, `cold res total = ${coldRes}`)
 
   const lightningResLines: StatContributionLine[] = []
   dmgPushIf(lightningResLines, 'Upgrades: all elemental resistances', u('increasedAllElementalResistances'))
   if (fighterBonus !== 0) lightningResLines.push({ label: 'Fighter: +15% to all elemental resistances', value: fighterBonus })
-  dmgPushIf(lightningResLines, 'Gear: all elemental resistances', eq.pctToAllElementalResFromGear)
-  dmgPushIf(lightningResLines, 'Gear: to all resistances', eq.pctToAllResistancesFromGear)
-  dmgPushIf(lightningResLines, 'Gear: lightning resistance', eq.pctLightningResFromGear)
+  pushGear(
+    lightningResLines,
+    'Gear: all elemental resistances',
+    eq.pctToAllElementalResFromGear,
+    (x) => x.pctToAllElementalResFromGear
+  )
+  pushGear(
+    lightningResLines,
+    'Gear: to all resistances',
+    eq.pctToAllResistancesFromGear,
+    (x) => x.pctToAllResistancesFromGear
+  )
+  pushGear(
+    lightningResLines,
+    'Gear: lightning resistance',
+    eq.pctLightningResFromGear,
+    (x) => x.pctLightningResFromGear
+  )
   const lightningResBreak: StatBreakdownBlock = blk(lightningResLines, `lightning res total = ${lightningRes}`)
 
   const chaosResLines: StatContributionLine[] = []
   dmgPushIf(chaosResLines, 'Upgrades: increased chaos resistance', u('increasedChaosResistance'))
-  dmgPushIf(chaosResLines, 'Gear: chaos resistance', eq.pctChaosResFromGear)
-  dmgPushIf(chaosResLines, 'Gear: to all resistances', eq.pctToAllResistancesFromGear)
+  pushGear(chaosResLines, 'Gear: chaos resistance', eq.pctChaosResFromGear, (x) => x.pctChaosResFromGear)
+  pushGear(
+    chaosResLines,
+    'Gear: to all resistances',
+    eq.pctToAllResistancesFromGear,
+    (x) => x.pctToAllResistancesFromGear
+  )
   if (fighterBonus !== 0) chaosResLines.push({ label: 'Fighter: +15% to chaos (same bonus as elemental)', value: fighterBonus })
   const chaosResBreak: StatBreakdownBlock = blk(chaosResLines, `chaos res total = ${chaosRes}`)
 
@@ -3951,11 +4273,21 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   ]
   if (critFromAssassin !== 0) critFlatLines.push({ label: 'Assassin: +8% crit chance', value: critFromAssassin })
   if (!spellCombat) {
-    dmgPushIf(critFlatLines, 'Gear: attack base crit chance', eq.attackBaseCritChanceBonusFromGear)
+    pushGear(
+      critFlatLines,
+      'Gear: attack base crit chance',
+      eq.attackBaseCritChanceBonusFromGear,
+      (x) => x.attackBaseCritChanceBonusFromGear
+    )
   } else {
-    dmgPushIf(critFlatLines, 'Gear: spell base crit chance', eq.spellBaseCritChanceBonusFromGear)
+    pushGear(
+      critFlatLines,
+      'Gear: spell base crit chance',
+      eq.spellBaseCritChanceBonusFromGear,
+      (x) => x.spellBaseCritChanceBonusFromGear
+    )
   }
-  dmgPushIf(critFlatLines, 'Gear: global crit chance bonus', eq.critChanceBonus)
+  pushGear(critFlatLines, 'Gear: global crit chance bonus', eq.critChanceBonus, (x) => x.critChanceBonus)
   if (critFromDex !== 0) {
     critFlatLines.push({
       label: 'Dexterity: +2% increased crit chance per 10 Dex (× guardian)',
@@ -3970,7 +4302,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   } else {
     dmgPushIf(critChanceIncLines, 'Upgrades: increased spell critical hit chance', u('increasedSpellCriticalHitChance'))
   }
-  dmgPushIf(critChanceIncLines, 'Gear: increased critical hit chance', eq.pctIncreasedCriticalHitChanceFromGear)
+  pushGear(
+    critChanceIncLines,
+    'Gear: increased critical hit chance',
+    eq.pctIncreasedCriticalHitChanceFromGear,
+    (x) => x.pctIncreasedCriticalHitChanceFromGear
+  )
   if (eq.meleeCritChanceIncPctPer10IntFromGear !== 0) {
     critChanceIncLines.push({
       label: 'Gear: increased melee critical hit chance per 10 intelligence',
@@ -3989,13 +4326,20 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         value: mercenaryAspIncPct,
       })
     }
-    dmgPushIf(apsLines, 'Gear: increased attack speed', eq.pctIncreasedAttackSpeedFromGear)
+    pushGear(
+      apsLines,
+      'Gear: increased attack speed',
+      eq.pctIncreasedAttackSpeedFromGear,
+      (x) => x.pctIncreasedAttackSpeedFromGear
+    )
     if (rogueMult !== 1) apsLines.push({ label: 'Rogue: 10% more attack speed (mult)', value: 10 })
     if (eq.attackSpeedLessMultFromGear !== 1) {
-      apsLines.push({
-        label: 'Gear: attack speed less/more (mult)',
-        value: (eq.attackSpeedLessMultFromGear - 1) * 100,
-      })
+      pushGear(
+        apsLines,
+        'Gear: attack speed less/more (mult)',
+        (eq.attackSpeedLessMultFromGear - 1) * 100,
+        (x) => (x.attackSpeedLessMultFromGear - 1) * 100
+      )
     }
   } else {
     apsLines.push({ label: 'Base cast time (s)', value: spellBaseCastTimeSeconds ?? 0 })
@@ -4006,7 +4350,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     if ((spellAttunementCastSpeedIncPct ?? 0) !== 0) {
       apsLines.push({ label: 'Ability attunement: increased cast speed', value: spellAttunementCastSpeedIncPct ?? 0 })
     }
-    dmgPushIf(apsLines, 'Gear: increased cast speed', eq.pctIncreasedCastSpeedFromGear)
+    pushGear(
+      apsLines,
+      'Gear: increased cast speed',
+      eq.pctIncreasedCastSpeedFromGear,
+      (x) => x.pctIncreasedCastSpeedFromGear
+    )
     if (eq.castSpeedIncPctPer10DexFromGear !== 0) {
       apsLines.push({
         label: 'Gear: increased cast speed per 10 dexterity',
@@ -4014,10 +4363,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       })
     }
     if (eq.castSpeedLessMultFromGear !== 1) {
-      apsLines.push({
-        label: 'Gear: cast speed less/more (mult)',
-        value: (eq.castSpeedLessMultFromGear - 1) * 100,
-      })
+      pushGear(
+        apsLines,
+        'Gear: cast speed less/more (mult)',
+        (eq.castSpeedLessMultFromGear - 1) * 100,
+        (x) => (x.castSpeedLessMultFromGear - 1) * 100
+      )
     }
   }
 
@@ -4028,9 +4379,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   if (levelFlatAccuracy !== 0) {
     accuracyLines.push({ label: 'Character level: +3 accuracy per level above 1', value: levelFlatAccuracy })
   }
-  dmgPushIf(accuracyLines, 'Gear: flat accuracy', eq.flatAccuracy)
+  pushGear(accuracyLines, 'Gear: flat accuracy', eq.flatAccuracy, (x) => x.flatAccuracy)
   dmgPushIf(accuracyLines, 'Upgrades: increased accuracy', u('increasedAccuracyRating'))
-  dmgPushIf(accuracyLines, 'Gear: increased accuracy', eq.pctIncreasedAccuracyFromGear)
+  pushGear(
+    accuracyLines,
+    'Gear: increased accuracy',
+    eq.pctIncreasedAccuracyFromGear,
+    (x) => x.pctIncreasedAccuracyFromGear
+  )
   if (eq.accuracyLessMultFromGear !== 1) {
     accuracyLines.push({
       label: 'Gear: accuracy less (mult)',
@@ -4070,9 +4426,19 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     })
   }
   if (bonus('sorcerer')) manaCostLines.push({ label: 'Sorcerer: 10% reduced mana cost', value: -10 })
-  dmgPushIf(manaCostLines, 'Gear: mana cost reduction', -eq.manaCostReductionFromGear)
+  pushGear(
+    manaCostLines,
+    'Gear: mana cost reduction',
+    -eq.manaCostReductionFromGear,
+    (x) => -x.manaCostReductionFromGear
+  )
   if (eq.manaCostIncreasePercentFromGear !== 0) {
-    manaCostLines.push({ label: 'Gear: increased mana cost', value: eq.manaCostIncreasePercentFromGear })
+    pushGear(
+      manaCostLines,
+      'Gear: increased mana cost',
+      eq.manaCostIncreasePercentFromGear,
+      (x) => x.manaCostIncreasePercentFromGear
+    )
   }
   if (eq.abilitiesNoCostFromGear) manaCostLines.push({ label: 'Gear: abilities cost no mana', value: 1 })
 

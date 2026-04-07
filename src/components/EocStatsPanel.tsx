@@ -350,6 +350,25 @@ function SpellMultiplierBreakdownPanel({ b }: { b: SpellDamageComputationBreakdo
           {b.addedFromGearByType.length > 0 && (
             <>
               <div className="text-zinc-500 font-semibold mt-2 mb-0.5">Added damage to spells (gear)</div>
+              {b.addedFromGearByTypeSources && b.addedFromGearByTypeSources.length > 0 && (
+                <div className="mb-2 space-y-1.5">
+                  {b.addedFromGearByTypeSources.map((src) => (
+                    <div key={src.sourceLabel}>
+                      <div className="text-zinc-600 text-[9px] mb-0.5">{src.sourceLabel}</div>
+                      <ul className="list-disc pl-4 font-mono space-y-0.5">
+                        {src.rows.map((r) => (
+                          <li key={`${src.sourceLabel}-${r.type}`} className={HIT_DAMAGE_TYPE_COLOR_CLASS[r.type]}>
+                            {HIT_DAMAGE_TYPE_LABEL[r.type]} +{Math.round(r.min)}–{Math.round(r.max)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {b.addedFromGearByTypeSources && b.addedFromGearByTypeSources.length > 0 && (
+                <div className="text-zinc-600 text-[9px] mb-0.5">Total</div>
+              )}
               <ul className="list-disc pl-4 font-mono space-y-0.5">
                 {b.addedFromGearByType.map((r) => (
                   <li key={r.type} className={HIT_DAMAGE_TYPE_COLOR_CLASS[r.type]}>
@@ -365,6 +384,30 @@ function SpellMultiplierBreakdownPanel({ b }: { b: SpellDamageComputationBreakdo
             <div>Added damage multiplier: ×{b.addedDamageMultiplier.toFixed(3)}</div>
             <div>Σ increased: +{b.increasedDamagePercent.toFixed(1)}% → ×{(1 + b.increasedDamagePercent / 100).toFixed(4)}</div>
           </div>
+          {b.addedDamageMultiplierSources && b.addedDamageMultiplierSources.length > 0 && (
+            <>
+              <div className="text-zinc-500 mt-1 mb-0.5">Added damage multiplier (sources)</div>
+              <ul className="list-disc pl-4 font-mono space-y-0.5">
+                {b.addedDamageMultiplierSources.map((l, i) => (
+                  <li key={i}>
+                    {l.label}: {l.value.toFixed(1)}%
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {b.increasedDamagePercentSources && b.increasedDamagePercentSources.length > 0 && (
+            <>
+              <div className="text-zinc-500 mt-1 mb-0.5">Σ increased (sources)</div>
+              <ul className="list-disc pl-4 font-mono space-y-0.5">
+                {b.increasedDamagePercentSources.map((l, i) => (
+                  <li key={i}>
+                    {l.label}: +{l.value.toFixed(1)}%
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
 
         <div>

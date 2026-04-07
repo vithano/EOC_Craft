@@ -94,10 +94,23 @@ export function spellBaseDamageAtAbilityLevel(
   let max = baseMax;
   const L = Math.max(0, Math.floor(abilityLevel));
   const S = Math.max(0, Math.floor(startingAbilityLevel));
-  for (let B = S + 1; B <= L; B++) {
-    const factor = 1 + 0.44 * 0.935 ** (B - 1);
-    min *= factor;
-    max *= factor;
+  const stepFactor = (B: number) => 1 + 0.44 * 0.935 ** (B - 1)
+  if (L >= S) {
+    // Scale up from the CSV base-at-starting-level.
+    for (let B = S + 1; B <= L; B++) {
+      const factor = stepFactor(B)
+      min *= factor;
+      max *= factor;
+    }
+  } else {
+    // If the user selects a level below the CSV starting level, scale down by reversing the same steps.
+    for (let B = S; B > L; B--) {
+      const factor = stepFactor(B)
+      if (factor !== 0) {
+        min /= factor
+        max /= factor
+      }
+    }
   }
   return { min, max };
 }
