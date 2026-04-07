@@ -48,6 +48,8 @@ import {
   getModifiersForItemType,
   type EocModifierDefinition,
 } from "../data/eocModifiers";
+import type { ArmourDamageType } from "../data/eocFormulas";
+import type { NexusTierRowWithModifiers } from "../data/enemyModifiers";
 import EocStatsPanel from "./EocStatsPanel";
 import { EmptySlotIcon, EquippedItemIcon, FilterIcon, plannerSlotToGlyphKey } from "./equipmentIcons";
 
@@ -84,7 +86,10 @@ interface EquipmentPanelProps {
   onAddCraftedToBag: (slot: string, itemId: string, prefixes: AppliedModifier[], suffixes: AppliedModifier[]) => void;
   stats: ComputedBuildStats;
   incomingDamage: number;
+  incomingDamageType?: ArmourDamageType;
+  incomingAttackKind?: "attack" | "spell";
   nexusTier: number;
+  nexusEnemyRow?: NexusTierRowWithModifiers | null;
 }
 
 type Detail =
@@ -153,7 +158,10 @@ export default function EquipmentPanel({
   onAddCraftedToBag,
   stats,
   incomingDamage,
+  incomingDamageType = "physical",
+  incomingAttackKind = "attack",
   nexusTier,
+  nexusEnemyRow = null,
 }: EquipmentPanelProps) {
   // Subscribe to sheet data updates so the component re-renders when live data arrives
   const { lastUpdated: sheetVersion } = useGameData();
@@ -1503,7 +1511,14 @@ export default function EquipmentPanel({
               </button>
             </div>
             <div className="rounded-sm border border-[#3d3428] bg-[#0d0a08]/50 p-2">
-              <EocStatsPanel stats={stats} incomingDamage={incomingDamage} nexusTier={nexusTier} />
+              <EocStatsPanel
+                stats={stats}
+                incomingDamage={incomingDamage}
+                incomingDamageType={incomingDamageType}
+                incomingAttackKind={incomingAttackKind}
+                nexusTier={nexusTier}
+                nexusEnemyRow={nexusEnemyRow}
+              />
             </div>
           </div>
         </div>

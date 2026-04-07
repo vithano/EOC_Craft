@@ -1071,9 +1071,8 @@ export function equipmentModifiersFromUniqueTexts(
       mark();
     }
 
-    if (/^50%\s+chance\s+to\s+reduce\s+no\s+damage\s+on\s+block\b/i.test(low)) {
-      add({ blockPreventsAllDamageChanceFromGear: 50 });
-    }
+    m = l.match(/([\d.]+)%\s+chance\s+to\s+reduce\s+no\s+damage\s+on\s+block\b/i);
+    if (m) add({ blockPreventsAllDamageChanceFromGear: num(m)! });
 
     m = l.match(/([\d.]+)%\s+of\s+mana\s+regeneration\s+per\s+second\s+applies\s+to\s+your\s+energy\s+shield\s+instead\b/i);
     if (m) add({ manaRegenToEnergyShieldPercentFromGear: num(m)! });
@@ -1121,19 +1120,8 @@ export function equipmentModifiersFromUniqueTexts(
     if (m) add({ meleeCritChanceIncPctPer10IntFromGear: num(m)! });
     m = l.match(/([\d.]+)%\s+increased\s+range\s+attack\s+damage\s+per\s+10\s+strength\b/i);
     if (m) add({ rangedDamageIncPctPer10StrFromGear: num(m)! });
-    if (/chance to reduce no damage on block\b/i.test(low)) mark();
     m = l.match(/abilities gain additional base mana cost equal to ([\d.]+)% of maximum energy\b/i);
     if (m) add({ additionalBaseManaCostPctOfMaxEnergyShieldFromGear: num(m)! });
-    if (/ailments\s+inflicted\s+with\s+critical\s+hits\s+gain\b/i.test(low)) add({});
-    if (
-      /ailments\s+inflicted\s+with/i.test(low)
-      && /critical/i.test(low)
-      && /duration/i.test(low)
-      && /gain/i.test(low)
-    ) {
-      // Loose audit catch-all for this family of lines (e.g. Woe Touch).
-      add({})
-    }
     if (/ignite effects carry on to subsequent enemies\b/i.test(low)) {
       acc.igniteCarryToSubsequentEnemiesFromGear = true
       mark()

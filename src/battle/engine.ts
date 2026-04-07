@@ -470,6 +470,11 @@ function applyPlayerAilmentsOnHit(
 
   const { bleedInherentMult, igniteInherentMult, poisonInherentMult } = FORMULA_CONSTANTS
   const durMult = stats.ailmentDurationMultiplier
+  /** Woe Touch: "1% more duration per 1% critical damage multiplier" → demo: ×critMultiplier on crit. */
+  const critAilmentDurMult =
+    hitWasCritical && (stats.ailmentsOnCritGainDurationPerCritMulti ?? false)
+      ? Math.max(1, stats.critMultiplier)
+      : 1
   const dotMult =
     (1 + stats.damageOverTimeMultiplier / 100) * (stats.dotDamageMoreMultiplier ?? 1)
   const portions = damagePortionsFromHit(stats, mitigatedDamage)
@@ -483,9 +488,11 @@ function applyPlayerAilmentsOnHit(
     state.dots.push({
       kind: 'bleed',
       dps,
-      expiresAt: t + BASE_BLEED_SEC * durMult,
+      expiresAt: t + BASE_BLEED_SEC * durMult * critAilmentDurMult,
     })
-    tryLogAilment(`Ailment — Bleed (DoT): ~${dps.toFixed(1)} DPS for ${(BASE_BLEED_SEC * durMult).toFixed(1)}s`)
+    tryLogAilment(
+      `Ailment — Bleed (DoT): ~${dps.toFixed(1)} DPS for ${(BASE_BLEED_SEC * durMult * critAilmentDurMult).toFixed(1)}s`
+    )
   }
 
   const poisonChance = (stats.critsAlwaysInflictPoison && hitWasCritical) ? 100 : stats.poisonChance
@@ -494,14 +501,18 @@ function applyPlayerAilmentsOnHit(
     state.dots.push({
       kind: 'poison',
       dps,
-      expiresAt: t + BASE_POISON_SEC * durMult,
+      expiresAt: t + BASE_POISON_SEC * durMult * critAilmentDurMult,
     })
-    tryLogAilment(`Ailment — Poison (DoT): ~${dps.toFixed(1)} DPS for ${(BASE_POISON_SEC * durMult).toFixed(1)}s`)
+    tryLogAilment(
+      `Ailment — Poison (DoT): ~${dps.toFixed(1)} DPS for ${(BASE_POISON_SEC * durMult * critAilmentDurMult).toFixed(1)}s`
+    )
     if (stats.poisonYouInflictReflectedToYou ?? false) {
       const avoid = Math.min(100, Math.max(0, stats.avoidAilmentsChance ?? 0))
       if (Math.random() * 100 >= avoid) {
-        playerAilments.poisons.push({ expiresAt: t + BASE_POISON_SEC * durMult, dps })
-        tryLogAilment(`Ailment — Poison reflected to you (${(BASE_POISON_SEC * durMult).toFixed(1)}s)`)
+        playerAilments.poisons.push({ expiresAt: t + BASE_POISON_SEC * durMult * critAilmentDurMult, dps })
+        tryLogAilment(
+          `Ailment — Poison reflected to you (${(BASE_POISON_SEC * durMult * critAilmentDurMult).toFixed(1)}s)`
+        )
       } else {
         tryLogAilment(`Ailment — Poison reflected to you (avoided)`)
       }
@@ -532,18 +543,23 @@ function applyPlayerAilmentsOnHit(
       state.dots.push({
         kind: 'ignite',
         dps,
-        expiresAt: t + BASE_IGNITE_SEC * ignDur * Math.max(0.05, randIgn),
+        expiresAt: t + BASE_IGNITE_SEC * ignDur * Math.max(0.05, randIgn) * critAilmentDurMult,
       })
       tryLogAilment(
-        `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${(BASE_IGNITE_SEC * ignDur * Math.max(0.05, randIgn)).toFixed(1)}s`
+        `Ailment — Ignite (DoT): ~${dps.toFixed(1)} fire DPS for ${(BASE_IGNITE_SEC * ignDur * Math.max(0.05, randIgn) * critAilmentDurMult).toFixed(1)}s`
       )
       if (stats.elementalAilmentsYouInflictReflectedToYou ?? false) {
         const avoidAll = Math.min(100, Math.max(0, stats.avoidAilmentsChance ?? 0))
         const avoidEle = Math.min(100, Math.max(0, stats.avoidElementalAilmentsChance ?? 0))
         const avoid = Math.min(100, avoidAll + avoidEle)
         if (Math.random() * 100 >= avoid) {
-          playerAilments.igniteUntil = Math.max(playerAilments.igniteUntil, t + BASE_IGNITE_SEC * ignDur)
-          tryLogAilment(`Ailment — Ignite reflected to you (${(BASE_IGNITE_SEC * ignDur).toFixed(1)}s)`)
+          playerAilments.igniteUntil = Math.max(
+            playerAilments.igniteUntil,
+            t + BASE_IGNITE_SEC * ignDur * critAilmentDurMult
+          )
+          tryLogAilment(
+            `Ailment — Ignite reflected to you (${(BASE_IGNITE_SEC * ignDur * critAilmentDurMult).toFixed(1)}s)`
+          )
         } else {
           tryLogAilment(`Ailment — Ignite reflected to you (avoided)`)
         }
@@ -563,7 +579,8 @@ function applyPlayerAilmentsOnHit(
       const computedShock = Math.max(5, effectPct * 1.15 * ndMult * shockIncMult)
       const shockFixed = stats.fixedShockEffectPercent ?? 0
       const shock = shockFixed > 0 ? shockFixed : Math.min(shockCap, computedShock)
-      const dur = getBaseShockChillDurationSec() * durMult * (stats.shockDurationMultiplier ?? 1)
+      const dur =
+        getBaseShockChillDurationSec() * durMult * (stats.shockDurationMultiplier ?? 1) * critAilmentDurMult
       state.shocks.push({ magnitudePct: shock, expiresAt: t + dur })
       debuffEvents.push({ t, kind: 'shock', magnitudePct: shock, durationSec: dur })
       tryLogAilment(
@@ -604,7 +621,7 @@ function applyPlayerAilmentsOnHit(
       }
       const chillCap = stats.maxChillEffect ?? 30
       const chillPct = Math.min(chillCap, Math.max(5, effectPct * 0.85 * ndMult * chillOutMult))
-      const dur = getBaseShockChillDurationSec() * durMult
+      const dur = getBaseShockChillDurationSec() * durMult * critAilmentDurMult
       const chillExpiresAt =
         (stats.chillYouInflictInfiniteDuration ?? false) ? Number.POSITIVE_INFINITY : (t + dur)
       state.chills.push({ magnitudePct: chillPct, expiresAt: chillExpiresAt })

@@ -621,7 +621,7 @@ function main() {
       ability: { abilityId: "ability_ice_spear", abilityLevel: 1, attunementPct: 0 },
     });
     const baseRes = simulateEncounter({ stats: baseStats, enemy, options: { maxDurationSeconds: 1.0, dt: 0.02, maxLogEntries: 0 } });
-    const baseChill = baseRes.enemyDebuffEvents.find((e: any) => e.kind === "chill")?.magnitudePct ?? 0;
+    const baseChill = baseRes.enemyDebuffEvents?.find((e: any) => e.kind === "chill")?.magnitudePct ?? 0;
 
     const eq2 = emptyEquipmentModifiers();
     eq2.chillInflictChanceFromGear = 100;
@@ -631,7 +631,7 @@ function main() {
       ability: { abilityId: "ability_ice_spear", abilityLevel: 1, attunementPct: 0 },
     });
     const res2 = simulateEncounter({ stats: stats2, enemy, options: { maxDurationSeconds: 1.0, dt: 0.02, maxLogEntries: 0 } });
-    const chill2 = res2.enemyDebuffEvents.find((e: any) => e.kind === "chill")?.magnitudePct ?? 0;
+    const chill2 = res2.enemyDebuffEvents?.find((e: any) => e.kind === "chill")?.magnitudePct ?? 0;
     assert(chill2 >= baseChill, `Expected chill magnitude not lower with "as though more", got ${chill2} vs ${baseChill}`);
   }
 
@@ -775,6 +775,35 @@ function main() {
     };
     const res = simulateEncounter({ stats, enemy, options: { maxDurationSeconds: 0.3, dt: 0.02, maxLogEntries: 0 } });
     assert(res.playerFinal.life < stats.maxLife, `Expected self chaos damage on cast to lower life, got ${res.playerFinal.life}/${stats.maxLife}`);
+  }
+
+  // Woe Touch: ailments on crit gain duration per crit multiplier (parse + planner + battle model uses ×critMultiplier on crit)
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["Ailments  inflicted with critical hits gain 1% more duration per 1% critical damage multiplier"],
+      { isWeapon: false }
+    );
+    assert(
+      Boolean(patch.ailmentsOnCritGainDurationPerCritMultiFromGear),
+      "Expected ailmentsOnCritGainDurationPerCritMultiFromGear from Woe Touch line"
+    );
+    const eq = emptyEquipmentModifiers();
+    eq.ailmentsOnCritGainDurationPerCritMultiFromGear = true;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    assert(stats.ailmentsOnCritGainDurationPerCritMulti === true, "Expected computed ailments-on-crit flag");
+    assert(
+      stats.statBreakdowns.ailmentsOnCritGainDurationPerCritMulti.lines.length >= 1,
+      "Expected ailments-on-crit breakdown"
+    );
+  }
+
+  // Block: generic % chance to reduce no damage on block (not only 50%)
+  {
+    const patch = equipmentModifiersFromUniqueTexts(["25% chance to reduce no damage on block"], { isWeapon: false });
+    assert(
+      patch.blockPreventsAllDamageChanceFromGear === 25,
+      `Expected blockPreventsAllDamageChanceFromGear=25, got ${patch.blockPreventsAllDamageChanceFromGear}`
+    );
   }
 
   // Broken Legacy: fixed crit chance = 50%

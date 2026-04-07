@@ -174,6 +174,7 @@ export interface StatBreakdowns {
   elementalAilmentChance: StatBreakdownBlock
   ailmentDurationBonus: StatBreakdownBlock
   ailmentDurationMultiplier: StatBreakdownBlock
+  ailmentsOnCritGainDurationPerCritMulti: StatBreakdownBlock
   igniteAilmentDurationMultiplier: StatBreakdownBlock
   igniteInflictChanceBonus: StatBreakdownBlock
   shockInflictChanceBonus: StatBreakdownBlock
@@ -227,6 +228,15 @@ export interface StatBreakdowns {
   flatEsOnBlock: StatBreakdownBlock
   energyShieldOnHit: StatBreakdownBlock
   manaCostPaidWithLife: StatBreakdownBlock
+  pctIncreasedExperienceGain: StatBreakdownBlock
+  skipNonEliteEnemyEncountersChance: StatBreakdownBlock
+  pctIncreasedAttributeRequirements: StatBreakdownBlock
+  igniteCarryToSubsequentEnemies: StatBreakdownBlock
+  chillCarryToSubsequentEnemies: StatBreakdownBlock
+  preventDeathOncePerStage: StatBreakdownBlock
+  moreSpeedIfDeathPreventedThisStagePercent: StatBreakdownBlock
+  takeChaosDamagePerSecondIfDeathPrevented: StatBreakdownBlock
+  takeChaosDamageEqualToPctOfAbilityCostOnSpellCast: StatBreakdownBlock
   avoidAilmentsChance: StatBreakdownBlock
   avoidElementalAilmentsChance: StatBreakdownBlock
   manaShieldActive: StatBreakdownBlock
@@ -4084,6 +4094,17 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       ],
       `(1 + Σ%/100) × less mult = ${ailmentDurationMultiplier.toFixed(4)}`
     ),
+    ailmentsOnCritGainDurationPerCritMulti: blk(
+      ailmentsOnCritGainDurationPerCritMulti
+        ? [
+            boolLine('Gear: enabled (crit ailments × crit multiplier)', true),
+            { label: 'Crit multiplier (duration factor on crit)', value: critMultiplier },
+          ]
+        : [boolLine('Gear', false)],
+      ailmentsOnCritGainDurationPerCritMulti
+        ? `Battle model: ailment durations from crit hits ×${critMultiplier.toFixed(2)}`
+        : undefined
+    ),
     igniteAilmentDurationMultiplier: blk(
       [
         { label: 'Global ailment duration mult', value: ailmentDurationMultiplier },
@@ -4192,16 +4213,39 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     flatEsOnBlock: blk([{ label: 'Gear', value: flatEsOnBlock }]),
     energyShieldOnHit: blk([{ label: 'Gear', value: energyShieldOnHit }]),
     manaCostPaidWithLife: blk([boolLine('Gear: mana cost paid with life', manaCostPaidWithLife)]),
+    pctIncreasedExperienceGain: blk([{ label: 'Gear', value: pctIncreasedExperienceGain }]),
+    skipNonEliteEnemyEncountersChance: blk([{ label: 'Gear', value: skipNonEliteEnemyEncountersChance }]),
+    pctIncreasedAttributeRequirements: blk([{ label: 'Gear', value: pctIncreasedAttributeRequirements }]),
+    igniteCarryToSubsequentEnemies: blk([boolLine('Gear', igniteCarryToSubsequentEnemies)]),
+    chillCarryToSubsequentEnemies: blk([boolLine('Gear', chillCarryToSubsequentEnemies)]),
+    preventDeathOncePerStage: blk([boolLine('Gear', preventDeathOncePerStage)]),
+    moreSpeedIfDeathPreventedThisStagePercent: blk([{ label: 'Gear', value: moreSpeedIfDeathPreventedThisStagePercent }]),
+    takeChaosDamagePerSecondIfDeathPrevented: blk([{ label: 'Gear', value: takeChaosDamagePerSecondIfDeathPrevented }]),
+    takeChaosDamageEqualToPctOfAbilityCostOnSpellCast: blk([
+      { label: 'Gear', value: takeChaosDamageEqualToPctOfAbilityCostOnSpellCast },
+    ]),
     avoidAilmentsChance: blk([{ label: 'Gear', value: avoidAilmentsChance }]),
     avoidElementalAilmentsChance: blk([{ label: 'Gear', value: avoidElementalAilmentsChance }]),
     manaShieldActive: blk([boolLine('Druid class bonus', manaShieldActive)]),
     chaosNotBypassES: blk([boolLine('Arcanist class bonus', chaosNotBypassES)]),
-    armourVsElementalMultiplier: blk([
-      { label: 'Base + Juggernaut elemental effectiveness', value: armourVsElementalMultiplier },
-    ]),
-    armourVsChaosMultiplier: blk([
-      { label: 'Base + Juggernaut/Templar/Chieftain + gear', value: armourVsChaosMultiplier },
-    ]),
+    armourVsElementalMultiplier: blk(
+      [
+        {
+          label: 'Armour effectiveness vs fire/cold/lightning (not resistances)',
+          value: armourVsElementalMultiplier,
+        },
+      ],
+      'Elemental damage types: fire, cold, lightning — chaos uses armourVsChaosMultiplier instead'
+    ),
+    armourVsChaosMultiplier: blk(
+      [
+        {
+          label: 'Armour effectiveness vs chaos damage hits (not chaos resistance)',
+          value: armourVsChaosMultiplier,
+        },
+      ],
+      'Separate from chaos resistance %; used in armour DR vs chaos portion of a hit (formulas.csv)'
+    ),
     classBonusesActive: blk(classBonusLines, classBonusesActive.join(', ') || 'none'),
     classLevelsActive: blk(classLevelsLines, 'passive ranks per class'),
     abilityContribution: blk(abilityLines, abilityContribution ? abilityContribution.name : '—'),

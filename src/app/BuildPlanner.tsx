@@ -2,6 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { ArmourDamageType } from "../data/eocFormulas";
+import {
+  applyEnemyModifiersToNexusRow,
+  ENEMY_MODIFIER_ORDER,
+  enemyModifierDescription,
+  enemyModifierLabel,
+  MAX_ENEMY_MODIFIERS,
+  type EnemyModifierId,
+} from "../data/enemyModifiers";
 import AbilitiesPanel from "../components/AbilitiesPanel";
 import BuildSummary from "../components/BuildSummary";
 import EocClassesPanel from "../components/EocClassesPanel";
@@ -119,7 +128,24 @@ export default function BuildPlanner() {
   }, [activeBuildId]);
 
   const [incomingDamage, setIncomingDamage] = useState(100);
+  const [incomingDamageType, setIncomingDamageType] = useState<ArmourDamageType>("physical");
+  const [incomingAttackKind, setIncomingAttackKind] = useState<"attack" | "spell">("attack");
+  const [enemyModifiers, setEnemyModifiers] = useState<EnemyModifierId[]>([]);
   const [nexusTier, setNexusTier] = useState(0);
+
+  const nexusEnemyRow = useMemo(() => {
+    const row = NEXUS_TIER_ROWS[nexusTier];
+    if (!row) return null;
+    return applyEnemyModifiersToNexusRow(row, enemyModifiers);
+  }, [nexusTier, enemyModifiers]);
+
+  const toggleEnemyModifier = useCallback((id: EnemyModifierId) => {
+    setEnemyModifiers((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= MAX_ENEMY_MODIFIERS) return prev;
+      return [...prev, id];
+    });
+  }, []);
   const [buildJsonImport, setBuildJsonImport] = useState("");
   const [buildJsonImportError, setBuildJsonImportError] = useState<string | null>(null);
 
@@ -613,9 +639,36 @@ export default function BuildPlanner() {
               value={incomingDamage}
               onChange={(e) => setIncomingDamage(Number(e.target.value))}
             />
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+              <label className="flex flex-col gap-0.5 text-zinc-500">
+                <span className="uppercase tracking-wider">Hit damage type</span>
+                <select
+                  className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-zinc-200"
+                  value={incomingDamageType}
+                  onChange={(e) => setIncomingDamageType(e.target.value as ArmourDamageType)}
+                >
+                  <option value="physical">Physical</option>
+                  <option value="fire">Fire</option>
+                  <option value="cold">Cold</option>
+                  <option value="lightning">Lightning</option>
+                  <option value="chaos">Chaos</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-0.5 text-zinc-500">
+                <span className="uppercase tracking-wider">Hit source</span>
+                <select
+                  className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-zinc-200"
+                  value={incomingAttackKind}
+                  onChange={(e) => setIncomingAttackKind(e.target.value as "attack" | "spell")}
+                >
+                  <option value="attack">Attack (full evasion)</option>
+                  <option value="spell">Spell (half evasion)</option>
+                </select>
+              </label>
+            </div>
             <div className="mt-0.5 flex justify-between text-[10px] text-zinc-700">
               <span>1</span>
-              <span className="text-zinc-600 text-[9px]">Armour DR & ailment preview uses your pools</span>
+              <span className="text-zinc-600 text-[9px]">Armour DR by type + res (preview)</span>
               <span>5000</span>
             </div>
           </div>
@@ -635,13 +688,24 @@ export default function BuildPlanner() {
             />
             <div className="mt-1 text-[10px] text-zinc-600 flex flex-wrap items-center gap-x-3 gap-y-0.5">
               {(() => {
-                const row = NEXUS_TIER_ROWS[nexusTier];
+                const row = nexusEnemyRow;
                 if (!row) return null;
                 const avgPhys = Math.round((row.physMin + row.physMax) / 2);
                 return (
                   <>
-                    <span>Phys {row.physMin}–{row.physMax} · avg {avgPhys}</span>
-                    <span>HP {row.health.toLocaleString("en-US")} · acc {row.accuracy} / eva {row.evasion}</span>
+                    <span>
+                      Phys {row.physMin}–{row.physMax} · avg {avgPhys}
+                    </span>
+                    <span>
+                      HP {row.health.toLocaleString("en-US")} · acc {row.accuracy} / eva {row.evasion}
+                      {row.energyShieldFromMods > 0 ? ` · +${row.energyShieldFromMods} ES (Barrier)` : ""}
+                    </span>
+                    {row.elementalResPercent !== NEXUS_TIER_ROWS[nexusTier]?.elementalResPercent ||
+                    row.chaosResPercent !== NEXUS_TIER_ROWS[nexusTier]?.chaosResPercent ? (
+                      <span className="text-zinc-500">
+                        Elres {row.elementalResPercent}% · Chaos {row.chaosResPercent}%
+                      </span>
+                    ) : null}
                     <button
                       type="button"
                       className="text-amber-500/80 hover:text-amber-400 underline underline-offset-2"
@@ -652,6 +716,33 @@ export default function BuildPlanner() {
                   </>
                 );
               })()}
+            </div>
+            <div className="mt-2">
+              <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">
+                Enemy modifiers (max {MAX_ENEMY_MODIFIERS}, formulas.csv)
+              </div>
+              <div className="flex flex-wrap gap-1 max-h-[88px] overflow-y-auto pr-0.5">
+                {ENEMY_MODIFIER_ORDER.map((id) => {
+                  const on = enemyModifiers.includes(id);
+                  const disabled = !on && enemyModifiers.length >= MAX_ENEMY_MODIFIERS;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      title={enemyModifierDescription(id)}
+                      disabled={disabled}
+                      onClick={() => toggleEnemyModifier(id)}
+                      className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${
+                        on
+                          ? "bg-amber-900/40 border-amber-700/60 text-amber-100"
+                          : "bg-zinc-900/80 border-zinc-800 text-zinc-500 hover:border-zinc-600"
+                      } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+                    >
+                      {enemyModifierLabel(id)}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -684,12 +775,22 @@ export default function BuildPlanner() {
               onAddCraftedToBag={addCraftedToBag}
               stats={stats}
               incomingDamage={incomingDamage}
+              incomingDamageType={incomingDamageType}
+              incomingAttackKind={incomingAttackKind}
               nexusTier={nexusTier}
+              nexusEnemyRow={nexusEnemyRow}
             />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
             <div className="min-w-0 lg:col-span-2">
-              <EocStatsPanel stats={stats} incomingDamage={incomingDamage} nexusTier={nexusTier} />
+              <EocStatsPanel
+                stats={stats}
+                incomingDamage={incomingDamage}
+                incomingDamageType={incomingDamageType}
+                incomingAttackKind={incomingAttackKind}
+                nexusTier={nexusTier}
+                nexusEnemyRow={nexusEnemyRow}
+              />
             </div>
             <div className="min-w-0">
               <BuildSummary

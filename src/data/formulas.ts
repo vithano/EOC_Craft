@@ -75,7 +75,8 @@ export const FORMULA_DESCRIPTIONS: Record<string, string> = {
   nexusTierScaling: 'table: formulas/Nexus Tier Enemy Scaling.csv (tiers 0–30)',
   chartsTab: 'Charts.csv — lookup grids; evasion matches Evasion formula; armour cells use Armour formula',
   crucibleTierScaling: 'Crucible CSV placeholder — interpolate from Nexus table per sheet note',
-  enemyModifiers: 'list: formulas/Enemy Modifiers.csv',
+  enemyModifiers:
+    'formulas.csv enemy mods (up to 3): vital, plated, elusive, barrier, hallowed (+chaos res), warded (+elemental res only), … — stacked on nexus tier preview',
 };
 
 interface ClassBaseValues {

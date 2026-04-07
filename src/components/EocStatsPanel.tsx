@@ -8,14 +8,16 @@ import type {
 } from "../data/gameStats";
 import {
   BASE_SHOCK_CHILL_DURATION_SEC,
+  type ArmourDamageType,
+  computeArmourDRSingleType,
   computeEvasionChancePercent,
   computeHitChancePercent,
   computeNonDamagingAilmentEffectPercent,
   LEVEL_100_ENEMY_ACCURACY,
   LEVEL_100_ENEMY_EVASION,
 } from "../data/eocFormulas";
-import { computeDamageReductionPercentFromArmour } from "../data/formulas";
 import { getNexusTierRow } from "../data/nexusEnemyScaling";
+import type { NexusTierRowWithModifiers } from "../data/enemyModifiers";
 import {
   HIT_DAMAGE_TYPE_COLOR_CLASS,
   HIT_DAMAGE_TYPE_LABEL,
@@ -423,10 +425,76 @@ function SpellMultiplierBreakdownPanel({ b }: { b: SpellDamageComputationBreakdo
   )
 }
 
+export type PlannerIncomingAttackKind = "attack" | "spell";
+
+function armourDrPercentForPreview(
+  stats: ComputedBuildStats,
+  incomingDamage: number,
+  type: ArmourDamageType
+): number {
+  if (type === "physical") {
+    return computeArmourDRSingleType(stats.armour, incomingDamage, "physical", 0, 0) * 100;
+  }
+  if (type === "chaos") {
+    return (
+      computeArmourDRSingleType(
+        stats.armour * stats.armourVsChaosMultiplier,
+        incomingDamage,
+        "physical",
+        0,
+        0
+      ) * 100
+    );
+  }
+  return (
+    computeArmourDRSingleType(
+      stats.armour * stats.armourVsElementalMultiplier,
+      incomingDamage,
+      "physical",
+      0,
+      0
+    ) * 100
+  );
+}
+
+function postArmourAndResAfterHit(
+  stats: ComputedBuildStats,
+  incomingDamage: number,
+  type: ArmourDamageType,
+  armourDrPct: number
+): number {
+  let x = incomingDamage * Math.max(0, 1 - armourDrPct / 100);
+  if (type === "physical") {
+    const reduced = stats.reducedPhysicalDamageTaken ?? 0;
+    if (reduced > 0) x *= Math.max(0, 1 - reduced / 100);
+    return x;
+  }
+  if (type === "fire") {
+    const r = Math.min(stats.maxFireRes, stats.fireRes);
+    return x * Math.max(0, 1 - r / 100);
+  }
+  if (type === "cold") {
+    const r = Math.min(stats.maxColdRes, stats.coldRes);
+    return x * Math.max(0, 1 - r / 100);
+  }
+  if (type === "lightning") {
+    const r = Math.min(stats.maxLightningRes, stats.lightningRes);
+    return x * Math.max(0, 1 - r / 100);
+  }
+  const r = Math.min(stats.maxChaosRes, stats.chaosRes);
+  return x * Math.max(0, 1 - r / 100);
+}
+
 export interface EocStatsPanelProps {
   stats: ComputedBuildStats;
   incomingDamage: number;
   nexusTier: number | null;
+  /** Which damage type the incoming hit slider represents (armour effectiveness differs per type). */
+  incomingDamageType?: ArmourDamageType;
+  /** Attack hits use full evasion; spell hits use half evasion (formulas.csv). */
+  incomingAttackKind?: PlannerIncomingAttackKind;
+  /** Optional: nexus tier row after enemy modifiers (up to 3) from formulas.csv. */
+  nexusEnemyRow?: NexusTierRowWithModifiers | null;
 }
 
 function StatRow({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
@@ -503,8 +571,15 @@ function SectionHeader({ label }: { label: string }) {
   );
 }
 
-export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocStatsPanelProps) {
-  const nexus = nexusTier != null ? getNexusTierRow(nexusTier) : undefined;
+export default function EocStatsPanel({
+  stats,
+  incomingDamage,
+  nexusTier,
+  incomingDamageType = "physical",
+  incomingAttackKind = "attack",
+  nexusEnemyRow,
+}: EocStatsPanelProps) {
+  const nexus = nexusEnemyRow ?? (nexusTier != null ? getNexusTierRow(nexusTier) : undefined);
   const enemyAccuracy = nexus?.accuracy ?? LEVEL_100_ENEMY_ACCURACY;
   const enemyEvasion = nexus?.evasion ?? LEVEL_100_ENEMY_EVASION;
   const flatFinalEv = stats.classBonusesActive.includes("mirage") ? 5 : 0;
@@ -514,29 +589,21 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
   const evasionVsSpells = computeEvasionChancePercent(enemyAccuracy, stats.evasionRating / 2, flatFinalEv);
   const hitChanceVsEnemy = computeHitChancePercent(stats.accuracy, enemyEvasion, 0);
 
-  // Armour DR by damage type
-  const drPhys = computeDamageReductionPercentFromArmour(stats.armour, incomingDamage, 0, 90);
-  const drEle = computeDamageReductionPercentFromArmour(
-    stats.armour * stats.armourVsElementalMultiplier,
-    incomingDamage,
-    0,
-    90
-  );
-  const drChaos = computeDamageReductionPercentFromArmour(
-    stats.armour * stats.armourVsChaosMultiplier,
-    incomingDamage,
-    0,
-    90
-  );
+  // Armour DR by damage type (formulas.csv: effectiveness per type; not the same as resistances)
+  const drPhys = armourDrPercentForPreview(stats, incomingDamage, "physical");
+  const drEleArmour = armourDrPercentForPreview(stats, incomingDamage, "fire");
+  const drChaosArmour = armourDrPercentForPreview(stats, incomingDamage, "chaos");
+
+  const drPrimary = armourDrPercentForPreview(stats, incomingDamage, incomingDamageType);
+  const postMitForPreview = postArmourAndResAfterHit(stats, incomingDamage, incomingDamageType, drPrimary);
 
   // Shock stats
   const shockChance = Math.min(100, stats.elementalAilmentChance + stats.shockInflictChanceBonus);
   const shockEffectInc = stats.nonDamagingAilmentEffectIncreasedPercent;
   const shockDuration = BASE_SHOCK_CHILL_DURATION_SEC * stats.ailmentDurationMultiplier;
 
-  // Ailment effect preview (post-mit)
-  const damageReductionForPreview = drPhys;
-  const postMit = incomingDamage * Math.max(0, 1 - damageReductionForPreview / 100);
+  // Ailment effect preview (post-mit) — uses selected incoming damage type + resist where applicable
+  const postMit = postMitForPreview;
   const shockEffectPreview = computeNonDamagingAilmentEffectPercent(
     postMit,
     stats.maxLife,
@@ -717,13 +784,22 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
           <BreakdownStatRow
             label="Armour"
             value={stats.armour}
-            sub={`(${drPhys.toFixed(0)}% phys, ${drEle.toFixed(0)}% ele, ${drChaos.toFixed(0)}% chaos)`}
+            sub={`DR ${drPhys.toFixed(0)}% phys · ${drEleArmour.toFixed(0)}% vs fire/cold/lightning · ${drChaosArmour.toFixed(0)}% vs chaos (armour effectiveness)`}
             breakdown={sb.armour}
+          />
+          <StatRow
+            label="Incoming hit (preview)"
+            value={`${incomingDamageType} (${incomingAttackKind})`}
+            sub={`armour DR ${drPrimary.toFixed(0)}% → ${postMit.toFixed(1)} after armour & res`}
           />
           <BreakdownStatRow
             label="Evasion rating"
             value={stats.evasionRating}
-            sub={`(${evasionVsAttacks.toFixed(0)}% atk, ${evasionVsSpells.toFixed(0)}% spell)`}
+            sub={
+              incomingAttackKind === "spell"
+                ? `(${evasionVsSpells.toFixed(0)}% evade vs spell hits)`
+                : `(${evasionVsAttacks.toFixed(0)}% evade vs attacks)`
+            }
             breakdown={sb.evasionRating}
           />
           <BreakdownStatRow label="Energy shield" value={stats.maxEnergyShield} breakdown={sb.maxEnergyShield} />
@@ -745,7 +821,10 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
             />
           )}
 
-          <SectionHeader label="Resistances" />
+          <SectionHeader label="Elemental resistances (fire / cold / lightning)" />
+          <p className="text-[10px] text-zinc-600 mb-1 -mt-0.5">
+            Chaos resistance is separate — elemental does not include chaos.
+          </p>
           <BreakdownStatRow
             label="Fire resistance"
             value={`${stats.fireRes > stats.maxFireRes ? stats.maxFireRes : stats.fireRes}%`}
@@ -764,6 +843,7 @@ export default function EocStatsPanel({ stats, incomingDamage, nexusTier }: EocS
             sub={stats.lightningRes > stats.maxLightningRes ? `(${stats.lightningRes}%)` : undefined}
             breakdown={sb.lightningRes}
           />
+          <SectionHeader label="Chaos resistance" />
           <BreakdownStatRow
             label="Chaos resistance"
             value={`${stats.chaosRes > stats.maxChaosRes ? stats.maxChaosRes : stats.chaosRes}%`}
