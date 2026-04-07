@@ -10,6 +10,8 @@ import {
   type EquippedEntry,
   type InventoryStack,
 } from "../data/equipment";
+import { EOC_UNIQUE_BY_ID, isUniqueItemId, maxEnhancementForUnique } from "../data/eocUniques";
+import { isCraftedEquipItemId } from "../data/eocBaseEquipment";
 
 export const EOC_BUILD_STORAGE_KEY = "eocCraftBuild";
 
@@ -193,8 +195,20 @@ function normalizeInventory(raw: unknown): InventoryStack[] {
       rolls = o.rolls.map((x) => Number(x)).filter((n) => !Number.isNaN(n));
     }
     const enhRaw = Math.floor(Number(o.enhancement));
-    const enhancement =
-      !Number.isNaN(enhRaw) && enhRaw > 0 ? Math.min(20, enhRaw) : undefined;
+    const enhancement = (() => {
+      if (Number.isNaN(enhRaw) || enhRaw <= 0) return undefined;
+      if (isUniqueItemId(itemId)) {
+        const def = EOC_UNIQUE_BY_ID[itemId];
+        // Same rationale as normalizeEquippedEntry: don't destroy saved values before uniques load.
+        if (!def) return Math.min(99, enhRaw);
+        const mx = maxEnhancementForUnique(def);
+        return Math.min(mx, enhRaw);
+      }
+      if (isCraftedEquipItemId(itemId)) {
+        return Math.min(10, enhRaw);
+      }
+      return Math.min(20, enhRaw);
+    })();
     // Crafted modifier fields
     let craftedPrefixes: import('../data/eocModifiers').AppliedModifier[] | undefined;
     let craftedSuffixes: import('../data/eocModifiers').AppliedModifier[] | undefined;

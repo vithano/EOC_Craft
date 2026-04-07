@@ -280,6 +280,8 @@ export default function BuildPlanner() {
           itemId: cur.itemId,
           rolls: rolls.length ? rolls : undefined,
           enhancement: enhancement > 0 ? enhancement : undefined,
+          craftedPrefixes: cur.craftedPrefixes,
+          craftedSuffixes: cur.craftedSuffixes,
         },
       };
     });

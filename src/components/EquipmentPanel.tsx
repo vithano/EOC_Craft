@@ -17,10 +17,12 @@ import {
   EOC_UNIQUE_BY_ID,
   defaultRollsForUnique,
   isUniqueItemId,
+  explicitEffectPctPerEnhancementTier,
   maxEnhancementForUnique,
   resolveUniqueMods,
   rollBoundsForUnique,
   rollLabelForIndex,
+  applyEnhancementToResolvedInnate,
   type EocUniqueDefinition,
   type UniqueModPiece,
 } from "../data/eocUniques";
@@ -31,14 +33,16 @@ import {
   localFlatDamageDisplayRange,
   type HitDamageTypeRow,
 } from "../data/damageTypes";
-import { equipmentModifiersFromUniqueTexts } from "../data/uniqueGearMods";
+import { equipmentModifiersFromUniqueTexts, applyExtraCraftedModPatterns } from "../data/uniqueGearMods";
 import {
   EOC_BASE_EQUIPMENT,
   getBaseEquipmentForSlot,
   type EocBaseEquipmentDefinition,
+  EOC_BASE_EQUIPMENT_BY_ID,
 } from "../data/eocBaseEquipment";
 import {
   EOC_MODIFIERS_BY_ID,
+  appliedModifiersToStatTexts,
   defaultRollsForModifier,
   formatModifierText,
   getModifiersForItemType,
@@ -294,7 +298,7 @@ export default function EquipmentPanel({
     const udef = isUniqueItemId(entry.itemId) ? EOC_UNIQUE_BY_ID[entry.itemId] : undefined;
     if (!udef) {
       setDetailRollTexts([]);
-      setDetailEnhancement(0);
+      setDetailEnhancement(entry.enhancement ?? 0);
       return;
     }
     const bounds = rollBoundsForUnique(udef);
@@ -354,7 +358,13 @@ export default function EquipmentPanel({
     const entry: EquippedEntry =
       effectiveDetail.kind === "equipped"
         ? effectiveDetail.entry
-        : { itemId: effectiveDetail.stack.itemId, rolls: effectiveDetail.stack.rolls, enhancement: effectiveDetail.stack.enhancement };
+        : {
+            itemId: effectiveDetail.stack.itemId,
+            rolls: effectiveDetail.stack.rolls,
+            enhancement: effectiveDetail.stack.enhancement,
+            craftedPrefixes: effectiveDetail.stack.craftedPrefixes,
+            craftedSuffixes: effectiveDetail.stack.craftedSuffixes,
+          };
     const itemId = entry.itemId;
     const item = getItemDefinition(slot, itemId);
     if (!item) return <p className="p-6 text-center font-serif text-sm text-[#8a7d6b]">Unknown item</p>;
@@ -366,6 +376,234 @@ export default function EquipmentPanel({
 
     // ── Non-unique fallback ───────────────────────────────────────────────────
     if (!udef) {
+      const craftedBase = isCraftedEquipItemId(itemId) ? (EOC_BASE_EQUIPMENT_BY_ID[itemId] ?? null) : null;
+      const craftedPrefixes = entry.craftedPrefixes ?? [];
+      const craftedSuffixes = entry.craftedSuffixes ?? [];
+      const craftedTexts = craftedBase ? appliedModifiersToStatTexts(craftedPrefixes, craftedSuffixes) : [];
+      const craftedPatch = craftedBase
+        ? (() => {
+            const p = equipmentModifiersFromUniqueTexts(craftedTexts, { isWeapon: slot === "Weapon" });
+            applyExtraCraftedModPatterns(p, craftedTexts);
+            return p;
+          })()
+        : null;
+
+      const craftedBaseStatRows: { label: string; value: string }[] = [];
+      let craftedWeaponDamageByType: HitDamageTypeRow[] = [];
+      if (craftedBase && craftedPatch) {
+        const isWeapon = slot === "Weapon";
+        if (isWeapon) {
+          if (craftedBase.baseDamageMin != null && craftedBase.baseDamageMax != null) {
+            const localPct = craftedPatch.localIncreasedPhysDamagePct ?? 0;
+            const flatMin = (craftedPatch.flatDamageMin ?? 0) * 2;
+            const flatMax = craftedPatch.flatDamageMax ?? 0;
+            const effMin = Math.round(craftedBase.baseDamageMin * (1 + localPct / 100) + flatMin);
+            const effMax = Math.round(craftedBase.baseDamageMax * (1 + localPct / 100) + flatMax);
+            const fireR = localFlatDamageDisplayRange(craftedPatch.flatFireMin ?? 0, craftedPatch.flatFireMax ?? 0);
+            const coldR = localFlatDamageDisplayRange(craftedPatch.flatColdMin ?? 0, craftedPatch.flatColdMax ?? 0);
+            const lightningR = localFlatDamageDisplayRange(
+              craftedPatch.flatLightningMin ?? 0,
+              craftedPatch.flatLightningMax ?? 0
+            );
+            const chaosR = localFlatDamageDisplayRange(craftedPatch.flatChaosMin ?? 0, craftedPatch.flatChaosMax ?? 0);
+            craftedWeaponDamageByType = buildHitDamageByType([
+              { type: "physical", min: effMin, max: effMax },
+              { type: "fire", min: fireR.min, max: fireR.max },
+              { type: "cold", min: coldR.min, max: coldR.max },
+              { type: "lightning", min: lightningR.min, max: lightningR.max },
+              { type: "chaos", min: chaosR.min, max: chaosR.max },
+            ]);
+          }
+          if (craftedBase.baseCritChance != null) {
+            const localCrit = craftedPatch.critChanceBonus ?? 0;
+            craftedBaseStatRows.push({ label: "Base Critical Hit Chance", value: `${(craftedBase.baseCritChance + localCrit).toFixed(0)}%` });
+          }
+          if (craftedBase.baseAttackSpeed != null) {
+            const localApsPct = craftedPatch.localIncreasedApsPct ?? 0;
+            craftedBaseStatRows.push({ label: "Attack Speed", value: (craftedBase.baseAttackSpeed * (1 + localApsPct / 100)).toFixed(2) });
+          }
+        } else {
+          const localDefPct = craftedPatch.localIncreasedDefencesPct ?? 0;
+          if (craftedBase.baseArmour != null)
+            craftedBaseStatRows.push({ label: "Armour", value: String(Math.round(craftedBase.baseArmour * (1 + localDefPct / 100))) });
+          if (craftedBase.baseEvasion != null)
+            craftedBaseStatRows.push({ label: "Evasion Rating", value: String(Math.round(craftedBase.baseEvasion * (1 + localDefPct / 100))) });
+          if (craftedBase.baseEnergyShield != null)
+            craftedBaseStatRows.push({ label: "Energy Shield", value: String(Math.round(craftedBase.baseEnergyShield * (1 + localDefPct / 100))) });
+          if (craftedBase.baseBlockChance != null) {
+            const block =
+              craftedBase.baseBlockChance * (1 + (craftedPatch.localIncreasedBlockPct ?? 0) / 100) +
+              (craftedPatch.flatBlockChanceFromGear ?? 0);
+            craftedBaseStatRows.push({ label: "Chance to Block", value: `${block.toFixed(0)}%` });
+          }
+        }
+      }
+
+      // ── Crafted item: render in the same tooltip style as uniques ────────────
+      if (craftedBase) {
+        const craftedEnhMax = 10;
+        const craftedEnh = Math.max(0, Math.min(craftedEnhMax, Math.floor(detailEnhancement || 0)));
+        const craftedInnateResolved = craftedBase.innate
+          ? applyEnhancementToResolvedInnate(craftedBase.innate, craftedBase.enhancementBonusPerLevel ?? 0, craftedEnh)
+          : "";
+
+        const reqParts: string[] = [`Level ${craftedBase.reqLevel}`];
+        if (craftedBase.reqStr != null) reqParts.push(`${craftedBase.reqStr} Str`);
+        if (craftedBase.reqDex != null) reqParts.push(`${craftedBase.reqDex} Dex`);
+        if (craftedBase.reqInt != null) reqParts.push(`${craftedBase.reqInt} Int`);
+
+        const typeLabel = `${craftedBase.twoHanded ? "Two-Handed " : ""}${craftedBase.itemType}`;
+
+        const Divider = () => (
+          <div className="relative my-1 flex items-center px-4">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#6b4e1a] to-[#6b4e1a]" />
+            <div className="mx-1.5 h-1.5 w-1.5 rotate-45 bg-[#c9a227]/70" />
+            <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[#6b4e1a] to-[#6b4e1a]" />
+          </div>
+        );
+
+        const modLines: { kind: "PREFIX" | "SUFFIX"; text: string }[] = [
+          ...craftedPrefixes.flatMap((am) => {
+            const def = EOC_MODIFIERS_BY_ID[am.modifierId];
+            if (!def) return [];
+            return [{ kind: "PREFIX" as const, text: formatModifierText(def, am.roll1, am.roll2) }];
+          }),
+          ...craftedSuffixes.flatMap((am) => {
+            const def = EOC_MODIFIERS_BY_ID[am.modifierId];
+            if (!def) return [];
+            return [{ kind: "SUFFIX" as const, text: formatModifierText(def, am.roll1, am.roll2) }];
+          }),
+        ].filter((x) => x.text.trim());
+
+        return (
+          <div className="flex h-full max-h-[min(80vh,640px)] flex-col overflow-y-auto bg-[#0a0805] text-center font-serif">
+            {/* ── Header ── */}
+            <div className="px-4 pb-3 pt-4">
+              <div className="relative mb-1 flex items-start justify-between">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-[#7a5c20] bg-[#1a1008] text-sm font-bold text-[#c9a870]">
+                  {craftedBase.reqLevel}
+                </div>
+                <h3 className={`flex-1 px-2 font-serif text-xl font-bold uppercase tracking-widest ${rarityTone.rare}`}>
+                  {craftedBase.name}
+                </h3>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center">
+                  <EquippedItemIcon slot={slot} itemId={itemId} />
+                </div>
+              </div>
+
+              <p className="text-[11px] uppercase tracking-widest text-[#7a6b5a]">
+                Crafted {typeLabel}
+              </p>
+
+              {craftedWeaponDamageByType.length > 0 && (
+                <div className="mt-2 space-y-0.5">
+                  {craftedWeaponDamageByType.map((row) => (
+                    <p key={row.type} className="text-sm">
+                      <span className="text-[#9a8b78]">{HIT_DAMAGE_TYPE_LABEL[row.type]}: </span>
+                      <span className={`font-bold ${HIT_DAMAGE_TYPE_COLOR_CLASS[row.type]}`}>
+                        {row.min}–{row.max}
+                      </span>
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {craftedBaseStatRows.length > 0 && (
+                <div className="mt-2 space-y-0.5">
+                  {craftedBaseStatRows.map(({ label, value }) => (
+                    <p key={label} className="text-sm">
+                      <span className="text-[#9a8b78]">{label}: </span>
+                      <span className="font-bold text-[#d4af37]">{value}</span>
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              <p className="mt-2 text-[11px] text-[#5c5040]">Requires {reqParts.join(", ")}</p>
+
+              {/* Enhancement slider (crafted items cap at 10) */}
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <span className="text-[10px] uppercase tracking-wider text-[#6b5f50]">
+                  Enhancement +{craftedBase.enhancementBonusPerLevel}%/lvl
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={craftedEnhMax}
+                  value={craftedEnh}
+                  className="h-1 w-28 cursor-pointer accent-[#c9a227]"
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value, 10);
+                    setDetailEnhancement(Number.isNaN(n) ? 0 : Math.min(craftedEnhMax, Math.max(0, n)));
+                  }}
+                />
+                <span className="w-6 text-xs font-bold text-[#c9a870]">+{craftedEnh}</span>
+              </div>
+            </div>
+
+            <Divider />
+
+            {/* ── Innate/implicit ── */}
+            {craftedInnateResolved.trim() && (
+              <div className="px-6 py-2 text-sm font-semibold uppercase tracking-wide text-[#c9a227]">
+                {craftedInnateResolved}
+              </div>
+            )}
+
+            {/* ── Crafted modifiers ── */}
+            {modLines.map((m, i) => (
+              <div key={`${m.kind}_${i}`}>
+                <Divider />
+                <div className="px-4 py-1.5">
+                  <p className="mb-0.5 text-[9px] uppercase tracking-widest text-[#5c5040]">
+                    CRAFTED · {m.kind}
+                  </p>
+                  <p className="text-sm font-semibold uppercase tracking-wide text-[#e8dcc8]">
+                    {m.text}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {/* ── Action buttons ── */}
+            <div className="mt-3 flex flex-col gap-2 px-4 pb-5">
+              {effectiveDetail.kind === "inventory" && (
+                <>
+                  <button
+                    type="button"
+                    className={brassBtn}
+                    onClick={() => onEquipStack(effectiveDetail.stack.id, { enhancement: craftedEnh })}
+                  >
+                    Equip
+                  </button>
+                  <button
+                    type="button"
+                    className={mutedBtn}
+                    onClick={() => onUpdateInventoryStack(effectiveDetail.stack.id, [], craftedEnh)}
+                  >
+                    Update bag
+                  </button>
+                </>
+              )}
+              {effectiveDetail.kind === "equipped" && (
+                <>
+                  <button
+                    type="button"
+                    className={mutedBtn}
+                    onClick={() => onUpdateEquippedSlot(effectiveDetail.slot, [], craftedEnh)}
+                  >
+                    Apply worn
+                  </button>
+                  <button type="button" className={brassBtn} onClick={() => onUnequipSlot(effectiveDetail.slot)}>
+                    Unequip
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="flex h-full max-h-[min(70vh,520px)] flex-col items-center gap-3 overflow-y-auto px-4 py-5 text-center">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-sm border border-[#5c4d3d] bg-[#0d0a08]">
@@ -454,33 +692,52 @@ export default function EquipmentPanel({
 
     // Inline piece renderer — ranges become editable inputs, rollIdx shared across all sections
     const rollIdx = { i: 0 };
-    const renderPieces = (pieces: UniqueModPiece[]) =>
+    const renderPieces = (
+      pieces: UniqueModPiece[],
+      opts?: { scaleRollsBy?: number; showScaledInBrackets?: boolean }
+    ) =>
       pieces.map((p, pi) => {
         if (typeof p === "string") return <span key={pi}>{p}</span>;
         const ri = rollIdx.i++;
         const lo = Math.min(p.min, p.max);
         const hi = Math.max(p.min, p.max);
         const cur = detailRollTexts[ri] ?? String(Math.round((lo + hi) / 2));
+        const baseNum = (() => {
+          const t = (cur ?? "").trim();
+          const parsed = ["", "-", ".", "-."].includes(t) ? NaN : Number(t);
+          const v = Number.isFinite(parsed) ? parsed : (lo + hi) / 2;
+          return Math.min(hi, Math.max(lo, v));
+        })();
+        const scaled =
+          opts?.scaleRollsBy && opts.scaleRollsBy !== 1
+            ? Math.floor(baseNum * opts.scaleRollsBy)
+            : baseNum;
         return (
-          <input
-            key={pi}
-            type="text"
-            inputMode="decimal"
-            value={cur}
-            style={{ width: `${Math.max(2, cur.replace("-", "").length + (cur.startsWith("-") ? 1.5 : 0.5))}ch` }}
-            className="inline-block bg-transparent text-center text-[#c9a227] underline decoration-dotted outline-none focus:decoration-solid"
-            onChange={(e) => {
-              const val = e.target.value;
-              setDetailRollTexts((prev) => { const n = [...prev]; while (n.length <= ri) n.push(""); n[ri] = val; return n; });
-            }}
-            onBlur={(e) => {
-              const t = e.target.value.trim();
-              const parsed = ["", "-", ".", "-."].includes(t) ? NaN : Number(t);
-              const v = Number.isFinite(parsed) ? parsed : (lo + hi) / 2;
-              const c = String(Math.min(hi, Math.max(lo, v)));
-              setDetailRollTexts((prev) => { const n = [...prev]; while (n.length <= ri) n.push(""); n[ri] = c; return n; });
-            }}
-          />
+          <span key={pi} className="inline-flex items-baseline gap-1">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={cur}
+              style={{ width: `${Math.max(2, cur.replace("-", "").length + (cur.startsWith("-") ? 1.5 : 0.5))}ch` }}
+              className="inline-block bg-transparent text-center text-[#c9a227] underline decoration-dotted outline-none focus:decoration-solid"
+              onChange={(e) => {
+                const val = e.target.value;
+                setDetailRollTexts((prev) => { const n = [...prev]; while (n.length <= ri) n.push(""); n[ri] = val; return n; });
+              }}
+              onBlur={(e) => {
+                const t = e.target.value.trim();
+                const parsed = ["", "-", ".", "-."].includes(t) ? NaN : Number(t);
+                const v = Number.isFinite(parsed) ? parsed : (lo + hi) / 2;
+                const c = String(Math.min(hi, Math.max(lo, v)));
+                setDetailRollTexts((prev) => { const n = [...prev]; while (n.length <= ri) n.push(""); n[ri] = c; return n; });
+              }}
+            />
+            {opts?.showScaledInBrackets && Math.abs(scaled - baseNum) > 1e-6 && (
+              <span className="text-[#9a8b78]">
+                ({scaled})
+              </span>
+            )}
+          </span>
         );
       });
 
@@ -508,6 +765,10 @@ export default function EquipmentPanel({
         <div className="h-px flex-1 bg-gradient-to-l from-transparent via-[#6b4e1a] to-[#6b4e1a]" />
       </div>
     );
+
+    const explicitPctPerTier = explicitEffectPctPerEnhancementTier(udef);
+    const explicitMult =
+      explicitPctPerTier !== 0 ? 1 + (detailEnhancement * explicitPctPerTier) / 100 : 1;
 
     return (
       <div className="flex h-full max-h-[min(80vh,640px)] flex-col overflow-y-auto bg-[#0a0805] text-center">
@@ -594,7 +855,19 @@ export default function EquipmentPanel({
                 {lineSubLabel(line)}
               </p>
               <p className="text-sm font-semibold uppercase tracking-wide text-[#e8dcc8]">
-                {renderPieces(line)}
+                {(() => {
+                  const asText = line
+                    .filter((p): p is string => typeof p === "string")
+                    .join("")
+                    .toLowerCase();
+                  const isEnhInfo =
+                    asText.includes("enhancement tier") ||
+                    asText.includes("increased effect of other explicit modifiers on this item per enhancement tier");
+                  return renderPieces(line, {
+                    scaleRollsBy: !isEnhInfo ? explicitMult : 1,
+                    showScaledInBrackets: !isEnhInfo && explicitMult !== 1,
+                  });
+                })()}
               </p>
             </div>
           </div>

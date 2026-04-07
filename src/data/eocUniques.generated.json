@@ -185,8 +185,8 @@
     "reqStr": 44,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "1.30%",
-    "enhancementBonusPerLevel": 1.3,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
     "maxEnhancement": 10,
     "twoHanded": true,
     "rollLabels": [],
@@ -762,7 +762,7 @@
         " local cold damage"
       ],
       [
-        "4% increased strikes per attack with strike abilities per 10 dexterity"
+        "3% increased strikes per attack with strike abilities per 10 dexterity"
       ]
     ],
     "baseDamageMin": 64.0,
@@ -1290,7 +1290,7 @@
     "reqStr": null,
     "reqDex": 12,
     "reqInt": 12,
-    "enhancementBonus": "+0.6",
+    "enhancementBonus": "0.6",
     "enhancementBonusPerLevel": 0.6,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -1337,7 +1337,7 @@
     "reqStr": null,
     "reqDex": 45,
     "reqInt": 45,
-    "enhancementBonus": "+0.9",
+    "enhancementBonus": "0.9",
     "enhancementBonusPerLevel": 0.9,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -1520,8 +1520,8 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": 44,
-    "enhancementBonus": "1.30%",
-    "enhancementBonusPerLevel": 1.3,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
     "maxEnhancement": 10,
     "twoHanded": false,
     "rollLabels": [
@@ -1753,7 +1753,7 @@
       "Value% increased mana cost of abilities"
     ],
     "innate": [
-      "16 increased mana"
+      "16% increased mana"
     ],
     "lines": [
       [
@@ -2842,7 +2842,7 @@
     "reqStr": 70,
     "reqDex": 70,
     "reqInt": null,
-    "enhancementBonus": "+4",
+    "enhancementBonus": "4",
     "enhancementBonusPerLevel": 4.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -3271,6 +3271,70 @@
     "baseArmour": null,
     "baseEvasion": 11,
     "baseEnergyShield": 5,
+    "baseBlockChance": null
+  },
+  {
+    "id": "unique_the_gilden_apex",
+    "name": "The Gilden Apex",
+    "slot": "Helmet",
+    "itemType": "Helmet",
+    "reqLevel": 28,
+    "reqStr": 26,
+    "reqDex": null,
+    "reqInt": 26,
+    "enhancementBonus": "0.60%",
+    "enhancementBonusPerLevel": 0.6,
+    "maxEnhancement": 40,
+    "twoHanded": false,
+    "rollLabels": [
+      "+ to all attributes",
+      "+ % to chaos resistance",
+      "Value% increased item rarity"
+    ],
+    "innate": [
+      "+6% to all elemental resistances"
+    ],
+    "lines": [
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 20.0
+        },
+        " to all attributes"
+      ],
+      [
+        "+",
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 10.0
+        },
+        "% to chaos resistance"
+      ],
+      [
+        {
+          "type": "range",
+          "min": 1.0,
+          "max": 10.0
+        },
+        "% increased item rarity"
+      ],
+      [
+        "can be enhanced up to enhancement tier 40"
+      ],
+      [
+        "10% increased effect of other explicit modifiers on this item per enhancement tier"
+      ]
+    ],
+    "baseDamageMin": null,
+    "baseDamageMax": null,
+    "baseCritChance": null,
+    "baseAttackSpeed": null,
+    "baseArmour": 57,
+    "baseEvasion": null,
+    "baseEnergyShield": 28,
     "baseBlockChance": null
   },
   {
@@ -4592,7 +4656,7 @@
     "reqStr": 20,
     "reqDex": 20,
     "reqInt": null,
-    "enhancementBonus": "+3",
+    "enhancementBonus": "3",
     "enhancementBonusPerLevel": 3.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -5003,7 +5067,7 @@
     "reqStr": 12,
     "reqDex": 12,
     "reqInt": null,
-    "enhancementBonus": "+2",
+    "enhancementBonus": "2",
     "enhancementBonusPerLevel": 2.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -5429,7 +5493,7 @@
     "reqStr": 61,
     "reqDex": 61,
     "reqInt": null,
-    "enhancementBonus": "+4",
+    "enhancementBonus": "4",
     "enhancementBonusPerLevel": 4.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -5664,7 +5728,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+1",
+    "enhancementBonus": "1",
     "enhancementBonusPerLevel": 1.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -5731,7 +5795,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+2",
+    "enhancementBonus": "2",
     "enhancementBonusPerLevel": 2.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -5785,7 +5849,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+2",
+    "enhancementBonus": "2",
     "enhancementBonusPerLevel": 2.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -5853,7 +5917,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+2",
+    "enhancementBonus": "2",
     "enhancementBonusPerLevel": 2.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -5913,7 +5977,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+3",
+    "enhancementBonus": "3",
     "enhancementBonusPerLevel": 3.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -5966,7 +6030,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+3",
+    "enhancementBonus": "3",
     "enhancementBonusPerLevel": 3.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -6026,7 +6090,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+3",
+    "enhancementBonus": "3",
     "enhancementBonusPerLevel": 3.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -6080,7 +6144,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+3",
+    "enhancementBonus": "3",
     "enhancementBonusPerLevel": 3.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -6127,7 +6191,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+2",
+    "enhancementBonus": "2",
     "enhancementBonusPerLevel": 2.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -6177,7 +6241,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+4",
+    "enhancementBonus": "4",
     "enhancementBonusPerLevel": 4.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -6230,7 +6294,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+2",
+    "enhancementBonus": "2",
     "enhancementBonusPerLevel": 2.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -6290,7 +6354,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+2",
+    "enhancementBonus": "2",
     "enhancementBonusPerLevel": 2.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -6426,7 +6490,7 @@
       "+ to all attributes"
     ],
     "innate": [
-      "16% increased mana regen"
+      "16% increased mana regeneration"
     ],
     "lines": [
       [
@@ -6516,7 +6580,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+16",
+    "enhancementBonus": "16",
     "enhancementBonusPerLevel": 16.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -7044,7 +7108,7 @@
     "maxEnhancement": 10,
     "twoHanded": false,
     "rollLabels": [
-      "increased elemental damage"
+      "Value% increased elemental damage"
     ],
     "innate": [
       "24% increased critical hit chance"
@@ -7056,7 +7120,7 @@
           "min": 20.0,
           "max": 50.0
         },
-        " increased elemental damage"
+        "% increased elemental damage"
       ],
       [
         "Convert 33% of your physical damage to lightning damage"
@@ -7086,7 +7150,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+24",
+    "enhancementBonus": "24",
     "enhancementBonusPerLevel": 24.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -7214,7 +7278,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+24",
+    "enhancementBonus": "24",
     "enhancementBonusPerLevel": 24.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -7450,7 +7514,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+2",
+    "enhancementBonus": "2",
     "enhancementBonusPerLevel": 2.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -7563,7 +7627,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+4",
+    "enhancementBonus": "4",
     "enhancementBonusPerLevel": 4.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -7696,7 +7760,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+4",
+    "enhancementBonus": "4",
     "enhancementBonusPerLevel": 4.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -7756,7 +7820,7 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "+4",
+    "enhancementBonus": "4",
     "enhancementBonusPerLevel": 4.0,
     "maxEnhancement": 10,
     "twoHanded": false,
@@ -7920,8 +7984,8 @@
     "reqStr": null,
     "reqDex": null,
     "reqInt": null,
-    "enhancementBonus": "1.30%",
-    "enhancementBonusPerLevel": 1.3,
+    "enhancementBonus": "1.20%",
+    "enhancementBonusPerLevel": 1.2,
     "maxEnhancement": 10,
     "twoHanded": false,
     "rollLabels": [

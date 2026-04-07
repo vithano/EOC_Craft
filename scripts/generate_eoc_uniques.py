@@ -67,6 +67,8 @@ TWO_HANDED_TYPES = frozenset(
     {"Warhammer", "Greatsword", "Bow", "Magestaff", "Battlestaff"}
 )
 
+ENH_TIER_RE = re.compile(r"enhancement\s*tier\s*(\d+)", re.IGNORECASE)
+
 
 def parse_enhancement_percent(s: str) -> float:
     t = (s or "").strip().replace("%", "").strip()
@@ -153,10 +155,21 @@ def main() -> None:
         slot = game_slot(row["Item Slot"], row["Item Type"])
         slug = slugify(row["Name"])
         uid = f"unique_{slug}"
-        innate = parse_pieces(row.get("Innate Stat") or "")
+        innate_raw = row.get("Innate Stat") or ""
+        innate = parse_pieces(innate_raw)
         line_cols = [row.get(f"Line {i}") or "" for i in range(1, 7)]
         lines = [parse_pieces(lc) for lc in line_cols if (lc or "").strip()]
         itype = row["Item Type"].strip()
+
+        max_enh = 10
+        for t in [innate_raw, *line_cols]:
+            m = ENH_TIER_RE.search(t or "")
+            if m:
+                try:
+                    max_enh = max(0, int(m.group(1)))
+                    break
+                except ValueError:
+                    pass
 
         # Base stats
         dmg_min, dmg_max = parse_phys_damage(row.get("physical damage") or "")
@@ -180,7 +193,7 @@ def main() -> None:
             "enhancementBonusPerLevel": parse_enhancement_percent(
                 row.get("Enhancement Bonus") or ""
             ),
-            "maxEnhancement": 10,
+            "maxEnhancement": max_enh,
             "twoHanded": itype in TWO_HANDED_TYPES,
             "rollLabels": collect_roll_labels(innate, lines),
             "innate": innate,

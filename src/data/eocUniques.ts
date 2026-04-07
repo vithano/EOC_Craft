@@ -51,7 +51,8 @@ export function isUniqueItemId(itemId: string): boolean {
 
 export function maxEnhancementForUnique(def: EocUniqueDefinition): number {
   const m = def.maxEnhancement;
-  return typeof m === "number" && m >= 0 ? Math.min(20, Math.floor(m)) : 10;
+  // Keep this bounded to avoid UI/pathological values, but allow items like "The Gilden Apex" (tier 40).
+  return typeof m === "number" && m >= 0 ? Math.min(99, Math.floor(m)) : 10;
 }
 
 export function countUniqueRollSlots(def: EocUniqueDefinition): number {
@@ -100,9 +101,11 @@ function formatRollValue(v: number): string {
 function resolvePieces(
   pieces: UniqueModPiece[],
   rolls: number[],
-  rollIndex: { i: number }
+  rollIndex: { i: number },
+  opts?: { scaleRollsBy?: number }
 ): string {
   let out = "";
+  const mult = opts?.scaleRollsBy ?? 1;
   for (const p of pieces) {
     if (typeof p === "string") {
       out += p;
@@ -110,13 +113,28 @@ function resolvePieces(
     }
     const idx = rollIndex.i++;
     const raw = rolls[idx];
-    const chosen =
+    let chosen =
       raw !== undefined && !Number.isNaN(raw)
         ? clampRoll(raw, p.min, p.max)
         : clampRoll((p.min + p.max) / 2, p.min, p.max);
+    if (mult !== 1) chosen = Math.floor(chosen * mult);
     out += formatRollValue(chosen);
   }
   return out;
+}
+
+export function explicitEffectPctPerEnhancementTier(def: EocUniqueDefinition): number {
+  // e.g. "10% increased effect of other explicit modifiers on this item per enhancement tier"
+  const text = def.lines
+    .flatMap((ln) => ln)
+    .filter((p): p is string => typeof p === "string")
+    .join(" ");
+  const m = text.match(
+    /(\d+(?:\.\d+)?)\s*%\s*increased effect of other explicit modifiers on this item per enhancement tier/i
+  );
+  if (!m) return 0;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : 0;
 }
 
 /**
@@ -186,9 +204,23 @@ export function resolveUniqueMods(
 } {
   const r = rolls?.length ? [...rolls] : defaultRollsForUnique(def);
   const idx = { i: 0 };
-  let innateText = resolvePieces(def.innate, r, idx);
-  const lineTexts = def.lines.map((ln) => resolvePieces(ln, r, idx));
   const en = Math.max(0, Math.min(maxEnhancementForUnique(def), Math.floor(enhancementLevel)));
+
+  // Some uniques (e.g. The Gilden Apex) scale their explicit modifiers per enhancement tier.
+  const explicitPctPerTier = explicitEffectPctPerEnhancementTier(def);
+  const explicitMult = explicitPctPerTier !== 0 ? 1 + (en * explicitPctPerTier) / 100 : 1;
+
+  let innateText = resolvePieces(def.innate, r, idx);
+  const lineTexts = def.lines.map((ln) => {
+    const asText = ln
+      .filter((p): p is string => typeof p === "string")
+      .join("")
+      .toLowerCase();
+    const isEnhInfo =
+      asText.includes("enhancement tier") ||
+      asText.includes("increased effect of other explicit modifiers on this item per enhancement tier");
+    return resolvePieces(ln, r, idx, isEnhInfo ? undefined : { scaleRollsBy: explicitMult });
+  });
   innateText = applyEnhancementToResolvedInnate(
     innateText,
     def.enhancementBonusPerLevel ?? 0,

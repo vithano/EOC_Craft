@@ -81,6 +81,7 @@ function col(row: string[], map: Map<string, number>, key: string): string {
 
 const RANGE_RE = /\(\s*(-?\d+(?:\.\d+)?)\s*%?\s+to\s+(-?\d+(?:\.\d+)?)\s*%?\s*\)/gi;
 const DASH_RANGE_RE = /^(-?\d+(?:\.\d+)?)\s*-\s*(-?\d+(?:\.\d+)?)$/;
+const ENH_TIER_RE = /enhancement\s*tier\s*(\d+)/i;
 
 const TWO_HANDED_TYPES = new Set([
   'Warhammer', 'Greatsword', 'Bow', 'Magestaff', 'Battlestaff',
@@ -207,15 +208,33 @@ export function parseUniquesCSV(csv: string): EocUniqueDefinition[] {
       continue; // skip unknown slots
     }
 
-    const innate = parsePieces(col(row, hdr, 'Innate Stat'));
+    const innateRaw = col(row, hdr, 'Innate Stat');
+    const innate = parsePieces(innateRaw);
     const lines: UniqueModPiece[][] = [];
+    const lineRaws: string[] = [];
     for (let i = 1; i <= 6; i++) {
       const lc = col(row, hdr, `Line ${i}`);
-      if (lc) lines.push(parsePieces(lc));
+      if (lc) {
+        lineRaws.push(lc);
+        lines.push(parsePieces(lc));
+      }
     }
 
     const [dmgMin, dmgMax] = parsePhysDamage(col(row, hdr, 'physical damage'));
     const enhBonus = col(row, hdr, 'Enhancement Bonus');
+    const maxEnhancement = (() => {
+      // Default enhancement cap is 10 unless an explicit tier is present in the text.
+      // e.g. "can be enhanced up to enhancement tier 40"
+      const texts = [innateRaw, ...lineRaws].filter(Boolean);
+      for (const t of texts) {
+        const m = t.match(ENH_TIER_RE);
+        if (m) {
+          const n = parseInt(m[1], 10);
+          if (!isNaN(n) && n >= 0) return n;
+        }
+      }
+      return 10;
+    })();
 
     uniques.push({
       id: `unique_${slugify(name)}`,
@@ -228,7 +247,7 @@ export function parseUniquesCSV(csv: string): EocUniqueDefinition[] {
       reqInt: toIntMaybe(col(row, hdr, 'Required Intelligence')),
       enhancementBonus: enhBonus,
       enhancementBonusPerLevel: parseEnhancementPercent(enhBonus),
-      maxEnhancement: 10,
+      maxEnhancement,
       twoHanded: TWO_HANDED_TYPES.has(itemType),
       rollLabels: collectRollLabels(innate, lines),
       innate,

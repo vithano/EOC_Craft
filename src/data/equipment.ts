@@ -1,4 +1,4 @@
-import { EOC_UNIQUE_BY_ID, EOC_UNIQUE_DEFINITIONS, isUniqueItemId } from './eocUniques';
+import { EOC_UNIQUE_BY_ID, EOC_UNIQUE_DEFINITIONS, isUniqueItemId, maxEnhancementForUnique } from './eocUniques';
 import { EOC_BASE_EQUIPMENT_BY_ID, isCraftedEquipItemId } from './eocBaseEquipment';
 export { isCraftedEquipItemId } from './eocBaseEquipment';
 export type { AppliedModifier } from './eocModifiers';
@@ -90,7 +90,26 @@ export function weaponUsesBothHands(itemId: string): boolean {
 }
 
 export function getItemDefinition(slot: string, itemId: string): EquipmentItem | undefined {
-  return getEquipmentItemsMap()[slot]?.find((i) => i.id === itemId);
+  // Uniques + "none" live in the cached map.
+  const fromMap = getEquipmentItemsMap()[slot]?.find((i) => i.id === itemId);
+  if (fromMap) return fromMap;
+
+  // Crafted/base equipment items are not in the map (they come from the Equipment sheet).
+  if (isCraftedEquipItemId(itemId)) {
+    const base = EOC_BASE_EQUIPMENT_BY_ID[itemId];
+    if (!base) return undefined;
+    // Keep this minimal: name + slot + icon rendering + fallback display.
+    // Detailed crafted modifier text is handled elsewhere (stats panel / crafted mod formatting).
+    return {
+      id: base.id,
+      name: base.name,
+      rarity: "rare",
+      modifiers: {},
+      twoHanded: base.twoHanded,
+    };
+  }
+
+  return undefined;
 }
 
 /** Worn item: base id or unique id; rolls apply to uniques with variable modifiers. */
@@ -105,9 +124,20 @@ export interface EquippedEntry {
   craftedSuffixes?: import('./eocModifiers').AppliedModifier[];
 }
 
-function clampEnhancement(n: unknown): number | undefined {
+function clampEnhancement(itemId: string, n: unknown): number | undefined {
   const v = Math.floor(Number(n));
   if (Number.isNaN(v) || v < 0) return undefined;
+  if (isUniqueItemId(itemId)) {
+    const def = EOC_UNIQUE_BY_ID[itemId];
+    // Important: on first page load, uniques may not be populated yet (sheet fetch is async).
+    // If we clamp to 10 in that window, we permanently lose saved enhancement values like 40.
+    if (!def) return Math.min(99, v);
+    const mx = maxEnhancementForUnique(def);
+    return Math.min(mx, v);
+  }
+  if (isCraftedEquipItemId(itemId)) {
+    return Math.min(10, v);
+  }
   return Math.min(20, v);
 }
 
@@ -137,7 +167,7 @@ export function normalizeEquippedEntry(raw: unknown): EquippedEntry {
     if (Array.isArray(o.rolls) && o.rolls.length > 0) {
       rolls = o.rolls.map((x) => Number(x)).filter((n) => !Number.isNaN(n));
     }
-    const enhancement = clampEnhancement(o.enhancement);
+    const enhancement = clampEnhancement(itemId, o.enhancement);
     return {
       itemId,
       rolls: rolls?.length ? rolls : undefined,
