@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "generate:uniques": "python3 scripts/generate_eoc_uniques.py",
-    "generate:abilities": "python3 scripts/generate_eoc_abilities.py"
+    "generate:abilities": "python3 scripts/generate_eoc_abilities.py",
+    "audit:uniques": "tsx scripts/audit_unique_mods.ts",
+    "test": "npm run audit:uniques",
+    "check": "npm run build && npm run audit:uniques"
   },
   "dependencies": {
     "next": "16.2.2",
@@ -23,6 +26,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
+    "tsx": "^4",
     "typescript": "^5"
   }
 }

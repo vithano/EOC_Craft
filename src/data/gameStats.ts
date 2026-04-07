@@ -589,6 +589,13 @@ export interface EquipmentModifiers {
   /** Sum of X in “X% increased damage per 10 combined strength, dexterity, and intelligence”. */
   damageIncPctPer10CombinedAttrsFromGear: number
   manaCostPaidWithLifeFromGear: boolean
+
+  increasedItemRarityFromGear: number
+  increasedItemQuantityFromGear: number
+  critIncPctPerItemRarityPctFromGear: number
+  critMultiPctPerItemQuantityPctFromGear: number
+  additionalAbilityLevelsAllFromGear: number
+  additionalAbilityLevelsColdFromGear: number
 }
 
 export interface ComputedBuildStats {
@@ -628,6 +635,8 @@ export interface ComputedBuildStats {
   accuracy: number
   critChance: number    // percentage
   critMultiplier: number // 2.0 = 200%
+  itemRarityPercent: number
+  itemQuantityPercent: number
   avgHit: number
   avgEffectiveDamage: number
   dps: number
@@ -950,6 +959,12 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     rangedDamageIncPctPer10StrFromGear: 0,
     damageIncPctPer10CombinedAttrsFromGear: 0,
     manaCostPaidWithLifeFromGear: false,
+    increasedItemRarityFromGear: 0,
+    increasedItemQuantityFromGear: 0,
+    critIncPctPerItemRarityPctFromGear: 0,
+    critMultiPctPerItemQuantityPctFromGear: 0,
+    additionalAbilityLevelsAllFromGear: 0,
+    additionalAbilityLevelsColdFromGear: 0,
   }
 }
 
@@ -1337,6 +1352,20 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
     addNum('damageIncPctPer10CombinedAttrsFromGear', p.damageIncPctPer10CombinedAttrsFromGear)
   }
   if (p.manaCostPaidWithLifeFromGear) eq.manaCostPaidWithLifeFromGear = true
+  if (p.increasedItemRarityFromGear !== undefined) addNum('increasedItemRarityFromGear', p.increasedItemRarityFromGear)
+  if (p.increasedItemQuantityFromGear !== undefined) addNum('increasedItemQuantityFromGear', p.increasedItemQuantityFromGear)
+  if (p.critIncPctPerItemRarityPctFromGear !== undefined) {
+    addNum('critIncPctPerItemRarityPctFromGear', p.critIncPctPerItemRarityPctFromGear)
+  }
+  if (p.critMultiPctPerItemQuantityPctFromGear !== undefined) {
+    addNum('critMultiPctPerItemQuantityPctFromGear', p.critMultiPctPerItemQuantityPctFromGear)
+  }
+  if (p.additionalAbilityLevelsAllFromGear !== undefined) {
+    addNum('additionalAbilityLevelsAllFromGear', p.additionalAbilityLevelsAllFromGear)
+  }
+  if (p.additionalAbilityLevelsColdFromGear !== undefined) {
+    addNum('additionalAbilityLevelsColdFromGear', p.additionalAbilityLevelsColdFromGear)
+  }
 }
 
 /**
@@ -1943,6 +1972,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + u('increasedAttackCriticalHitChance')
     + eq.pctIncreasedCriticalHitChanceFromGear
     + critFromDex
+    + eq.critIncPctPerItemRarityPctFromGear * eq.increasedItemRarityFromGear
   const attackCritFlatBase =
     baseCritChance + critFromAssassin + eq.attackBaseCritChanceBonusFromGear + eq.critChanceBonus
   let critChance = Math.min(100, attackCritFlatBase * (1 + critFromUpgrades / 100))
@@ -1957,7 +1987,9 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const attackCritMultFlatBase = baseCritMultiplier + critMultFlatBonus
   let attunementIncreasedCritMultiplierPct = 0
   const critMultFromUpgrades = () =>
-    eq.increasedCriticalDamageMultiplierFromGear + attunementIncreasedCritMultiplierPct
+    eq.increasedCriticalDamageMultiplierFromGear
+    + attunementIncreasedCritMultiplierPct
+    + eq.critMultiPctPerItemQuantityPctFromGear * eq.increasedItemQuantityFromGear
   const recomputeCritMultiplier = () => {
     critMultiplier = attackCritMultFlatBase + (critMultFromUpgrades() / 100)
   }
@@ -2216,7 +2248,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   if (sel?.abilityId) {
     const def = EOC_ABILITY_BY_ID[sel.abilityId]
-    const level = Math.min(20, Math.max(0, Math.floor(sel.abilityLevel)))
+    const baseLevel = Math.min(20, Math.max(0, Math.floor(sel.abilityLevel)))
+    const isColdAbility = def?.spellHit?.element?.toLowerCase?.() === 'cold'
+    const level =
+      baseLevel
+      + eq.additionalAbilityLevelsAllFromGear
+      + (isColdAbility ? eq.additionalAbilityLevelsColdFromGear : 0)
     if (def && abilityMatchesWeapon(def, weaponTag)) {
       const attPctRaw = Math.min(100, Math.max(0, Number(sel.attunementPct) || 0))
       const attPct = Math.round(attPctRaw)
@@ -3498,6 +3535,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     accuracy,
     critChance,
     critMultiplier,
+    itemRarityPercent: eq.increasedItemRarityFromGear,
+    itemQuantityPercent: eq.increasedItemQuantityFromGear,
     avgHit,
     avgEffectiveDamage,
     dps,
