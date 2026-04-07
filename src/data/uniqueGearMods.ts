@@ -106,6 +106,12 @@ export interface UniqueGearStatPatch {
   /** While your off-hand is empty, your action bar is set to X% at the beginning of an encounter. */
   actionBarSetToPercentAtStartFromGear?: number;
 
+  /** "Abilities gain additional base mana cost equal to X% of maximum energy" (modeled as max Energy Shield). */
+  additionalBaseManaCostPctOfMaxEnergyShieldFromGear?: number;
+
+  /** "The local damage of your weapons applies to spells as well". */
+  weaponLocalDamageAppliesToSpellsFromGear?: boolean;
+
   /** When you deal a critical hit, perform an additional hit with X% chance. */
   extraHitOnCritChanceFromGear?: number;
   /** When you would block, dodge instead. */
@@ -118,6 +124,12 @@ export interface UniqueGearStatPatch {
   doubleDamageUpgradesToTripleChanceFromGear?: number;
   /** When you would deal triple damage, 50% chance to deal quadruple damage instead. */
   tripleDamageUpgradesToQuadrupleChanceFromGear?: number;
+
+  /** You cannot evade while you have energy shield. */
+  cannotEvadeWhileYouHaveEnergyShieldFromGear?: boolean;
+
+  /** X% chance for blocks to prevent all damage instead of partial. */
+  blockPreventsAllDamageChanceFromGear?: number;
   pctIncreasedLifeFromGear?: number;
   pctIncreasedManaFromGear?: number;
   pctIncreasedArmourFromGear?: number;
@@ -1014,6 +1026,15 @@ export function equipmentModifiersFromUniqueTexts(
       mark();
     }
 
+    if (/you cannot evade while you have energy shield\b/i.test(low)) {
+      acc.cannotEvadeWhileYouHaveEnergyShieldFromGear = true;
+      mark();
+    }
+
+    if (/^50%\s+chance\s+to\s+reduce\s+no\s+damage\s+on\s+block\b/i.test(low)) {
+      add({ blockPreventsAllDamageChanceFromGear: 50 });
+    }
+
     m = l.match(/([\d.]+)%\s+of\s+mana\s+regeneration\s+per\s+second\s+applies\s+to\s+your\s+energy\s+shield\s+instead\b/i);
     if (m) add({ manaRegenToEnergyShieldPercentFromGear: num(m)! });
 
@@ -1048,7 +1069,8 @@ export function equipmentModifiersFromUniqueTexts(
     if (/increased melee critical hit chance per 10 intelligence\b/i.test(low)) mark();
     if (/increased range attack damage per 10 strength\b/i.test(low)) mark();
     if (/chance to reduce no damage on block\b/i.test(low)) mark();
-    if (/abilities gain additional base mana cost\b/i.test(low)) mark();
+    m = l.match(/abilities gain additional base mana cost equal to ([\d.]+)% of maximum energy\b/i);
+    if (m) add({ additionalBaseManaCostPctOfMaxEnergyShieldFromGear: num(m)! });
     if (/ailments\s+inflicted\s+with\s+critical\s+hits\s+gain\b/i.test(low)) add({});
     if (
       /ailments\s+inflicted\s+with/i.test(low)
@@ -1068,7 +1090,10 @@ export function equipmentModifiersFromUniqueTexts(
     if (/^when you attack/i.test(low)) mark();
     if (/^when you block/i.test(low)) mark();
     if (/take chaos damage equal to/i.test(low)) mark();
-    if (/local damage of your weapons applies to spells/i.test(low)) mark();
+    if (/local damage of your weapons applies to spells/i.test(low)) {
+      acc.weaponLocalDamageAppliesToSpellsFromGear = true;
+      mark();
+    }
     if (/perform an additional hit/i.test(low)) mark();
     if (/chance to dodge is rolled twice/i.test(low)) mark();
     if (/when you would block, dodge instead/i.test(low)) mark();

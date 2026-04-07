@@ -439,12 +439,16 @@ export interface EquipmentModifiers {
   actionBarFilledByPercentOnBlockFromGear: number
   firstAttackAlwaysCritFromGear: boolean
   actionBarSetToPercentAtStartFromGear: number
+  additionalBaseManaCostPctOfMaxEnergyShieldFromGear: number
+  weaponLocalDamageAppliesToSpellsFromGear: boolean
   extraHitOnCritChanceFromGear: number
   blockReplacedByDodgeFromGear: boolean
   dodgeRolledTwiceAtMaxLifeBetterFromGear: boolean
   dodgeRolledTwiceBelowMaxLifeWorseFromGear: boolean
   doubleDamageUpgradesToTripleChanceFromGear: number
   tripleDamageUpgradesToQuadrupleChanceFromGear: number
+  cannotEvadeWhileYouHaveEnergyShieldFromGear: boolean
+  blockPreventsAllDamageChanceFromGear: number
   pctIncreasedLifeFromGear: number
   pctIncreasedManaFromGear: number
   pctIncreasedArmourFromGear: number
@@ -789,12 +793,16 @@ export interface ComputedBuildStats {
   actionBarFilledByPercentOnBlock: number
   firstAttackAlwaysCrit: boolean
   actionBarSetToPercentAtStart: number
+  additionalBaseManaCostPctOfMaxEnergyShield: number
+  weaponLocalDamageAppliesToSpells: boolean
   extraHitOnCritChance: number
   blockReplacedByDodge: boolean
   dodgeRolledTwiceAtMaxLifeBetter: boolean
   dodgeRolledTwiceBelowMaxLifeWorse: boolean
   doubleDamageUpgradesToTripleChance: number
   tripleDamageUpgradesToQuadrupleChance: number
+  cannotEvadeWhileYouHaveEnergyShield: boolean
+  blockPreventsAllDamageChance: number
   pctDexIntConvertedToStr: number
   convertEvasionToArmour: boolean
   energyShieldCannotBeReducedBelowMaximum: boolean
@@ -989,12 +997,16 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     actionBarFilledByPercentOnBlockFromGear: 0,
     firstAttackAlwaysCritFromGear: false,
     actionBarSetToPercentAtStartFromGear: 0,
+    additionalBaseManaCostPctOfMaxEnergyShieldFromGear: 0,
+    weaponLocalDamageAppliesToSpellsFromGear: false,
     extraHitOnCritChanceFromGear: 0,
     blockReplacedByDodgeFromGear: false,
     dodgeRolledTwiceAtMaxLifeBetterFromGear: false,
     dodgeRolledTwiceBelowMaxLifeWorseFromGear: false,
     doubleDamageUpgradesToTripleChanceFromGear: 0,
     tripleDamageUpgradesToQuadrupleChanceFromGear: 0,
+    cannotEvadeWhileYouHaveEnergyShieldFromGear: false,
+    blockPreventsAllDamageChanceFromGear: 0,
     pctIncreasedLifeFromGear: 0,
     pctIncreasedManaFromGear: 0,
     pctIncreasedArmourFromGear: 0,
@@ -1324,6 +1336,10 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.actionBarSetToPercentAtStartFromGear !== undefined) {
     addNum('actionBarSetToPercentAtStartFromGear', p.actionBarSetToPercentAtStartFromGear)
   }
+  if (p.additionalBaseManaCostPctOfMaxEnergyShieldFromGear !== undefined) {
+    addNum('additionalBaseManaCostPctOfMaxEnergyShieldFromGear', p.additionalBaseManaCostPctOfMaxEnergyShieldFromGear)
+  }
+  if (p.weaponLocalDamageAppliesToSpellsFromGear) eq.weaponLocalDamageAppliesToSpellsFromGear = true
   if (p.extraHitOnCritChanceFromGear !== undefined) addNum('extraHitOnCritChanceFromGear', p.extraHitOnCritChanceFromGear)
   if (p.blockReplacedByDodgeFromGear) eq.blockReplacedByDodgeFromGear = true
   if (p.dodgeRolledTwiceAtMaxLifeBetterFromGear) eq.dodgeRolledTwiceAtMaxLifeBetterFromGear = true
@@ -1333,6 +1349,10 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
   if (p.tripleDamageUpgradesToQuadrupleChanceFromGear !== undefined) {
     addNum('tripleDamageUpgradesToQuadrupleChanceFromGear', p.tripleDamageUpgradesToQuadrupleChanceFromGear)
+  }
+  if (p.cannotEvadeWhileYouHaveEnergyShieldFromGear) eq.cannotEvadeWhileYouHaveEnergyShieldFromGear = true
+  if (p.blockPreventsAllDamageChanceFromGear !== undefined) {
+    addNum('blockPreventsAllDamageChanceFromGear', p.blockPreventsAllDamageChanceFromGear)
   }
   if (p.pctIncreasedLifeFromGear !== undefined) addNum('pctIncreasedLifeFromGear', p.pctIncreasedLifeFromGear)
   if (p.pctIncreasedManaFromGear !== undefined) addNum('pctIncreasedManaFromGear', p.pctIncreasedManaFromGear)
@@ -2413,8 +2433,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // 18. Mana cost per attack
   // -------------------------------------------------------------------------
   // Sorcerer class bonus: 10% reduced mana cost of abilities
+  const additionalBaseManaCostPctOfMaxEnergyShield = Math.max(
+    0,
+    eq.additionalBaseManaCostPctOfMaxEnergyShieldFromGear
+  )
+  const additionalBaseManaCostFlat = maxEnergyShield * (additionalBaseManaCostPctOfMaxEnergyShield / 100)
   let manaCostPerAttack =
-    BASE_GAME_STATS.baseManaPerAttack *
+    (BASE_GAME_STATS.baseManaPerAttack + additionalBaseManaCostFlat) *
     (bonus('sorcerer') ? 0.90 : 1.0) *
     Math.max(0.2, 1 - eq.manaCostReductionFromGear / 100) *
     (1 + eq.manaCostIncreasePercentFromGear / 100)
@@ -2675,7 +2700,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       const attPct = Math.round(attPctRaw)
       const attMult = bonus('archmage') ? 2 : 1
       const attMod = interpolateAttunementModifier(def, attPctRaw, attMult)
-      const baseAbilityMana = def.manaCost != null ? def.manaCost : manaCostPerAttack
+      const baseAbilityManaRaw = def.manaCost != null ? def.manaCost : BASE_GAME_STATS.baseManaPerAttack
+      const baseAbilityMana = baseAbilityManaRaw + additionalBaseManaCostFlat
       const startLvl = def.startingAbilityLevel ?? 0
 
       if (def.type === 'Melee' || def.type === 'Ranged') {
@@ -2790,6 +2816,34 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             lightning: localFlatDamageDisplayRange(eq.flatSpellLightningMin, eq.flatSpellLightningMax),
             chaos: localFlatDamageDisplayRange(eq.flatSpellChaosMin, eq.flatSpellChaosMax),
           };
+          if (eq.weaponLocalDamageAppliesToSpellsFromGear) {
+            const add = (a: { min: number; max: number }, b: { min: number; max: number }) => ({
+              min: a.min + b.min,
+              max: a.max + b.max,
+            })
+            // Note: `flat*` ranges are attack-side "local damage" contributions (incl. weapon base + local mods).
+            // This unique makes those weapon-local ranges also contribute to spell hits.
+            spellFlatRanges.physical = add(
+              spellFlatRanges.physical,
+              localFlatDamageDisplayRange(eq.flatDamageMin, eq.flatDamageMax)
+            )
+            spellFlatRanges.fire = add(
+              spellFlatRanges.fire,
+              localFlatDamageDisplayRange(eq.flatFireMin, eq.flatFireMax)
+            )
+            spellFlatRanges.cold = add(
+              spellFlatRanges.cold,
+              localFlatDamageDisplayRange(eq.flatColdMin, eq.flatColdMax)
+            )
+            spellFlatRanges.lightning = add(
+              spellFlatRanges.lightning,
+              localFlatDamageDisplayRange(eq.flatLightningMin, eq.flatLightningMax)
+            )
+            spellFlatRanges.chaos = add(
+              spellFlatRanges.chaos,
+              localFlatDamageDisplayRange(eq.flatChaosMin, eq.flatChaosMax)
+            )
+          }
 
           // Base spell hit
           const baseAdded =
@@ -3264,12 +3318,15 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const actionBarFilledByPercentOnBlock = Math.min(100, Math.max(0, eq.actionBarFilledByPercentOnBlockFromGear))
   const firstAttackAlwaysCrit = eq.firstAttackAlwaysCritFromGear
   const actionBarSetToPercentAtStart = Math.min(100, Math.max(0, eq.actionBarSetToPercentAtStartFromGear))
+  const weaponLocalDamageAppliesToSpells = eq.weaponLocalDamageAppliesToSpellsFromGear
   const extraHitOnCritChance = Math.min(100, Math.max(0, eq.extraHitOnCritChanceFromGear))
   const blockReplacedByDodge = eq.blockReplacedByDodgeFromGear
   const dodgeRolledTwiceAtMaxLifeBetter = eq.dodgeRolledTwiceAtMaxLifeBetterFromGear
   const dodgeRolledTwiceBelowMaxLifeWorse = eq.dodgeRolledTwiceBelowMaxLifeWorseFromGear
   const doubleDamageUpgradesToTripleChance = Math.min(100, Math.max(0, eq.doubleDamageUpgradesToTripleChanceFromGear))
   const tripleDamageUpgradesToQuadrupleChance = Math.min(100, Math.max(0, eq.tripleDamageUpgradesToQuadrupleChanceFromGear))
+  const cannotEvadeWhileYouHaveEnergyShield = eq.cannotEvadeWhileYouHaveEnergyShieldFromGear
+  const blockPreventsAllDamageChance = Math.min(100, Math.max(0, eq.blockPreventsAllDamageChanceFromGear))
   const convertEvasionToArmour = eq.convertEvasionToArmourFromGear
   const energyShieldCannotBeReducedBelowMaximum = eq.energyShieldCannotBeReducedBelowMaximumFromGear
   const countsAsDualWielding = eq.countsAsDualWieldingFromGear
@@ -3729,6 +3786,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const manaCostLines: StatContributionLine[] = [
     { label: 'Base mana per attack', value: BASE_GAME_STATS.baseManaPerAttack },
   ]
+  if (additionalBaseManaCostFlat !== 0) {
+    manaCostLines.push({
+      label: `Gear: additional base mana cost (${additionalBaseManaCostPctOfMaxEnergyShield.toFixed(1)}% of max energy shield)`,
+      value: additionalBaseManaCostFlat,
+    })
+  }
   if (bonus('sorcerer')) manaCostLines.push({ label: 'Sorcerer: 10% reduced mana cost', value: -10 })
   dmgPushIf(manaCostLines, 'Gear: mana cost reduction', -eq.manaCostReductionFromGear)
   if (eq.manaCostIncreasePercentFromGear !== 0) {
@@ -4104,12 +4167,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     actionBarFilledByPercentOnBlock,
     firstAttackAlwaysCrit,
     actionBarSetToPercentAtStart,
+    additionalBaseManaCostPctOfMaxEnergyShield,
+    weaponLocalDamageAppliesToSpells,
     extraHitOnCritChance,
     blockReplacedByDodge,
     dodgeRolledTwiceAtMaxLifeBetter,
     dodgeRolledTwiceBelowMaxLifeWorse,
     doubleDamageUpgradesToTripleChance,
     tripleDamageUpgradesToQuadrupleChance,
+    cannotEvadeWhileYouHaveEnergyShield,
+    blockPreventsAllDamageChance,
     pctDexIntConvertedToStr,
     convertEvasionToArmour,
     energyShieldCannotBeReducedBelowMaximum,

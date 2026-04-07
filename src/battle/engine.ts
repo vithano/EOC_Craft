@@ -643,6 +643,9 @@ function resolveEnemyAttack(
   const acc = enemy.accuracy
   let eva = stats.evasionRating
   const flat = flatEvasionFromClassBonuses(stats)
+  if ((stats.cannotEvadeWhileYouHaveEnergyShield ?? false) && playerState.energyShield > 0) {
+    eva = 0
+  }
   if (
     (stats.cannotEvadeWhileAboveHalfLife ?? false) &&
     playerState.life > stats.maxLife * 0.5
@@ -661,7 +664,14 @@ function resolveEnemyAttack(
     }
   }
 
-  if (Math.random() * 100 < stats.dodgeChance) {
+  const dodgeBase = stats.dodgeChance
+  const atMax = playerState.life >= stats.maxLife - 1e-9
+  const belowMax = playerState.life < stats.maxLife - 1e-9
+  const betterTwice = (stats.dodgeRolledTwiceAtMaxLifeBetter ?? false) && atMax
+  const worseTwice = (stats.dodgeRolledTwiceBelowMaxLifeWorse ?? false) && belowMax
+  const dodgePass = () => Math.random() * 100 < dodgeBase
+  const dodged = betterTwice ? (dodgePass() || dodgePass()) : worseTwice ? (dodgePass() && dodgePass()) : dodgePass()
+  if (dodged) {
     return {
       damageToDisplay: 0,
       fullBeforeArmour: 0,
@@ -710,9 +720,27 @@ function resolveEnemyAttack(
   const dmgTakenGear = stats.damageTakenMultiplierFromGear ?? 1
   if (dmgTakenGear !== 1) afterPath *= dmgTakenGear
 
-  const blocked = stats.blockChance > 0 && Math.random() * 100 < stats.blockChance
+  let blocked = stats.blockChance > 0 && Math.random() * 100 < stats.blockChance
+  if (blocked && (stats.blockReplacedByDodge ?? false)) {
+    blocked = false
+    if (dodgePass()) {
+      return {
+        damageToDisplay: 0,
+        fullBeforeArmour: 0,
+        mitigatedByArmour: 0,
+        evaded: false,
+        dodged: true,
+        blocked: false,
+      }
+    }
+  }
   if (blocked) {
-    afterPath *= stats.blockDamageTakenMult ?? DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
+    const preventAllChance = stats.blockPreventsAllDamageChance ?? 0
+    if (preventAllChance > 0 && Math.random() * 100 < preventAllChance) {
+      afterPath = 0
+    } else {
+      afterPath *= stats.blockDamageTakenMult ?? DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
+    }
   }
 
   // Demo enemy uses physical hits only → full armour effectiveness (armourVsPhysical = 1.0).
@@ -813,6 +841,10 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   let nextPeriodicShockT = 0
   let nextPeriodicLifeRegenT = 0
   let periodicLifeRegenActiveUntil = 0
+  // Action bar: 0..1.0; when it reaches 1 you can act.
+  // Demo model: bar fills at (player attack rate) per second, so time-to-act matches APS,
+  // but uniques can set/fill the bar directly.
+  let actionBar = Math.min(1, Math.max(0, (stats.actionBarSetToPercentAtStart ?? 0) / 100))
 
   while (t < maxDuration) {
     if (player.life <= 0) break
@@ -932,8 +964,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     }
 
     const pAps = playerApsWithBerserker(stats, player.life) * speedMult
+    actionBar = Math.min(1, actionBar + pAps * dt)
 
-    if (t + 1e-9 >= nextPlayer) {
+    if (t + 1e-9 >= nextPlayer && actionBar >= 1 - 1e-9) {
       const cost = stats.manaCostPerAttack
       const payLife = stats.manaCostPaidWithLife ?? false
       const payEs = stats.manaCostPaidWithEnergyShield ?? false
@@ -943,6 +976,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           ? player.energyShield >= cost
           : player.mana >= cost
       if (canPay) {
+        actionBar = Math.max(0, actionBar - 1)
         if (payLife) player.life -= cost
         else if (payEs) player.energyShield -= cost
         else player.mana -= cost
@@ -1022,6 +1056,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
             }
           }
         }
+        // Action bar set after cast (demo: treat our attack as an action)
+        const setAfter = stats.actionBarSetToPercentAfterCast ?? 0
+        if (setAfter > 0) actionBar = Math.min(1, Math.max(0, setAfter / 100))
       } else if (log.length < maxLog) {
         log.push({
           t,
@@ -1033,12 +1070,17 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
               : 'Out of mana — attack skipped',
         })
       }
-      nextPlayer = t + 1 / Math.max(0.2, pAps)
+      // Next possible time we re-check. Action bar may allow earlier if filled by uniques.
+      nextPlayer = t + dt
     }
 
     const chillMult = activeChillMult(ailmentState, t)
     if (t + 1e-9 >= nextEnemy) {
       const r = resolveEnemyAttack(enemy, stats, player, firstHitFlag)
+      if (r.blocked) {
+        const fill = stats.actionBarFilledByPercentOnBlock ?? 0
+        if (fill > 0) actionBar = Math.min(1, actionBar + fill / 100)
+      }
       if (!r.evaded && !r.dodged && r.damageToDisplay > 0) hitsEnemy++
       if (log.length < maxLog) {
         if (r.evaded) log.push({ t, kind: 'enemy_attack', message: `${enemy.name} attack evaded` })

@@ -1,6 +1,8 @@
 import { computeBuildStats, emptyEquipmentModifiers, type BuildConfig } from "../src/data/gameStats";
 import { equipmentModifiersFromUniqueTexts } from "../src/data/uniqueGearMods";
 import { simulateEncounter } from "../src/battle/engine";
+import { updateAbilityDefinitions } from "../src/data/eocAbilities";
+import abilitiesJson from "../src/data/eocAbilities.generated.json";
 
 function assert(cond: unknown, msg: string): void {
   if (!cond) throw new Error(msg);
@@ -16,6 +18,9 @@ function buildWithEqMods(eqMods: ReturnType<typeof emptyEquipmentModifiers>): Bu
 }
 
 function main() {
+  // Tests rely on ability lookups; populate from generated snapshot.
+  updateAbilityDefinitions(abilitiesJson as any);
+
   // Battery Crown: mana costs paid with energy shield
   {
     const patch = equipmentModifiersFromUniqueTexts(
@@ -410,6 +415,107 @@ function main() {
     };
     const res = simulateEncounter({ stats, enemy, options: { maxDurationSeconds: 1.0, dt: 0.02, maxLogEntries: 0 } });
     assert(res.playerFinal.life === stats.maxLife, `Expected no self-poison damage taken, got life=${res.playerFinal.life}/${stats.maxLife}`);
+  }
+
+  // Action bar: start-at, set-to-after-cast, fill-on-block
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      [
+        "After you cast a spell, your action bar is set to 50%",
+        "Your action bar is filled by 40% when you block",
+        "While your off-hand is empty, your action bar is set to 100% at the begninning of an encounter",
+      ],
+      { isWeapon: false }
+    );
+    assert(
+      patch.actionBarSetToPercentAfterCastFromGear === 50,
+      `Expected actionBarSetToPercentAfterCastFromGear=50, got ${patch.actionBarSetToPercentAfterCastFromGear}`
+    );
+    assert(
+      patch.actionBarFilledByPercentOnBlockFromGear === 40,
+      `Expected actionBarFilledByPercentOnBlockFromGear=40, got ${patch.actionBarFilledByPercentOnBlockFromGear}`
+    );
+    assert(
+      patch.actionBarSetToPercentAtStartFromGear === 100,
+      `Expected actionBarSetToPercentAtStartFromGear=100, got ${patch.actionBarSetToPercentAtStartFromGear}`
+    );
+
+    const eq = emptyEquipmentModifiers();
+    eq.actionBarSetToPercentAtStartFromGear = 100;
+    eq.actionBarSetToPercentAfterCastFromGear = 50;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    const enemy = {
+      id: "dummy",
+      name: "Dummy",
+      maxLife: 1_000_000,
+      armour: 0,
+      evasionRating: 0,
+      accuracy: 0,
+      damageMin: 0,
+      damageMax: 0,
+      aps: 0.01,
+    };
+    const res = simulateEncounter({ stats, enemy, options: { maxDurationSeconds: 0.2, dt: 0.02, maxLogEntries: 0 } });
+    assert(res.hitsLandedPlayer >= 1, `Expected at least 1 player hit with full action bar start, got ${res.hitsLandedPlayer}`);
+  }
+
+  // Skysplitter: additional base mana cost = 4% max energy (modeled as max energy shield)
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["Abilities gain additional base mana cost equal to 4% of maximum energy"],
+      { isWeapon: false }
+    );
+    assert(
+      patch.additionalBaseManaCostPctOfMaxEnergyShieldFromGear === 4,
+      `Expected additionalBaseManaCostPctOfMaxEnergyShieldFromGear=4, got ${patch.additionalBaseManaCostPctOfMaxEnergyShieldFromGear}`
+    );
+    const baseEq = emptyEquipmentModifiers();
+    baseEq.flatEnergyShieldFromGear = 1000;
+    const baseStats = computeBuildStats(buildWithEqMods(baseEq));
+
+    const eq = emptyEquipmentModifiers();
+    eq.flatEnergyShieldFromGear = 1000;
+    eq.additionalBaseManaCostPctOfMaxEnergyShieldFromGear = 4;
+    const stats = computeBuildStats(buildWithEqMods(eq));
+    const expectedDelta = stats.maxEnergyShield * 0.04;
+    assert(
+      Math.abs((stats.manaCostPerAttack - baseStats.manaCostPerAttack) - expectedDelta) < 1e-6,
+      `Expected manaCostPerAttack delta=${expectedDelta}, got ${stats.manaCostPerAttack - baseStats.manaCostPerAttack}`
+    );
+  }
+
+  // Arcanima: weapon local damage applies to spells
+  {
+    const patch = equipmentModifiersFromUniqueTexts(
+      ["The local damage of your weapons applies to spells as well"],
+      { isWeapon: false }
+    );
+    assert(Boolean(patch.weaponLocalDamageAppliesToSpellsFromGear), `Expected weaponLocalDamageAppliesToSpellsFromGear true`);
+
+    const baseEq = emptyEquipmentModifiers();
+    // Add some weapon-local-like ranges (stored min×0.5 convention)
+    baseEq.flatDamageMin = 10;
+    baseEq.flatDamageMax = 20;
+    const baseStats = computeBuildStats({
+      ...buildWithEqMods(baseEq),
+      ability: { abilityId: "ability_mana_bolt", abilityLevel: 1, attunementPct: 0 },
+    });
+    assert(Boolean(baseStats.spellDamageComputationBreakdown), "Expected spellDamageComputationBreakdown (baseline)");
+    const baseSpellMin = (baseStats.spellDamageComputationBreakdown as any).afterIncreasedByType
+      .reduce((s: number, r: any) => s + (r?.min ?? 0), 0);
+
+    const eq = emptyEquipmentModifiers();
+    eq.flatDamageMin = 10;
+    eq.flatDamageMax = 20;
+    eq.weaponLocalDamageAppliesToSpellsFromGear = true;
+    const stats = computeBuildStats({
+      ...buildWithEqMods(eq),
+      ability: { abilityId: "ability_mana_bolt", abilityLevel: 1, attunementPct: 0 },
+    });
+    assert(Boolean(stats.spellDamageComputationBreakdown), "Expected spellDamageComputationBreakdown");
+    const spellMin = (stats.spellDamageComputationBreakdown as any).afterIncreasedByType
+      .reduce((s: number, r: any) => s + (r?.min ?? 0), 0);
+    assert(spellMin > baseSpellMin, `Expected spell damage increased by weapon local damage, got ${spellMin} vs ${baseSpellMin}`);
   }
 
   // Broken Legacy: fixed crit chance = 50%
