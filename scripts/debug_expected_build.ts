@@ -161,7 +161,10 @@ console.log(
         esRegen: stats.esRegenPerSecond,
       },
       attrs: { life: stats.maxLife, mana: stats.maxMana, str: stats.str, dex: stats.dex, int: stats.int },
-      rarity: { itemRarity: stats.increasedItemRarityFromGear, arcana: stats.increasedArcanaGainFromEnemies },
+      rarity: {
+        itemRarityPercent: stats.itemRarityPercent,
+        itemQuantityPercent: stats.itemQuantityPercent,
+      },
       spellBreakdown: stats.spellDamageComputationBreakdown ?? null,
     },
     null,
