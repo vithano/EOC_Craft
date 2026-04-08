@@ -481,7 +481,8 @@ function nexusTierRowToDemoEnemy(row: NexusTierRow): DemoEnemyDef {
     maxLife: row.health,
     maxEnergyShield: 0,
     rarityLifeMult: 1,
-    modifierRatioBases: enemyModifierRatioBasesAtLevel(NEXUS_ENEMY_LEVEL_ANCHOR),
+    // Nexus tier rows are already "scaled from CSV bases" (life 40, armour 1, …).
+    // Flat mods (Vital/Plated/…) should therefore use those CSV denominators, not a level anchor.
     armour: row.armour,
     evasionRating: row.evasion,
     accuracy: row.accuracy,

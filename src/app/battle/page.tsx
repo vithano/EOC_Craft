@@ -7,7 +7,6 @@ import type { DemoEnemyDef } from "../../battle/types";
 import {
   applyEnemyModifierBaseRatiosToScaledEnemy,
   ENEMY_MODIFIER_ORDER,
-  enemyModifierRatioBasesAtLevel,
   MAX_ENEMY_MODIFIERS,
   enemyModifierDescription,
   enemyModifierLabel,
@@ -18,7 +17,6 @@ import { FORMULA_CONSTANTS } from "../../data/formulaConstants";
 import {
   getCrucibleTierRow,
   getNexusTierRow,
-  NEXUS_ENEMY_LEVEL_ANCHOR,
 } from "../../data/nexusEnemyScaling";
 import {
   HIT_DAMAGE_TYPE_COLOR_CLASS,
@@ -107,7 +105,9 @@ export default function BattleDemoPage() {
         maxLife: Math.max(1, Math.round(row.health * rarityLifeMult)),
         maxEnergyShield: 0,
         rarityLifeMult,
-        modifierRatioBases: enemyModifierRatioBasesAtLevel(NEXUS_ENEMY_LEVEL_ANCHOR),
+        // For Nexus/Crucible, tier rows already represent the fully scaled stats from formulas.csv.
+        // Flat mods (Vital/Plated/…) are defined as "+Δ to CSV base (40 life, 1 armour, …) before scaling",
+        // so we intentionally omit `modifierRatioBases` here to fall back to those CSV denominators.
         armour: Math.max(0, Math.round(row.armour)),
         evasionRating: Math.max(0, Math.round(row.evasion)),
         accuracy: Math.max(0, Math.round(row.accuracy)),
@@ -135,13 +135,9 @@ export default function BattleDemoPage() {
       name: `Enemy L${lvl}${enemyRarity !== "normal" ? ` (${enemyRarity})` : ""}`,
       maxLife: Math.max(1, Math.round(base.life * rarityLifeMult)),
       rarityLifeMult,
-      modifierRatioBases: {
-        life: base.life,
-        armour: base.armour,
-        evasion: base.evasion,
-        accuracy: base.accuracy,
-        speed: base.speed,
-      },
+      // Level stats are already fully scaled from formulas.csv bases.
+      // Flat enemy mods (Vital/Plated/…) are defined as "+Δ to CSV base (40 life, 1 armour, …) before scaling",
+      // so we omit `modifierRatioBases` to use those CSV denominators for correct scaling at any level.
       armour: Math.max(0, Math.round(base.armour)),
       evasionRating: Math.max(0, Math.round(base.evasion)),
       accuracy: Math.max(0, Math.round(base.accuracy)),

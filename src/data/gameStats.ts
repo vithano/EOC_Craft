@@ -2418,7 +2418,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const levelFlatAccuracy = 3 * levelsGainedFromBase
   const levelFlatLife = 10 * levelsGainedFromBase
   const levelFlatMana = 10 * levelsGainedFromBase
-  const levelPctIncreasedDamage = levelsGainedFromBase
+  // The sheet's “+1% increased damage per level” baseline starts later than the
+  // first “level-up” that grants accuracy/life/mana. Empirically (EOC 1.3.2),
+  // damage begins 13 levels after the first level-up bonuses.
+  const levelPctIncreasedDamage = Math.max(0, levelsGainedFromBase - 13)
 
   // -------------------------------------------------------------------------
   // 3. Per-level attribute gains from each class
