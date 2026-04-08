@@ -22,20 +22,45 @@ import {
   HIT_DAMAGE_TYPE_COLOR_CLASS,
   HIT_DAMAGE_TYPE_LABEL,
 } from "../../data/damageTypes";
+import { EOC_ABILITY_BY_ID } from "../../data/eocAbilities";
 import { getEquippedEntry, migrateEquippedFromSave } from "../../data/equipment";
-import { computeBuildStats, emptyEquipmentModifiers } from "../../data/gameStats";
-import { loadBuildsState, type StoredPlannerPayload } from "../../lib/eocBuildStorage";
+import { GAME_CLASSES, getClassLevel } from "../../data/gameClasses";
+import { computeBuildStats, emptyEquipmentModifiers, type BuildConfig, type ComputedBuildStats } from "../../data/gameStats";
+import { loadBuildsState, type StoredBuild, type StoredPlannerPayload } from "../../lib/eocBuildStorage";
 
 type EnemyModSlot = { id: EnemyModifierId | null; tier: 1 | 2 | 3 };
 type EnemyRarity = "normal" | "elite" | "boss";
 type EnemyScalingMode = "level" | "nexus" | "crucible";
 type EnemyAttackKind = "attack" | "spell";
 type EnemyDamageType = "physical" | "fire" | "cold" | "lightning" | "chaos";
+type BattleMode = "formula_enemy" | "build_vs_build";
+
+function sharedBuildDefaultName(payload: StoredPlannerPayload): string {
+  let highestClassName: string | null = null;
+  let highestClassLevel = -1;
+  for (const cls of GAME_CLASSES) {
+    const lvl = getClassLevel(cls.id, payload.upgradeLevels ?? {});
+    if (lvl > highestClassLevel) {
+      highestClassLevel = lvl;
+      highestClassName = cls.name;
+    }
+  }
+  const abilityId = payload.ability?.abilityId ?? null;
+  const abilityName = abilityId ? EOC_ABILITY_BY_ID[abilityId]?.name ?? null : null;
+  if (abilityName && highestClassName) return `${abilityName} ${highestClassName}`;
+  if (abilityName) return abilityName;
+  if (highestClassName) return highestClassName;
+  return "Shared Build";
+}
 
 export default function BattleDemoPage() {
   const [runKey, setRunKey] = useState(0);
   const [plannerSnapshot, setPlannerSnapshot] = useState<StoredPlannerPayload | null>(null);
   const [activeBuildName, setActiveBuildName] = useState<string | null>(null);
+  const [savedBuilds, setSavedBuilds] = useState<StoredBuild[]>([]);
+  const [playerBuildId, setPlayerBuildId] = useState<string | null>(null);
+  const [enemyBuildId, setEnemyBuildId] = useState<string | null>(null);
+  const [battleMode, setBattleMode] = useState<BattleMode>("formula_enemy");
   const [enemyModSlots, setEnemyModSlots] = useState<EnemyModSlot[]>(
     () => Array.from({ length: MAX_ENEMY_MODIFIERS }, () => ({ id: null, tier: 1 }))
   );
@@ -61,6 +86,7 @@ export default function BattleDemoPage() {
   }
 
   function startDefaultBattle() {
+    setBattleMode("formula_enemy");
     setEnemyMode("crucible");
     setCrucibleTier(50);
     const picks = rollRandomDistinctEnemyMods(2);
@@ -79,7 +105,7 @@ export default function BattleDemoPage() {
     if (preview) {
       try {
         const payload = JSON.parse(preview) as StoredPlannerPayload;
-        return { name: "Shared Build", payload };
+        return { name: sharedBuildDefaultName(payload), payload };
       } catch { /* fall through */ }
     }
     const state = loadBuildsState();
@@ -87,13 +113,103 @@ export default function BattleDemoPage() {
     return { name: active?.name ?? null, payload: active?.payload ?? null };
   }
 
+  function buildConfigFromPayload(payload: StoredPlannerPayload | null): BuildConfig {
+    if (!payload) return { upgradeLevels: {}, equipmentModifiers: emptyEquipmentModifiers() };
+    const equippedMap = migrateEquippedFromSave(payload.equipped ?? null);
+    const weaponItemId = getEquippedEntry(equippedMap, "Weapon").itemId;
+    return {
+      upgradeLevels: payload.upgradeLevels,
+      equipmentModifiers: payload.equipmentModifiers,
+      equippedWeaponItemId: weaponItemId,
+      ability: payload.ability ?? null,
+      equipped: equippedMap,
+    };
+  }
+
+  function enemyFromBuildStats(s: ComputedBuildStats, label: string, zone: number): DemoEnemyDef {
+    const byType = new Map(s.hitDamageByType.map((r) => [r.type, r] as const));
+    const phys = byType.get("physical");
+    const fire = byType.get("fire");
+    const cold = byType.get("cold");
+    const light = byType.get("lightning");
+    const chaos = byType.get("chaos");
+    const elementalMin = (fire?.min ?? 0) + (cold?.min ?? 0) + (light?.min ?? 0);
+    const elementalMax = (fire?.max ?? 0) + (cold?.max ?? 0) + (light?.max ?? 0);
+    return {
+      id: "enemy-build",
+      name: label,
+      maxLife: Math.max(1, Math.round(s.maxLife)),
+      maxEnergyShield: Math.max(0, Math.round(s.maxEnergyShield)),
+      armour: Math.max(0, Math.round(s.armour)),
+      evasionRating: Math.max(0, Math.round(s.evasionRating)),
+      accuracy: Math.max(0, Math.round(s.accuracy)),
+      damageMin: Math.max(0, Math.round(s.hitDamageMin)),
+      damageMax: Math.max(0, Math.round(s.hitDamageMax)),
+      physicalDamageMin: Math.max(0, Math.round(phys?.min ?? 0)),
+      physicalDamageMax: Math.max(0, Math.round(phys?.max ?? 0)),
+      elementalDamageMin: Math.max(0, Math.round(elementalMin)),
+      elementalDamageMax: Math.max(0, Math.round(elementalMax)),
+      fireDamageMin: Math.max(0, Math.round(fire?.min ?? 0)),
+      fireDamageMax: Math.max(0, Math.round(fire?.max ?? 0)),
+      coldDamageMin: Math.max(0, Math.round(cold?.min ?? 0)),
+      coldDamageMax: Math.max(0, Math.round(cold?.max ?? 0)),
+      lightningDamageMin: Math.max(0, Math.round(light?.min ?? 0)),
+      lightningDamageMax: Math.max(0, Math.round(light?.max ?? 0)),
+      chaosDamageMin: Math.max(0, Math.round(chaos?.min ?? 0)),
+      chaosDamageMax: Math.max(0, Math.round(chaos?.max ?? 0)),
+      aps: Math.max(0.05, Number((s.aps || 0.05).toFixed(3))),
+      blockChance: Math.max(0, Math.min(100, s.blockChance)),
+      dodgeChance: Math.max(0, Math.min(100, s.dodgeChance)),
+      critChance: Math.max(0, Math.min(100, s.critChance)),
+      critMultiplier: Math.max(1, s.critMultiplier || 2),
+      armourIgnorePercent: Math.max(0, Math.min(100, s.armourIgnorePercent ?? 0)),
+      fireResistancePercent: s.fireRes,
+      coldResistancePercent: s.coldRes,
+      lightningResistancePercent: s.lightningRes,
+      chaosResistancePercent: s.chaosRes,
+      attackIsSpell: s.abilityContribution?.type === "Spells",
+      zone,
+    };
+  }
+
+  function reloadBuildRoster() {
+    const state = loadBuildsState();
+    setSavedBuilds(state.builds);
+    setPlayerBuildId((prev) => prev && state.builds.some((b) => b.id === prev) ? prev : (state.activeBuildId ?? state.builds[0]?.id ?? null));
+    setEnemyBuildId((prev) => {
+      if (prev && state.builds.some((b) => b.id === prev)) return prev;
+      const playerId = state.activeBuildId ?? state.builds[0]?.id ?? null;
+      return state.builds.find((b) => b.id !== playerId)?.id ?? null;
+    });
+  }
+
   useEffect(() => {
     queueMicrotask(() => {
       const { name, payload } = loadActiveBuild();
       setActiveBuildName(name);
       setPlannerSnapshot(payload);
+      const state = loadBuildsState();
+      setSavedBuilds(state.builds);
+      setPlayerBuildId(state.activeBuildId ?? state.builds[0]?.id ?? null);
+      setEnemyBuildId(state.builds.find((b) => b.id !== state.activeBuildId)?.id ?? null);
     });
   }, []);
+
+  useEffect(() => {
+    if (!playerBuildId) return;
+    const chosen = savedBuilds.find((b) => b.id === playerBuildId);
+    if (!chosen) return;
+    setActiveBuildName(chosen.name);
+    setPlannerSnapshot(chosen.payload);
+  }, [playerBuildId, savedBuilds]);
+
+  useEffect(() => {
+    if (battleMode !== "build_vs_build") return;
+    if (!playerBuildId) return;
+    if (enemyBuildId && enemyBuildId !== playerBuildId) return;
+    const fallback = savedBuilds.find((b) => b.id !== playerBuildId)?.id ?? null;
+    setEnemyBuildId(fallback);
+  }, [battleMode, playerBuildId, enemyBuildId, savedBuilds]);
 
   // Allow the main page to deep-link into a “default battle” run.
   useEffect(() => {
@@ -107,24 +223,23 @@ export default function BattleDemoPage() {
     }
   }, []);
 
-  const activeConfig = useMemo(() => {
-    if (plannerSnapshot) {
-      const equippedMap = migrateEquippedFromSave(plannerSnapshot.equipped ?? null);
-      const weaponItemId = getEquippedEntry(equippedMap, "Weapon").itemId;
-      return {
-        upgradeLevels: plannerSnapshot.upgradeLevels,
-        equipmentModifiers: plannerSnapshot.equipmentModifiers,
-        equippedWeaponItemId: weaponItemId,
-        ability: plannerSnapshot.ability ?? null,
-        equipped: equippedMap,
-      };
-    }
-    return { upgradeLevels: {}, equipmentModifiers: emptyEquipmentModifiers() };
-  }, [plannerSnapshot]);
+  const activeConfig = useMemo(() => buildConfigFromPayload(plannerSnapshot), [plannerSnapshot]);
 
   const stats = useMemo(() => computeBuildStats(activeConfig), [activeConfig]);
+  const enemyBuildPayload = useMemo(
+    () => savedBuilds.find((b) => b.id === enemyBuildId)?.payload ?? null,
+    [savedBuilds, enemyBuildId]
+  );
+  const enemyBuildName = useMemo(
+    () => savedBuilds.find((b) => b.id === enemyBuildId)?.name ?? "Enemy build",
+    [savedBuilds, enemyBuildId]
+  );
+  const enemyBuildStats = useMemo(
+    () => (enemyBuildPayload ? computeBuildStats(buildConfigFromPayload(enemyBuildPayload)) : null),
+    [enemyBuildPayload]
+  );
 
-  const derivedEnemy = useMemo((): DemoEnemyDef => {
+  const formulaEnemy = useMemo((): DemoEnemyDef => {
     const C = FORMULA_CONSTANTS;
     const rarityLifeMult = enemyRarity === "elite" ? C.eliteLifeMult : enemyRarity === "boss" ? C.bossLifeMult : 1;
     const rarityDmgMult = enemyRarity === "elite" ? C.eliteDamageMult : enemyRarity === "boss" ? C.bossDamageMult : 1;
@@ -301,28 +416,40 @@ export default function BattleDemoPage() {
     });
   }, [enemyMode, enemyLevel, enemyZone, enemyRarity, nexusTier, crucibleTier, enemyAttackKind, enemyDamageType]);
 
+  const derivedEnemy = useMemo((): DemoEnemyDef => {
+    if (battleMode === "build_vs_build" && enemyBuildStats) {
+      return enemyFromBuildStats(enemyBuildStats, `Build: ${enemyBuildName}`, enemyZone);
+    }
+    return formulaEnemy;
+  }, [battleMode, enemyBuildStats, enemyBuildName, enemyZone, formulaEnemy]);
+
   const enemyWithMods = useMemo(() => {
+    if (battleMode !== "formula_enemy") return derivedEnemy;
     const mods = enemyModSlots
       .filter((s): s is { id: EnemyModifierId; tier: 1 | 2 | 3 } => Boolean(s.id))
       .map((s) => ({ id: s.id!, tier: s.tier }));
     return applyEnemyModifierBaseRatiosToScaledEnemy(derivedEnemy, mods);
-  }, [derivedEnemy, enemyModSlots]);
+  }, [battleMode, derivedEnemy, enemyModSlots]);
 
   const result = useMemo(() => {
     void runKey;
+    const mods =
+      battleMode === "formula_enemy"
+        ? enemyModSlots
+            .filter((s): s is { id: EnemyModifierId; tier: 1 | 2 | 3 } => Boolean(s.id))
+            .map((s) => ({ id: s.id!, tier: s.tier }))
+        : [];
     return simulateEncounter({
       stats,
       enemy: derivedEnemy,
-      enemyModsWithTiers: enemyModSlots
-        .filter((s): s is { id: EnemyModifierId; tier: 1 | 2 | 3 } => Boolean(s.id))
-        .map((s) => ({ id: s.id!, tier: s.tier })),
+      enemyModsWithTiers: mods,
       options: { maxDurationSeconds: 90, maxLogEntries: 250, dt: 0.05, recordTimeline: true },
     });
-  }, [stats, derivedEnemy, enemyModSlots, runKey]);
+  }, [stats, derivedEnemy, enemyModSlots, battleMode, runKey]);
 
   const encounterSummary = useMemo(() => {
     const duration = Math.max(1e-6, result.durationSeconds)
-    const lifeDamageDone = Math.max(0, derivedEnemy.maxLife - result.enemyLifeFinal)
+    const lifeDamageDone = Math.max(0, enemyWithMods.maxLife - result.enemyLifeFinal)
     const dpsAvg = lifeDamageDone / duration
 
     // Damage "heat" scaling for log coloring — computed per encounter.
@@ -334,7 +461,7 @@ export default function BattleDemoPage() {
     }
 
     return { dpsAvg, lifeDamageDone, maxDamage }
-  }, [result, derivedEnemy.maxLife]);
+  }, [result, enemyWithMods.maxLife]);
 
   const selectedEnemyModIds = useMemo(() => {
     return new Set(enemyModSlots.map((s) => s.id).filter(Boolean) as EnemyModifierId[]);
@@ -347,7 +474,7 @@ export default function BattleDemoPage() {
           <div>
             <h1 className="text-lg font-bold">Demo encounter</h1>
             <p className="text-zinc-500 text-xs">
-              Uses your currently selected planner build
+              Player build
               {activeBuildName ? (
                 <>
                   {" "}
@@ -356,20 +483,16 @@ export default function BattleDemoPage() {
               ) : (
                 ""
               )}{" "}
-              vs. an enemy scaled by formulas (level/tier + modifiers).
+              vs. {battleMode === "build_vs_build" ? "another saved build." : "an enemy scaled by formulas (level/tier + modifiers)."}
             </p>
           </div>
           <div className="flex items-center gap-4">
             <button
               type="button"
               className="text-xs text-zinc-500 hover:text-zinc-300"
-              onClick={() => {
-                const { name, payload } = loadActiveBuild();
-                setActiveBuildName(name);
-                setPlannerSnapshot(payload);
-              }}
+              onClick={reloadBuildRoster}
             >
-              Reload active build
+              Reload builds
             </button>
             <button
               type="button"
@@ -392,9 +515,9 @@ export default function BattleDemoPage() {
         <BattleHud
           result={result}
           playerLabel={activeBuildName ? `You (${activeBuildName})` : "You"}
-          enemyLabel={derivedEnemy.name}
+          enemyLabel={enemyWithMods.name}
           playerMax={{ life: stats.maxLife, energyShield: stats.maxEnergyShield, mana: stats.maxMana }}
-          enemyMax={{ life: derivedEnemy.maxLife, energyShield: derivedEnemy.maxEnergyShield ?? 0 }}
+          enemyMax={{ life: enemyWithMods.maxLife, energyShield: enemyWithMods.maxEnergyShield ?? 0 }}
         />
 
         <button
@@ -405,6 +528,78 @@ export default function BattleDemoPage() {
           Run again (new random rolls)
         </button>
 
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Battle setup</div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Mode</span>
+              <select
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm"
+                value={battleMode}
+                onChange={(e) => setBattleMode(e.target.value as BattleMode)}
+              >
+                <option value="formula_enemy">Build vs formulas enemy</option>
+                <option value="build_vs_build" disabled={savedBuilds.length < 2}>Build vs build</option>
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Player build</span>
+              <select
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm"
+                value={playerBuildId ?? ""}
+                onChange={(e) => setPlayerBuildId(e.target.value || null)}
+              >
+                {savedBuilds.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Enemy build</span>
+              <select
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm"
+                value={enemyBuildId ?? ""}
+                disabled={savedBuilds.length < 2}
+                onChange={(e) => setEnemyBuildId(e.target.value || null)}
+              >
+                {savedBuilds
+                  .filter((b) => b.id !== playerBuildId || battleMode !== "build_vs_build")
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <div className="space-y-1">
+              <span className="text-zinc-500 text-xs">Swap sides</span>
+              <button
+                type="button"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm hover:border-zinc-500 disabled:opacity-50"
+                disabled={!playerBuildId || !enemyBuildId}
+                onClick={() => {
+                  const a = playerBuildId;
+                  const b = enemyBuildId;
+                  if (!a || !b) return;
+                  setPlayerBuildId(b);
+                  setEnemyBuildId(a);
+                  setRunKey((k) => k + 1);
+                }}
+              >
+                Swap player/enemy builds
+              </button>
+            </div>
+          </div>
+          {battleMode === "build_vs_build" && savedBuilds.length < 2 && (
+            <div className="mt-3 text-xs text-amber-300">
+              Create at least two saved builds in planner to use build-vs-build mode.
+            </div>
+          )}
+        </div>
+
+        {battleMode === "formula_enemy" && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-zinc-500 text-xs uppercase tracking-wider mb-3">
             Enemy modifiers (max {MAX_ENEMY_MODIFIERS})
@@ -506,7 +701,9 @@ export default function BattleDemoPage() {
             </span>
           </div>
         </div>
+        )}
 
+        {battleMode === "formula_enemy" && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Enemy scaling (formulas)</div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
@@ -685,6 +882,7 @@ export default function BattleDemoPage() {
             )}
           </div>
         </div>
+        )}
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm space-y-1">
@@ -741,9 +939,9 @@ export default function BattleDemoPage() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm space-y-1">
             <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Enemy (active)</div>
             <div>
-              {derivedEnemy.name}: {derivedEnemy.maxLife} life · {derivedEnemy.aps} atk/s
+              {enemyWithMods.name}: {enemyWithMods.maxLife} life · {enemyWithMods.aps} atk/s
             </div>
-            {(enemyModSlots.some((s) => s.id) ?? false) && (
+            {battleMode === "formula_enemy" && (enemyModSlots.some((s) => s.id) ?? false) && (
               <div className="text-zinc-500 text-xs">
                 Mods:{" "}
                 {(enemyModSlots
@@ -753,8 +951,8 @@ export default function BattleDemoPage() {
               </div>
             )}
             <div>
-              Dmg {derivedEnemy.damageMin}–{derivedEnemy.damageMax} · acc {derivedEnemy.accuracy} · eva{" "}
-              {derivedEnemy.evasionRating} · arm {derivedEnemy.armour}
+              Dmg {enemyWithMods.damageMin}–{enemyWithMods.damageMax} · acc {enemyWithMods.accuracy} · eva{" "}
+              {enemyWithMods.evasionRating} · arm {enemyWithMods.armour}
             </div>
           </div>
         </div>

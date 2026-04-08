@@ -37,6 +37,7 @@ import {
   type AbilitySelectionState,
 } from "../data/gameStats";
 import { abilityMatchesWeapon, EOC_ABILITY_BY_ID, weaponAbilityTagFromItemId } from "../data/eocAbilities";
+import { GAME_CLASSES, getClassLevel } from "../data/gameClasses";
 import {
   parseStoredPlannerJson,
   createEmptyBuild,
@@ -87,6 +88,28 @@ function applySharedDefaultsToEquipped(equipped: Record<string, EquippedEntry>):
     }
   }
   return out;
+}
+
+function sharedBuildDefaultName(
+  upgradeLevels: Record<string, number>,
+  abilitySelection: AbilitySelectionState
+): string {
+  let highestClassName: string | null = null;
+  let highestClassLevel = -1;
+  for (const cls of GAME_CLASSES) {
+    const lvl = getClassLevel(cls.id, upgradeLevels);
+    if (lvl > highestClassLevel) {
+      highestClassLevel = lvl;
+      highestClassName = cls.name;
+    }
+  }
+  const abilityName = abilitySelection.abilityId
+    ? EOC_ABILITY_BY_ID[abilitySelection.abilityId]?.name ?? null
+    : null;
+  if (abilityName && highestClassName) return `${abilityName} ${highestClassName}`;
+  if (abilityName) return abilityName;
+  if (highestClassName) return highestClassName;
+  return "Shared Build";
 }
 
 function stackIdentityKey(rolls: number[] | undefined, enhancement?: number, craftedPrefixes?: AppliedModifier[], craftedSuffixes?: AppliedModifier[]): string {
@@ -586,7 +609,7 @@ export default function BuildPlanner() {
   const saveSharedBuildToMyBuilds = useCallback(() => {
     const payload: StoredPlannerPayload = { upgradeLevels, equipmentModifiers, ability, equipped, inventory: [] };
     const state = loadBuildsState();
-    const newBuild = createEmptyBuild("Shared Build");
+    const newBuild = createEmptyBuild(sharedBuildDefaultName(upgradeLevels, ability));
     newBuild.payload = payload;
     const updatedBuilds = [...state.builds, newBuild];
     saveBuildsState({ builds: updatedBuilds, activeBuildId: newBuild.id });
