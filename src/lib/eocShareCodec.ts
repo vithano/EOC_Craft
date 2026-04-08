@@ -37,6 +37,7 @@ export type ShareV3Resolved = {
 };
 
 const SHARE_V3_VERSION = 3;
+const SHARE_V3_DEFAULT_UPGRADE_POINTS = 5;
 
 export async function encodeShareV3(input: {
   upgradeLevels: Record<string, number>;
@@ -84,14 +85,21 @@ export async function encodeShareV3(input: {
   }
 
   // Upgrades
-  const upgrades: Array<{ key: string; points: number }> = [];
+  const upgradesDefault: Array<{ key: string }> = [];
+  const upgradesCustom: Array<{ key: string; points: number }> = [];
   for (const [k, v] of Object.entries(input.upgradeLevels ?? {})) {
     const points = Math.max(0, Math.floor(Number(v)));
     if (!points) continue;
-    upgrades.push({ key: k, points: Math.min(255, points) });
+    const capped = Math.min(255, points);
+    if (capped === SHARE_V3_DEFAULT_UPGRADE_POINTS) upgradesDefault.push({ key: k });
+    else upgradesCustom.push({ key: k, points: capped });
   }
-  out.push(...encodeVarint(upgrades.length));
-  for (const u of upgrades) {
+  out.push(...encodeVarint(upgradesDefault.length));
+  for (const u of upgradesDefault) {
+    out.push(...encodeTokenValue(`upg:${u.key}`, tokenPlan));
+  }
+  out.push(...encodeVarint(upgradesCustom.length));
+  for (const u of upgradesCustom) {
     out.push(...encodeTokenValue(`upg:${u.key}`, tokenPlan));
     out.push(u.points & 0xff);
   }
@@ -170,11 +178,27 @@ export function decodeShareV3(buildParam: string): ShareV3Parsed | null {
     });
   }
 
-  const countRes = decodeVarint(bytes, i);
-  if (!countRes) return null;
-  i = countRes.nextIndex;
   const upgrades: ShareV3Parsed["upgrades"] = [];
-  for (let n = 0; n < countRes.value; n++) {
+
+  // Upgrades at default points (5): store key only.
+  const defaultCountRes = decodeVarint(bytes, i);
+  if (!defaultCountRes) return null;
+  i = defaultCountRes.nextIndex;
+  for (let n = 0; n < defaultCountRes.value; n++) {
+    const key = decodeToken(bytes, i);
+    if (!key) return null;
+    i = key.nextIndex;
+    upgrades.push({
+      key: { is32: key.is32, value: key.value },
+      points: SHARE_V3_DEFAULT_UPGRADE_POINTS,
+    });
+  }
+
+  // Upgrades with custom points: store key + 1 byte points.
+  const customCountRes = decodeVarint(bytes, i);
+  if (!customCountRes) return null;
+  i = customCountRes.nextIndex;
+  for (let n = 0; n < customCountRes.value; n++) {
     const key = decodeToken(bytes, i);
     if (!key) return null;
     i = key.nextIndex;
@@ -388,8 +412,12 @@ export type ShareV2Data = {
 
 type ShareV2Wire = {
   v: 2;
-  /** upgrades: [classAlias, upgradeAlias, points] */
-  u: [string, string, number][];
+  /**
+   * upgrades:
+   * - default points (5): [classAlias, upgradeAlias]
+   * - custom points: [classAlias, upgradeAlias, points]
+   */
+  u: Array<[string, string] | [string, string, number]>;
   /**
    * equipped slot order: `EQUIPMENT_SLOTS`
    * - string: just item alias
@@ -426,7 +454,12 @@ export async function encodeShareV2(input: {
     const ca = classIdToAlias.get(classId);
     const ua = upgradeKeyToAlias.get(upgradeKey);
     if (!ca || !ua) continue;
-    u.push([ca, ua, points]);
+    const capped = Math.min(255, points);
+    if (capped === SHARE_V3_DEFAULT_UPGRADE_POINTS) {
+      (u as unknown as Array<[string, string]>).push([ca, ua]);
+    } else {
+      u.push([ca, ua, capped]);
+    }
   }
 
   const e: ShareV2Wire["e"] = [];
@@ -503,10 +536,11 @@ function parseShareV2Json(rawJson: string): ShareV2Data | null {
 
   const upgradeLevels: UpgradeLevels = {};
   for (const row of o.u) {
-    if (!Array.isArray(row) || row.length !== 3) continue;
-    const [ca, ua, pv] = row as [unknown, unknown, unknown];
+    if (!Array.isArray(row) || (row.length !== 2 && row.length !== 3)) continue;
+    const [ca, ua, pv] = row as [unknown, unknown, unknown?];
     if (typeof ca !== "string" || typeof ua !== "string") continue;
-    const points = Math.max(0, Math.floor(Number(pv)));
+    const pointsRaw = row.length === 2 ? SHARE_V3_DEFAULT_UPGRADE_POINTS : pv;
+    const points = Math.max(0, Math.floor(Number(pointsRaw)));
     if (!points) continue;
     const classId = aliasToClassId.get(ca);
     const upgradeKey = aliasToUpgradeKey.get(ua);
