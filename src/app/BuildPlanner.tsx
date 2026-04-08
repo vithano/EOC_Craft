@@ -612,13 +612,24 @@ export default function BuildPlanner() {
     <div className="min-h-screen bg-[#07060c] text-zinc-100">
       <header id="planner-top" className="border-b border-amber-900/30 bg-[#0c0a12]/95 backdrop-blur sticky top-0 z-10 shadow-[0_2px_20px_rgba(0,0,0,0.7)]">
         <div className="max-w-7xl mx-auto px-3 py-2 sm:px-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0 shrink-0">
             <h1 className="font-cinzel text-amber-200 text-sm sm:text-base font-bold tracking-widest uppercase shrink-0">
               EOC Craft
             </h1>
             <span className="text-amber-900/60 hidden sm:block text-xs">⬥</span>
             <span className="hidden sm:block text-zinc-600 text-[11px] tracking-wide truncate">Echoes of Creation</span>
           </div>
+
+          <div className="flex-1 flex justify-center">
+            <Link
+              href="/battle?autostart=1"
+              className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm sm:text-base font-black tracking-wide shadow-[0_12px_40px_rgba(0,0,0,0.55)] border border-amber-300/60"
+              title="Start a default battle (Crucible 50 + 2 random modifiers)"
+            >
+              Battle
+            </Link>
+          </div>
+
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link href="/battle" className="text-[11px] text-amber-600/80 hover:text-amber-400 uppercase tracking-wider font-medium">
               Demo →

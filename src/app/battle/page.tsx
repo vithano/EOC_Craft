@@ -48,6 +48,31 @@ export default function BattleDemoPage() {
   const [nexusTier, setNexusTier] = useState<number>(0);
   const [crucibleTier, setCrucibleTier] = useState<number>(0);
 
+  function rollRandomDistinctEnemyMods(count: number): EnemyModifierId[] {
+    const pool = [...ENEMY_MODIFIER_ORDER];
+    // Fisher–Yates shuffle (small list, fine)
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = pool[i]!;
+      pool[i] = pool[j]!;
+      pool[j] = tmp;
+    }
+    return pool.slice(0, Math.max(0, Math.min(count, pool.length)));
+  }
+
+  function startDefaultBattle() {
+    setEnemyMode("crucible");
+    setCrucibleTier(50);
+    const picks = rollRandomDistinctEnemyMods(2);
+    setEnemyModSlots(() => {
+      const out: EnemyModSlot[] = Array.from({ length: MAX_ENEMY_MODIFIERS }, () => ({ id: null, tier: 1 }));
+      if (picks[0]) out[0] = { id: picks[0], tier: 1 };
+      if (picks[1]) out[1] = { id: picks[1], tier: 1 };
+      return out;
+    });
+    setRunKey((k) => k + 1);
+  }
+
   function loadActiveBuild(): { name: string | null; payload: StoredPlannerPayload | null } {
     // Prefer a shared/preview build written by the planner when in view-only mode
     const preview = sessionStorage.getItem("eocCraftPreviewBuild");
@@ -68,6 +93,18 @@ export default function BattleDemoPage() {
       setActiveBuildName(name);
       setPlannerSnapshot(payload);
     });
+  }, []);
+
+  // Allow the main page to deep-link into a “default battle” run.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("autostart") === "1") {
+      startDefaultBattle();
+      params.delete("autostart");
+      const qs = params.toString();
+      const nextUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+      window.history.replaceState({}, "", nextUrl);
+    }
   }, []);
 
   const activeConfig = useMemo(() => {
@@ -352,6 +389,22 @@ export default function BattleDemoPage() {
           </div>
         )}
 
+        <BattleHud
+          result={result}
+          playerLabel={activeBuildName ? `You (${activeBuildName})` : "You"}
+          enemyLabel={derivedEnemy.name}
+          playerMax={{ life: stats.maxLife, energyShield: stats.maxEnergyShield, mana: stats.maxMana }}
+          enemyMax={{ life: derivedEnemy.maxLife, energyShield: derivedEnemy.maxEnergyShield ?? 0 }}
+        />
+
+        <button
+          type="button"
+          onClick={() => setRunKey((k) => k + 1)}
+          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium"
+        >
+          Run again (new random rolls)
+        </button>
+
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-zinc-500 text-xs uppercase tracking-wider mb-3">
             Enemy modifiers (max {MAX_ENEMY_MODIFIERS})
@@ -632,22 +685,6 @@ export default function BattleDemoPage() {
             )}
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setRunKey((k) => k + 1)}
-          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium"
-        >
-          Run again (new random rolls)
-        </button>
-
-        <BattleHud
-          result={result}
-          playerLabel={activeBuildName ? `You (${activeBuildName})` : "You"}
-          enemyLabel={derivedEnemy.name}
-          playerMax={{ life: stats.maxLife, energyShield: stats.maxEnergyShield, mana: stats.maxMana }}
-          enemyMax={{ life: derivedEnemy.maxLife, energyShield: derivedEnemy.maxEnergyShield ?? 0 }}
-        />
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm space-y-1">
