@@ -405,12 +405,12 @@ function resolvePlayerAttack(
     /** Added to the first strike only (e.g. Siegebreaker counter fire). */
     extraFlatFireDamage?: number
   }
-): { damage: number; damageForAilments: number; outcome: PlayerHitOutcome; anyCrit: boolean; anyDouble: boolean; anyTriple: boolean } {
+): { damage: number; damageForAilments: number; outcome: PlayerHitOutcome; anyCrit: boolean; anyDouble: boolean; anyTriple: boolean; anyQuad: boolean } {
   const evadePct = stats.hitsCannotBeEvaded
     ? 0
     : computeEvasionChancePercent(stats.accuracy, enemy.evasionRating, 0)
   const miss = Math.random() * 100 < evadePct
-  if (miss) return { damage: 0, damageForAilments: 0, outcome: 'miss', anyCrit: false, anyDouble: false, anyTriple: false }
+  if (miss) return { damage: 0, damageForAilments: 0, outcome: 'miss', anyCrit: false, anyDouble: false, anyTriple: false, anyQuad: false }
 
   const blk = enemy.blockChance ?? 0
   const zealot = stats.classBonusesActive.includes('zealot')
@@ -423,6 +423,7 @@ function resolvePlayerAttack(
   let anyCrit = false
   let anyDouble = false
   let anyTriple = false
+  let anyQuad = false
 
   for (let s = 0; s < strikes; s++) {
     const blocked = blk > 0 && Math.random() * 100 < blk
@@ -479,6 +480,7 @@ function resolvePlayerAttack(
         if (up4 > 0 && Math.random() * 100 < up4) {
           base *= 4 / 3
           extraFire *= 4 / 3
+          anyQuad = true
         }
       }
 
@@ -525,6 +527,7 @@ function resolvePlayerAttack(
     anyCrit,
     anyDouble,
     anyTriple,
+    anyQuad,
   }
 }
 
@@ -809,6 +812,8 @@ function resolveEnemyAttack(
   critical: boolean
   /** Damage removed by block mitigation on this hit (pre-block hit damage minus post-block, before armour). */
   preventedByBlock: number
+  /** Total prevented damage vs the player (includes block + armour + resist + other mitigation after this point). */
+  preventedTotal: number
 } {
   const acc = enemy.accuracy
   let eva = stats.evasionRating
@@ -833,6 +838,7 @@ function resolveEnemyAttack(
       blocked: false,
       critical: false,
       preventedByBlock: 0,
+      preventedTotal: 0,
     }
   }
 
@@ -853,6 +859,7 @@ function resolveEnemyAttack(
       blocked: false,
       critical: false,
       preventedByBlock: 0,
+      preventedTotal: 0,
     }
   }
 
@@ -909,12 +916,13 @@ function resolveEnemyAttack(
         blocked: false,
         critical,
         preventedByBlock: 0,
+        preventedTotal: 0,
       }
     }
   }
   let preventedByBlock = 0
+  const preBlockDamage = afterPath
   if (blocked) {
-    const preBlockDamage = afterPath
     const preventAllChance = stats.blockPreventsAllDamageChance ?? 0
     if (preventAllChance > 0 && Math.random() * 100 < preventAllChance) {
       afterPath = 0
@@ -954,15 +962,72 @@ function resolveEnemyAttack(
   const afterArmourEle = eleAmt * (1 - computeArmourDR(armour, eleAmt, totalAllTypes, 'fire', armourIgnoredFrac))
   const afterArmourChaos = chaosAmt * (1 - computeArmourDR(armour, chaosAmt, totalAllTypes, 'chaos', armourIgnoredFrac))
 
+  // --- Damage taken conversions + increased taken (by type) -----------------
   const resCap = (r: number, max: number) => Math.max(-0.9, Math.min(0.9, Math.min(r / 100, max / 100)))
-  const eleEach = afterArmourEle / 3
   const pen = Math.max(0, (enemy.resistancePenetrationPercent ?? 0) / 100)
-  const eleMit =
-    eleEach * (1 - resCap(stats.fireRes * (1 - pen), stats.maxFireRes))
-    + eleEach * (1 - resCap(stats.coldRes * (1 - pen), stats.maxColdRes))
-    + eleEach * (1 - resCap(stats.lightningRes * (1 - pen), stats.maxLightningRes))
-  const chaosMit = afterArmourChaos * (1 - resCap(stats.chaosRes * (1 - pen), stats.maxChaosRes))
-  const afterConversion = afterArmourPhys + eleMit + chaosMit
+
+  // Split elemental into per-element buckets.
+  let phys = afterArmourPhys
+  let fire = afterArmourEle / 3
+  let cold = afterArmourEle / 3
+  let light = afterArmourEle / 3
+  let chaos = afterArmourChaos
+
+  // 1) Physical taken-as-X conversions (0–100 each, clamped by normalize rule).
+  {
+    let pChaos = Math.min(100, stats.physicalDamageTakenAsChaosPercent ?? 0)
+    let pFire = Math.min(100, stats.physicalDamageTakenAsFirePercent ?? 0)
+    let pCold = Math.min(100, stats.physicalDamageTakenAsColdPercent ?? 0)
+    let pLight = Math.min(100, stats.physicalDamageTakenAsLightningPercent ?? 0)
+    const sum = pChaos + pFire + pCold + pLight
+    const scale = sum > 100 && sum > 0 ? 100 / sum : 1
+    pChaos *= scale
+    pFire *= scale
+    pCold *= scale
+    pLight *= scale
+
+    const toChaos = phys * (pChaos / 100)
+    const toFire = phys * (pFire / 100)
+    const toCold = phys * (pCold / 100)
+    const toLight = phys * (pLight / 100)
+    phys = Math.max(0, phys - toChaos - toFire - toCold - toLight)
+    chaos += toChaos
+    fire += toFire
+    cold += toCold
+    light += toLight
+  }
+
+  // 2) Elemental taken as chaos.
+  // Existing stat: elementalDamageTakenAsChaosPercent (applies to all elements).
+  // New stats: fire/cold/lightning taken as chaos (stack additively with the elemental-wide value).
+  {
+    const elemToChaos = Math.max(0, stats.elementalDamageTakenAsChaosPercent ?? 0)
+    const fireToChaos = Math.min(100, Math.max(0, (stats.fireDamageTakenAsChaosPercent ?? 0) + elemToChaos))
+    const coldToChaos = Math.min(100, Math.max(0, (stats.coldDamageTakenAsChaosPercent ?? 0) + elemToChaos))
+    const lightToChaos = Math.min(100, Math.max(0, (stats.lightningDamageTakenAsChaosPercent ?? 0) + elemToChaos))
+
+    const f = fire * (fireToChaos / 100)
+    const c = cold * (coldToChaos / 100)
+    const l = light * (lightToChaos / 100)
+    fire -= f; cold -= c; light -= l
+    chaos += f + c + l
+  }
+
+  // 3) Apply resistances to each bucket.
+  const physAfterRes = phys
+  const fireAfterRes = fire * (1 - resCap(stats.fireRes * (1 - pen), stats.maxFireRes))
+  const coldAfterRes = cold * (1 - resCap(stats.coldRes * (1 - pen), stats.maxColdRes))
+  const lightAfterRes = light * (1 - resCap(stats.lightningRes * (1 - pen), stats.maxLightningRes))
+  const chaosAfterRes = chaos * (1 - resCap(stats.chaosRes * (1 - pen), stats.maxChaosRes))
+
+  // 4) Apply "increased damage taken" by type (post-mitigation, pre-pools).
+  const incMult = (pct: number | undefined) => 1 + Math.max(0, pct ?? 0) / 100
+  const afterConversion =
+    physAfterRes * incMult(stats.increasedPhysicalDamageTakenPercent)
+    + fireAfterRes * incMult(stats.increasedFireDamageTakenPercent)
+    + coldAfterRes * incMult(stats.increasedColdDamageTakenPercent)
+    + lightAfterRes * incMult(stats.increasedLightningDamageTakenPercent)
+    + chaosAfterRes * incMult(stats.increasedChaosDamageTakenPercent)
 
   const afterArmour = afterArmourPhys + afterArmourEle + afterArmourChaos
 
@@ -991,6 +1056,7 @@ function resolveEnemyAttack(
     )
   }
 
+  const preventedTotal = Math.max(0, preBlockDamage - dealt)
   return {
     damageToDisplay: dealt,
     fullBeforeArmour: raw,
@@ -1000,6 +1066,7 @@ function resolveEnemyAttack(
     blocked,
     critical,
     preventedByBlock,
+    preventedTotal,
   }
 }
 
@@ -1047,8 +1114,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   }
   let t = 0
   let nextPlayer = 0
-  let nextEnemy = 0
   const apsEnemy = Math.max(0.05, enemy.aps * enemyApsMultiplier(stats))
+  // First enemy swing occurs after one full attack interval.
+  let nextEnemy = 1 / Math.max(0.15, apsEnemy)
   const firstHitFlag = { used: false }
   const firstPlayerActionThisEncounter = { used: false }
 
@@ -1359,7 +1427,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           + (fx?.enemiesTakeIncreasedDamagePerChillEffectPercent ?? 0) * chillPctNow
         const shadowMore = (!firstPlayerActionThisEncounter.used && stats.classBonusesActive.includes('shadow')) ? 1.5 : 1
         if (shadowMore !== 1) firstPlayerActionThisEncounter.used = true
-        const { damage, damageForAilments, outcome, anyCrit } = resolvePlayerAttack(enemy, enemyLife, stats, {
+        const { damage, damageForAilments, outcome, anyCrit, anyDouble, anyTriple, anyQuad } = resolvePlayerAttack(enemy, enemyLife, stats, {
           targetTakesIncreasedDamagePct: shockNow,
           extraTargetTakesIncreasedDamagePct: extraInc,
           moreDamageMult: shadowMore,
@@ -1395,13 +1463,20 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
             (stats.firstAttackAlwaysCrit ?? false) && !firstHitFlag.used
               ? true
               : anyCrit
+          const tags = [
+            hitWasCritical ? 'CRIT' : null,
+            anyQuad ? 'QUAD' : null,
+            (!anyQuad && anyTriple) ? 'TRIPLE' : null,
+            (!anyQuad && !anyTriple && anyDouble) ? 'DOUBLE' : null,
+          ].filter(Boolean) as string[]
+          const tagStr = tags.length ? ` (${tags.join(', ')})` : ''
           const msg =
             outcome === 'miss'
               ? 'Your attack was evaded'
               : outcome === 'enemy_blocked' && damage > 0
                 ? `Enemy blocked — you deal ${damage.toFixed(1)} (${enemyPoolsText()} left)`
                 : damage > 0
-                  ? `You hit for ${damage.toFixed(1)}${hitWasCritical ? ' (CRIT)' : ''} (${enemyPoolsText()} left)`
+                  ? `You hit for ${damage.toFixed(1)}${tagStr} (${enemyPoolsText()} left)`
                   : 'Glancing hit (no damage)'
           tryLog({ t, kind: 'player_attack', message: msg, damage })
         }
@@ -1464,6 +1539,19 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         if (fill > 0) actionBar = Math.min(1, actionBar + fill / 100)
       }
 
+      // Log the enemy attack first (so counters appear after the hit at the same timestamp).
+      if (r.evaded) tryLog({ t, kind: 'enemy_attack', message: `${enemy.name} attack evaded` })
+      else if (r.dodged) tryLog({ t, kind: 'enemy_attack', message: `${enemy.name} attack dodged` })
+      else if (r.damageToDisplay > 0 || r.blocked) {
+        const dmg = r.damageToDisplay ?? 0
+        tryLog({
+          t,
+          kind: 'enemy_attack',
+          message: `${enemy.name} hits for ${dmg.toFixed(1)}${r.critical ? ' (CRIT)' : ''}${r.blocked ? ' (blocked)' : ''}`,
+          damage: dmg,
+        })
+      }
+
       // Siegebreaker-style: blocked hit → counter attack with added fire from prevented damage.
       if (
         r.blocked
@@ -1472,7 +1560,10 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         && r.preventedByBlock > 0
         && enemyLife > 0
       ) {
-        const extraFire = (r.preventedByBlock * stats.counterAttackFirePctOfPrevented) / 100
+        // Siegebreaker text: "…50% of total prevented damage…"
+        // Use total prevented damage vs the player (post-mitigation vs pools),
+        // not only the portion prevented by the block multiplier.
+        const extraFire = (r.preventedTotal * stats.counterAttackFirePctOfPrevented) / 100
         const shockNow = activeShockPct(ailmentState, t)
         const fx = stats.abilityLineEffects
         const poisonStacks = ailmentState.dots.filter((d) => d.kind === 'poison' && d.expiresAt > t).length
@@ -1491,13 +1582,20 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         if (enemyLifeBeforeCounter > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
         if (ctr.damage > 0 || ctr.damageForAilments > 0) hitsPlayer++
         {
+          const tags = [
+            ctr.anyCrit ? 'CRIT' : null,
+            ctr.anyQuad ? 'QUAD' : null,
+            (!ctr.anyQuad && ctr.anyTriple) ? 'TRIPLE' : null,
+            (!ctr.anyQuad && !ctr.anyTriple && ctr.anyDouble) ? 'DOUBLE' : null,
+          ].filter(Boolean) as string[]
+          const tagStr = tags.length ? ` (${tags.join(', ')})` : ''
           const msg =
             ctr.outcome === 'miss'
               ? 'Counter attack evaded'
               : ctr.outcome === 'enemy_blocked' && ctr.damage > 0
                 ? `Counter attack — enemy blocked, ${ctr.damage.toFixed(1)} (${enemyPoolsText()} left)`
                 : ctr.damage > 0
-                  ? `Counter attack — ${ctr.damage.toFixed(1)}${ctr.anyCrit ? ' (CRIT)' : ''} (${enemyPoolsText()} left)`
+                  ? `Counter attack — ${ctr.damage.toFixed(1)}${tagStr} (${enemyPoolsText()} left)`
                   : 'Counter attack (no damage)'
           tryLog({ t, kind: 'player_attack', message: msg, damage: ctr.damage })
         }
@@ -1533,18 +1631,6 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         actionBar = Math.min(1, actionBar + 0.35)
       }
       if (!r.evaded && !r.dodged && r.damageToDisplay > 0) hitsEnemy++
-      {
-        if (r.evaded) tryLog({ t, kind: 'enemy_attack', message: `${enemy.name} attack evaded` })
-        else if (r.dodged) tryLog({ t, kind: 'enemy_attack', message: `${enemy.name} attack dodged` })
-        else if (r.damageToDisplay > 0) {
-          tryLog({
-            t,
-            kind: 'enemy_attack',
-            message: `${enemy.name} hits for ${r.damageToDisplay.toFixed(1)}${r.critical ? ' (CRIT)' : ''}${r.blocked ? ' (blocked)' : ''}`,
-            damage: r.damageToDisplay,
-          })
-        }
-      }
 
       // Enemy leech from damage dealt (post-mitigation value).
       if (r.damageToDisplay > 0 && (enemyLifeLeechPct > 0 || enemyEsLeechPct > 0)) {

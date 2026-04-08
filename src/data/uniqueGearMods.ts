@@ -334,9 +334,17 @@ export interface UniqueGearStatPatch {
 
   physicalTakenAsChaosPercentFromGear?: number;
   elementalTakenAsChaosPercentFromGear?: number;
+  fireTakenAsChaosPercentFromGear?: number;
+  coldTakenAsChaosPercentFromGear?: number;
+  lightningTakenAsChaosPercentFromGear?: number;
   physicalTakenAsFirePercentFromGear?: number;
   physicalTakenAsColdPercentFromGear?: number;
   physicalTakenAsLightningPercentFromGear?: number;
+  increasedPhysicalDamageTakenPercentFromGear?: number;
+  increasedFireDamageTakenPercentFromGear?: number;
+  increasedColdDamageTakenPercentFromGear?: number;
+  increasedLightningDamageTakenPercentFromGear?: number;
+  increasedChaosDamageTakenPercentFromGear?: number;
   /** Flat reduced physical damage taken (additive, e.g. The Parallax "take 8 reduced physical damage"). */
   reducedPhysicalDamageTakenFromGear?: number;
 

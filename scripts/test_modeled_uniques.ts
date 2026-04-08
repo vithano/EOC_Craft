@@ -400,6 +400,23 @@ function main() {
     assert(Boolean(stats.excessLifeLeechRecoveryToEnergyShield), "Expected stats.excessLifeLeechRecoveryToEnergyShield true");
   }
 
+  // Siegebreaker: dual-wield stacks counter-attack conversion (50% + 50% = 100%)
+  {
+    const eq = aggregateEquippedToEquipmentModifiers(
+      ["Weapon", "Off-hand"],
+      (slot) => {
+        if (slot === "Weapon") return { itemId: "unique_siegebreaker", rolls: [10, 10], enhancement: 0 };
+        if (slot === "Off-hand") return { itemId: "unique_siegebreaker", rolls: [10, 10], enhancement: 0 };
+        return { itemId: "none" };
+      }
+    );
+    assert(Boolean(eq.counterAttackOnBlockFromGear), "Expected counterAttackOnBlockFromGear true from Siegebreaker");
+    assert(
+      eq.counterAttackFirePctOfPreventedFromGear === 100,
+      `Expected stacked counterAttackFirePctOfPreventedFromGear=100, got ${eq.counterAttackFirePctOfPreventedFromGear}`
+    );
+  }
+
   // Armour effectiveness vs chaos damage is NOT chaos resistance
   {
     const patch = equipmentModifiersFromUniqueTexts(
@@ -902,7 +919,7 @@ function main() {
       accuracy: 10_000,
       damageMin: stats.maxLife * 2,
       damageMax: stats.maxLife * 2,
-      aps: 0.2,
+      aps: 5.0,
     };
     const res = simulateEncounter({ stats, enemy, options: { maxDurationSeconds: 1.0, dt: 0.02, maxLogEntries: 200 } });
     assert(res.log.some((e) => (e as any).message?.includes?.("Death prevented")), "Expected death prevented log entry");

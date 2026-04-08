@@ -171,6 +171,22 @@ export default function BattleDemoPage() {
     });
   }, [stats, derivedEnemy, enemyModSlots, runKey]);
 
+  const encounterSummary = useMemo(() => {
+    const duration = Math.max(1e-6, result.durationSeconds)
+    const lifeDamageDone = Math.max(0, derivedEnemy.maxLife - result.enemyLifeFinal)
+    const dpsAvg = lifeDamageDone / duration
+
+    // Damage "heat" scaling for log coloring — computed per encounter.
+    const maxByKind = { player_attack: 0, enemy_attack: 0, ailment: 0, dot_tick: 0, phase: 0 } as const
+    const maxDamage = { ...maxByKind } as Record<keyof typeof maxByKind, number>
+    for (const line of result.log) {
+      const d = line.damage ?? 0
+      if (d > (maxDamage[line.kind] ?? 0)) maxDamage[line.kind] = d
+    }
+
+    return { dpsAvg, lifeDamageDone, maxDamage }
+  }, [result, derivedEnemy.maxLife]);
+
   const selectedEnemyModIds = useMemo(() => {
     return new Set(enemyModSlots.map((s) => s.id).filter(Boolean) as EnemyModifierId[]);
   }, [enemyModSlots]);
@@ -545,6 +561,8 @@ export default function BattleDemoPage() {
             <span className="text-zinc-500 text-sm">
               {result.durationSeconds.toFixed(1)}s · you landed {result.hitsLandedPlayer} hits · took{" "}
               {result.hitsLandedEnemy} hits
+              {" "}
+              · DPS avg <span className="text-zinc-300">{encounterSummary.dpsAvg.toFixed(1)}</span>
               {(result.totalDotDamageToEnemy ?? 0) > 0 && (
                 <>
                   {" "}
@@ -619,9 +637,25 @@ export default function BattleDemoPage() {
                     ? "text-rose-300/95"
                     : line.kind === "phase"
                       ? "text-zinc-400"
+                      : line.kind === "enemy_attack"
+                        ? "text-sky-300/95"
                       : "";
+
+              const dmg = line.damage ?? 0;
+              const denom = Math.max(1, encounterSummary.maxDamage[line.kind] ?? 0);
+              const rel = dmg > 0 ? dmg / denom : 0;
+              const heat =
+                dmg <= 0
+                  ? ""
+                  : rel >= 0.9
+                    ? "text-fuchsia-300"
+                    : rel >= 0.65
+                      ? "text-rose-300"
+                      : rel >= 0.4
+                        ? "text-amber-300"
+                        : "text-zinc-300";
               return (
-              <div key={i} className={tone}>
+              <div key={i} className={[tone, heat].filter(Boolean).join(" ")}>
                 <span className="text-zinc-600">[{line.t.toFixed(2)}s]</span> {line.message}
               </div>
               );

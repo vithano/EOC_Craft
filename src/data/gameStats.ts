@@ -647,9 +647,17 @@ export interface EquipmentModifiers {
 
   physicalTakenAsChaosPercentFromGear: number
   elementalTakenAsChaosPercentFromGear: number
+  fireTakenAsChaosPercentFromGear: number
+  coldTakenAsChaosPercentFromGear: number
+  lightningTakenAsChaosPercentFromGear: number
   physicalTakenAsFirePercentFromGear: number
   physicalTakenAsColdPercentFromGear: number
   physicalTakenAsLightningPercentFromGear: number
+  increasedPhysicalDamageTakenPercentFromGear: number
+  increasedFireDamageTakenPercentFromGear: number
+  increasedColdDamageTakenPercentFromGear: number
+  increasedLightningDamageTakenPercentFromGear: number
+  increasedChaosDamageTakenPercentFromGear: number
   /** Flat reduced physical damage taken from gear (added on top of armour reduction). */
   reducedPhysicalDamageTakenFromGear: number
 
@@ -950,6 +958,14 @@ export interface ComputedBuildStats {
   physicalDamageTakenAsColdPercent: number
   physicalDamageTakenAsLightningPercent: number
   elementalDamageTakenAsChaosPercent: number
+  fireDamageTakenAsChaosPercent: number
+  coldDamageTakenAsChaosPercent: number
+  lightningDamageTakenAsChaosPercent: number
+  increasedPhysicalDamageTakenPercent: number
+  increasedFireDamageTakenPercent: number
+  increasedColdDamageTakenPercent: number
+  increasedLightningDamageTakenPercent: number
+  increasedChaosDamageTakenPercent: number
   /** % reduced physical damage taken (from gear + Arcanist bonus). */
   reducedPhysicalDamageTaken: number
   /** % increased shock/chill effect you inflict (demo). */
@@ -1227,9 +1243,17 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
 
     physicalTakenAsChaosPercentFromGear: 0,
     elementalTakenAsChaosPercentFromGear: 0,
+    fireTakenAsChaosPercentFromGear: 0,
+    coldTakenAsChaosPercentFromGear: 0,
+    lightningTakenAsChaosPercentFromGear: 0,
     physicalTakenAsFirePercentFromGear: 0,
     physicalTakenAsColdPercentFromGear: 0,
     physicalTakenAsLightningPercentFromGear: 0,
+    increasedPhysicalDamageTakenPercentFromGear: 0,
+    increasedFireDamageTakenPercentFromGear: 0,
+    increasedColdDamageTakenPercentFromGear: 0,
+    increasedLightningDamageTakenPercentFromGear: 0,
+    increasedChaosDamageTakenPercentFromGear: 0,
     reducedPhysicalDamageTakenFromGear: 0,
 
     nonDamagingAilmentEffectIncreasedFromGear: 0,
@@ -1424,7 +1448,8 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.counterAttackOnBlockFromGear) eq.counterAttackOnBlockFromGear = true
   if (p.counterAttackFirePctOfPreventedFromGear !== undefined) {
     const v = p.counterAttackFirePctOfPreventedFromGear
-    eq.counterAttackFirePctOfPreventedFromGear = Math.max(eq.counterAttackFirePctOfPreventedFromGear, v)
+    // Multiple sources should stack (e.g. dual-wield Siegebreaker: 50% + 50% = 100%).
+    eq.counterAttackFirePctOfPreventedFromGear = Math.min(100, eq.counterAttackFirePctOfPreventedFromGear + v)
   }
   if (p.firstAttackAlwaysCritFromGear) eq.firstAttackAlwaysCritFromGear = true
   if (p.actionBarSetToPercentAtStartFromGear !== undefined) {
@@ -1743,6 +1768,15 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   if (p.elementalTakenAsChaosPercentFromGear !== undefined) {
     addNum('elementalTakenAsChaosPercentFromGear', p.elementalTakenAsChaosPercentFromGear)
   }
+  if (p.fireTakenAsChaosPercentFromGear !== undefined) {
+    addNum('fireTakenAsChaosPercentFromGear', p.fireTakenAsChaosPercentFromGear)
+  }
+  if (p.coldTakenAsChaosPercentFromGear !== undefined) {
+    addNum('coldTakenAsChaosPercentFromGear', p.coldTakenAsChaosPercentFromGear)
+  }
+  if (p.lightningTakenAsChaosPercentFromGear !== undefined) {
+    addNum('lightningTakenAsChaosPercentFromGear', p.lightningTakenAsChaosPercentFromGear)
+  }
   if (p.physicalTakenAsFirePercentFromGear !== undefined) {
     addNum('physicalTakenAsFirePercentFromGear', p.physicalTakenAsFirePercentFromGear)
   }
@@ -1751,6 +1785,21 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
   if (p.physicalTakenAsLightningPercentFromGear !== undefined) {
     addNum('physicalTakenAsLightningPercentFromGear', p.physicalTakenAsLightningPercentFromGear)
+  }
+  if (p.increasedPhysicalDamageTakenPercentFromGear !== undefined) {
+    addNum('increasedPhysicalDamageTakenPercentFromGear', p.increasedPhysicalDamageTakenPercentFromGear)
+  }
+  if (p.increasedFireDamageTakenPercentFromGear !== undefined) {
+    addNum('increasedFireDamageTakenPercentFromGear', p.increasedFireDamageTakenPercentFromGear)
+  }
+  if (p.increasedColdDamageTakenPercentFromGear !== undefined) {
+    addNum('increasedColdDamageTakenPercentFromGear', p.increasedColdDamageTakenPercentFromGear)
+  }
+  if (p.increasedLightningDamageTakenPercentFromGear !== undefined) {
+    addNum('increasedLightningDamageTakenPercentFromGear', p.increasedLightningDamageTakenPercentFromGear)
+  }
+  if (p.increasedChaosDamageTakenPercentFromGear !== undefined) {
+    addNum('increasedChaosDamageTakenPercentFromGear', p.increasedChaosDamageTakenPercentFromGear)
   }
   if (p.reducedPhysicalDamageTakenFromGear !== undefined) {
     addNum('reducedPhysicalDamageTakenFromGear', p.reducedPhysicalDamageTakenFromGear)
@@ -4075,6 +4124,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const physicalDamageTakenAsColdPercent = eq.physicalTakenAsColdPercentFromGear
   const physicalDamageTakenAsLightningPercent = eq.physicalTakenAsLightningPercentFromGear
   const elementalDamageTakenAsChaosPercent = eq.elementalTakenAsChaosPercentFromGear
+  const fireDamageTakenAsChaosPercent = eq.fireTakenAsChaosPercentFromGear
+  const coldDamageTakenAsChaosPercent = eq.coldTakenAsChaosPercentFromGear
+  const lightningDamageTakenAsChaosPercent = eq.lightningTakenAsChaosPercentFromGear
+  const increasedPhysicalDamageTakenPercent = eq.increasedPhysicalDamageTakenPercentFromGear
+  const increasedFireDamageTakenPercent = eq.increasedFireDamageTakenPercentFromGear
+  const increasedColdDamageTakenPercent = eq.increasedColdDamageTakenPercentFromGear
+  const increasedLightningDamageTakenPercent = eq.increasedLightningDamageTakenPercentFromGear
+  const increasedChaosDamageTakenPercent = eq.increasedChaosDamageTakenPercentFromGear
   // Arcanist class bonus: take 15% reduced physical damage while you have energy shield
   const reducedPhysicalDamageTaken =
     eq.reducedPhysicalDamageTakenFromGear + (bonus('arcanist') ? 15 : 0)
@@ -5347,6 +5404,14 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     physicalDamageTakenAsColdPercent,
     physicalDamageTakenAsLightningPercent,
     elementalDamageTakenAsChaosPercent,
+    fireDamageTakenAsChaosPercent,
+    coldDamageTakenAsChaosPercent,
+    lightningDamageTakenAsChaosPercent,
+    increasedPhysicalDamageTakenPercent,
+    increasedFireDamageTakenPercent,
+    increasedColdDamageTakenPercent,
+    increasedLightningDamageTakenPercent,
+    increasedChaosDamageTakenPercent,
     reducedPhysicalDamageTaken,
     nonDamagingAilmentEffectIncreasedPercent,
     maxShockEffect,
