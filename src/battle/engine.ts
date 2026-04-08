@@ -806,6 +806,7 @@ function resolveEnemyAttack(
   evaded: boolean
   dodged: boolean
   blocked: boolean
+  critical: boolean
   /** Damage removed by block mitigation on this hit (pre-block hit damage minus post-block, before armour). */
   preventedByBlock: number
 } {
@@ -830,6 +831,7 @@ function resolveEnemyAttack(
       evaded: true,
       dodged: false,
       blocked: false,
+      critical: false,
       preventedByBlock: 0,
     }
   }
@@ -849,6 +851,7 @@ function resolveEnemyAttack(
       evaded: false,
       dodged: true,
       blocked: false,
+      critical: false,
       preventedByBlock: 0,
     }
   }
@@ -864,8 +867,10 @@ function resolveEnemyAttack(
   const critC = enemy.critChance ?? 0
   const critM = enemy.critMultiplier ?? 2
   const canCrit = !stats.hitsTakenCannotBeCritical
+  let critical = false
   if (canCrit && critC > 0 && Math.random() * 100 < critC) {
     raw *= critM
+    critical = true
   }
 
   if (stats.classBonusesActive.includes('trickster')) {
@@ -902,6 +907,7 @@ function resolveEnemyAttack(
         evaded: false,
         dodged: true,
         blocked: false,
+        critical,
         preventedByBlock: 0,
       }
     }
@@ -992,6 +998,7 @@ function resolveEnemyAttack(
     evaded: false,
     dodged: false,
     blocked,
+    critical,
     preventedByBlock,
   }
 }
@@ -1384,13 +1391,17 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           }
         }
         {
+          const hitWasCritical =
+            (stats.firstAttackAlwaysCrit ?? false) && !firstHitFlag.used
+              ? true
+              : anyCrit
           const msg =
             outcome === 'miss'
               ? 'Your attack was evaded'
               : outcome === 'enemy_blocked' && damage > 0
                 ? `Enemy blocked — you deal ${damage.toFixed(1)} (${enemyPoolsText()} left)`
                 : damage > 0
-                  ? `You hit for ${damage.toFixed(1)} (${enemyPoolsText()} left)`
+                  ? `You hit for ${damage.toFixed(1)}${hitWasCritical ? ' (CRIT)' : ''} (${enemyPoolsText()} left)`
                   : 'Glancing hit (no damage)'
           tryLog({ t, kind: 'player_attack', message: msg, damage })
         }
@@ -1486,7 +1497,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
               : ctr.outcome === 'enemy_blocked' && ctr.damage > 0
                 ? `Counter attack — enemy blocked, ${ctr.damage.toFixed(1)} (${enemyPoolsText()} left)`
                 : ctr.damage > 0
-                  ? `Counter attack — ${ctr.damage.toFixed(1)} (${enemyPoolsText()} left)`
+                  ? `Counter attack — ${ctr.damage.toFixed(1)}${ctr.anyCrit ? ' (CRIT)' : ''} (${enemyPoolsText()} left)`
                   : 'Counter attack (no damage)'
           tryLog({ t, kind: 'player_attack', message: msg, damage: ctr.damage })
         }
@@ -1529,7 +1540,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           tryLog({
             t,
             kind: 'enemy_attack',
-            message: `${enemy.name} hits for ${r.damageToDisplay.toFixed(1)}${r.blocked ? ' (blocked)' : ''}`,
+            message: `${enemy.name} hits for ${r.damageToDisplay.toFixed(1)}${r.critical ? ' (CRIT)' : ''}${r.blocked ? ' (blocked)' : ''}`,
             damage: r.damageToDisplay,
           })
         }
