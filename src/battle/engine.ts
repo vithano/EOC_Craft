@@ -441,10 +441,35 @@ function applyDamageToPools(
 
 type PlayerHitOutcome = 'miss' | 'enemy_blocked' | 'hit'
 
+function statefulMoreDamageMultFromPlayerPools(stats: ComputedBuildStats, player: BattleParticipantState): number {
+  const fx = stats.abilityLineEffects
+  if (!fx) return 1
+
+  let m = 1
+
+  // Deal 1% more chaos damage per 1% missing combined life and energy shield (Dark Pact).
+  if ((fx.darkPactMoreChaosDamagePerMissingCombinedPct ?? 0) > 0) {
+    const maxCombined = Math.max(0, (stats.maxLife ?? 0) + (stats.maxEnergyShield ?? 0))
+    const curCombined = Math.max(0, (player.life ?? 0) + (player.energyShield ?? 0))
+    const missingPct = maxCombined > 0 ? ((maxCombined - curCombined) / maxCombined) * 100 : 0
+    m *= 1 + (missingPct * (fx.darkPactMoreChaosDamagePerMissingCombinedPct / 100))
+  }
+
+  // Deal 1% more fire damage per 40 combined current life and energy shield (Blazing Radiance).
+  // This scales continuously with current pools during combat.
+  if ((fx.blazingRadianceMoreFireDamagePer40CombinedCurrentPct ?? 0) > 0) {
+    const combinedNow = Math.max(0, (player.life ?? 0) + (player.energyShield ?? 0))
+    m *= 1 + (combinedNow / 40) * (fx.blazingRadianceMoreFireDamagePer40CombinedCurrentPct / 100)
+  }
+
+  return Math.max(0.01, m)
+}
+
 function resolvePlayerAttack(
   enemy: DemoEnemyDef,
   enemyLife: number,
   stats: ComputedBuildStats,
+  playerState: BattleParticipantState,
   attackOpts?: {
     targetTakesIncreasedDamagePct: number
     extraTargetTakesIncreasedDamagePct?: number
@@ -482,6 +507,13 @@ function resolvePlayerAttack(
 
     let base = rollDamage(stats.hitDamageMin, stats.hitDamageMax, zealot)
     let extraFire = s === 0 ? Math.max(0, attackOpts?.extraFlatFireDamage ?? 0) : 0
+    // Stateful "more" multipliers that depend on current in-combat pools.
+    // We apply them here (pre-crit/procs) so they respond immediately to being hit / spending mana / etc.
+    const statefulMore = statefulMoreDamageMultFromPlayerPools(stats, playerState)
+    if (statefulMore !== 1) {
+      base *= statefulMore
+      extraFire *= statefulMore
+    }
     if (blocked) {
       base *= DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
       extraFire *= DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
@@ -583,9 +615,9 @@ function resolvePlayerAttack(
 
   const outcome: PlayerHitOutcome =
     blockedStrikes === strikes && strikes > 0 ? 'enemy_blocked' : 'hit'
-  const fx = stats.abilityLineEffects
-  const dealNoDamage = (fx?.dealNoDamage ?? false)
-  const ailmentsFull = (fx?.inflictAilmentsAsThoughFullHitDamage ?? false)
+  const fx2 = stats.abilityLineEffects
+  const dealNoDamage = (fx2?.dealNoDamage ?? false)
+  const ailmentsFull = (fx2?.inflictAilmentsAsThoughFullHitDamage ?? false)
   return {
     damage: dealNoDamage ? 0 : total,
     damageForAilments: (dealNoDamage && ailmentsFull) ? total : (dealNoDamage ? 0 : total),
@@ -888,7 +920,7 @@ function resolveEnemyAttack(
   /** Total prevented damage vs the player (includes block + armour + resist + other mitigation after this point). */
   preventedTotal: number
 } {
-  const enemyAttackIsSpell = (enemy as any).attackIsSpell ?? false
+  const enemyAttackIsSpell = enemy.attackIsSpell ?? false
   const acc = enemy.accuracy
   let eva = stats.evasionRating
   const flat = flatEvasionFromClassBonuses(stats)
@@ -1023,14 +1055,27 @@ function resolveEnemyAttack(
   const eleMax = enemy.elementalDamageMax ?? 0
   const chaosMin = enemy.chaosDamageMin ?? 0
   const chaosMax = enemy.chaosDamageMax ?? 0
+  const fireMin = enemy.fireDamageMin ?? 0
+  const fireMax = enemy.fireDamageMax ?? 0
+  const coldMin = enemy.coldDamageMin ?? 0
+  const coldMax = enemy.coldDamageMax ?? 0
+  const lightMin = enemy.lightningDamageMin ?? 0
+  const lightMax = enemy.lightningDamageMax ?? 0
 
   const physRoll = physMin + Math.random() * Math.max(0, physMax - physMin)
-  const eleRoll = eleMin + Math.random() * Math.max(0, eleMax - eleMin)
   const chaosRoll = chaosMin + Math.random() * Math.max(0, chaosMax - chaosMin)
+
+  // Elemental: if per-element ranges are provided, roll those directly; otherwise roll the aggregated elemental bucket.
+  const hasElementRolls = (fireMin + fireMax + coldMin + coldMax + lightMin + lightMax) > 0
+  const fireRoll = hasElementRolls ? (fireMin + Math.random() * Math.max(0, fireMax - fireMin)) : 0
+  const coldRoll = hasElementRolls ? (coldMin + Math.random() * Math.max(0, coldMax - coldMin)) : 0
+  const lightRoll = hasElementRolls ? (lightMin + Math.random() * Math.max(0, lightMax - lightMin)) : 0
+  const eleRoll = hasElementRolls ? (fireRoll + coldRoll + lightRoll) : (eleMin + Math.random() * Math.max(0, eleMax - eleMin))
+
   const rollTotal = Math.max(1e-9, physRoll + eleRoll + chaosRoll)
   const physAmt = afterPath * (physRoll / rollTotal)
-  const eleAmt = afterPath * (eleRoll / rollTotal)
   const chaosAmt = afterPath * (chaosRoll / rollTotal)
+  const eleAmt = afterPath * (eleRoll / rollTotal)
 
   const totalAllTypes = physAmt + eleAmt + chaosAmt
   const armourIgnoredFrac = Math.min(1, Math.max(0, (enemy.armourIgnorePercent ?? 0) / 100))
@@ -1044,10 +1089,20 @@ function resolveEnemyAttack(
 
   // Split elemental into per-element buckets.
   let phys = afterArmourPhys
-  let fire = afterArmourEle / 3
-  let cold = afterArmourEle / 3
-  let light = afterArmourEle / 3
+  let fire = 0
+  let cold = 0
+  let light = 0
   let chaos = afterArmourChaos
+  if (hasElementRolls) {
+    const eTot = Math.max(1e-9, fireRoll + coldRoll + lightRoll)
+    fire = afterArmourEle * (fireRoll / eTot)
+    cold = afterArmourEle * (coldRoll / eTot)
+    light = afterArmourEle * (lightRoll / eTot)
+  } else {
+    fire = afterArmourEle / 3
+    cold = afterArmourEle / 3
+    light = afterArmourEle / 3
+  }
 
   // 1) Physical taken-as-X conversions (0–100 each, clamped by normalize rule).
   {
@@ -1523,7 +1578,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           + (fx?.enemiesTakeIncreasedDamagePerChillEffectPercent ?? 0) * chillPctNow
         const shadowMore = (!firstPlayerActionThisEncounter.used && stats.classBonusesActive.includes('shadow')) ? 1.5 : 1
         if (shadowMore !== 1) firstPlayerActionThisEncounter.used = true
-        const atk = resolvePlayerAttack(enemy, enemyLife, stats, {
+        const atk = resolvePlayerAttack(enemy, enemyLife, stats, player, {
           targetTakesIncreasedDamagePct: shockNow,
           extraTargetTakesIncreasedDamagePct: extraInc,
           moreDamageMult: shadowMore,
@@ -1640,7 +1695,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           )
           const extraOnCrit = stats.extraHitOnCritChance ?? 0
           if (hitWasCritical && extraOnCrit > 0 && Math.random() * 100 < extraOnCrit) {
-            const r2 = resolvePlayerAttack(enemy, enemyLife, stats, { targetTakesIncreasedDamagePct: shockNow })
+            const r2 = resolvePlayerAttack(enemy, enemyLife, stats, player, { targetTakesIncreasedDamagePct: shockNow })
             enemyLife -= r2.damage
           }
           if (enemyLife > 0) {
@@ -1739,7 +1794,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           (fx?.enemiesTakeIncreasedDamagePerPoisonPercent ?? 0) * poisonStacks
           + (fx?.enemiesTakeIncreasedDamagePerChillEffectPercent ?? 0) * chillPctNow
         const enemyLifeBeforeCounter = enemyLife
-        const ctr = resolvePlayerAttack(enemy, enemyLife, stats, {
+        const ctr = resolvePlayerAttack(enemy, enemyLife, stats, player, {
           targetTakesIncreasedDamagePct: shockNow,
           extraTargetTakesIncreasedDamagePct: extraInc,
           extraFlatFireDamage: extraFire,

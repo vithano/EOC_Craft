@@ -418,6 +418,18 @@ export function applyEnemyModifierDeltasToScaledEnemy(
     next.elementalDamageMin = Math.max(0, Math.round(enemy.elementalDamageMin * dmgMult));
     next.elementalDamageMax = Math.max(0, Math.round((enemy.elementalDamageMax ?? 0) * dmgMult));
   }
+  if (enemy.fireDamageMin != null) {
+    next.fireDamageMin = Math.max(0, Math.round(enemy.fireDamageMin * dmgMult));
+    next.fireDamageMax = Math.max(0, Math.round((enemy.fireDamageMax ?? 0) * dmgMult));
+  }
+  if (enemy.coldDamageMin != null) {
+    next.coldDamageMin = Math.max(0, Math.round(enemy.coldDamageMin * dmgMult));
+    next.coldDamageMax = Math.max(0, Math.round((enemy.coldDamageMax ?? 0) * dmgMult));
+  }
+  if (enemy.lightningDamageMin != null) {
+    next.lightningDamageMin = Math.max(0, Math.round(enemy.lightningDamageMin * dmgMult));
+    next.lightningDamageMax = Math.max(0, Math.round((enemy.lightningDamageMax ?? 0) * dmgMult));
+  }
   if (enemy.chaosDamageMin != null) {
     next.chaosDamageMin = Math.max(0, Math.round(enemy.chaosDamageMin * dmgMult));
     next.chaosDamageMax = Math.max(0, Math.round((enemy.chaosDamageMax ?? 0) * dmgMult));

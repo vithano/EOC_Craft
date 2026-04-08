@@ -47,6 +47,13 @@ export interface DemoEnemyDef {
   physicalDamageMax?: number
   elementalDamageMin?: number
   elementalDamageMax?: number
+  /** Optional per-element hit ranges (if provided, overrides equal elemental split). */
+  fireDamageMin?: number
+  fireDamageMax?: number
+  coldDamageMin?: number
+  coldDamageMax?: number
+  lightningDamageMin?: number
+  lightningDamageMax?: number
   chaosDamageMin?: number
   chaosDamageMax?: number
   aps: number
@@ -66,6 +73,9 @@ export interface DemoEnemyDef {
   chaosResistancePercent?: number
   /** Optional zone for formulas.csv elemental resistance scaling. */
   zone?: number
+
+  /** If true, enemy attacks are treated as spells for evasion rules (evasion is half as effective vs spells). */
+  attackIsSpell?: boolean
 }
 
 export interface BattleParticipantState {

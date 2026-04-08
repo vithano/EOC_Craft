@@ -128,6 +128,9 @@ const MAX_NEXUS_TIER = 30;
 
 function nexusTier0AtLevel100(template: NexusTierRow): NexusTierRow {
   const L = enemyStatsAtLevel(NEXUS_ENEMY_LEVEL_ANCHOR);
+  // Tier rows store separate phys/elemental/chaos hit bands. The formulas.csv enemy level curve provides the
+  // *base* hit damage band (phys) at a given level. We anchor tier 0 phys min/max to that curve and scale
+  // elemental/chaos by the same factor so their ratios vs phys match the sheet template.
   const hitSpan = template.physMin + template.physMax;
   const kHit = hitSpan > 0 ? (L.damageMin + L.damageMax) / hitSpan : 1;
   return n(

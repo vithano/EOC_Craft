@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { simulateEncounter } from "../../battle/engine";
 import type { DemoEnemyDef } from "../../battle/types";
@@ -29,6 +28,8 @@ import { loadBuildsState, type StoredPlannerPayload } from "../../lib/eocBuildSt
 type EnemyModSlot = { id: EnemyModifierId | null; tier: 1 | 2 | 3 };
 type EnemyRarity = "normal" | "elite" | "boss";
 type EnemyScalingMode = "level" | "nexus" | "crucible";
+type EnemyAttackKind = "attack" | "spell";
+type EnemyDamageType = "physical" | "fire" | "cold" | "lightning" | "chaos";
 
 export default function BattleDemoPage() {
   const [runKey, setRunKey] = useState(0);
@@ -41,10 +42,20 @@ export default function BattleDemoPage() {
   const [enemyLevel, setEnemyLevel] = useState<number>(100);
   const [enemyZone, setEnemyZone] = useState<number>(1);
   const [enemyRarity, setEnemyRarity] = useState<EnemyRarity>("normal");
+  const [enemyAttackKind, setEnemyAttackKind] = useState<EnemyAttackKind>("attack");
+  const [enemyDamageType, setEnemyDamageType] = useState<EnemyDamageType>("physical");
   const [nexusTier, setNexusTier] = useState<number>(0);
   const [crucibleTier, setCrucibleTier] = useState<number>(0);
 
   function loadActiveBuild(): { name: string | null; payload: StoredPlannerPayload | null } {
+    // Prefer a shared/preview build written by the planner when in view-only mode
+    const preview = sessionStorage.getItem("eocCraftPreviewBuild");
+    if (preview) {
+      try {
+        const payload = JSON.parse(preview) as StoredPlannerPayload;
+        return { name: "Shared Build", payload };
+      } catch { /* fall through */ }
+    }
     const state = loadBuildsState();
     const active = state.builds.find((b) => b.id === state.activeBuildId) ?? state.builds[0];
     return { name: active?.name ?? null, payload: active?.payload ?? null };
@@ -83,6 +94,83 @@ export default function BattleDemoPage() {
 
     const zone = Math.max(1, Math.floor(enemyZone || 1));
 
+    // Helper: take a fully-typed enemy (phys/ele/chaos or per-element) and force it to a single outgoing damage type.
+    const forceEnemyDamageType = (e: DemoEnemyDef): DemoEnemyDef => {
+      // Pick the *selected* band, not the total. Otherwise all selections look identical.
+      const physMin = e.physicalDamageMin ?? 0;
+      const physMax = e.physicalDamageMax ?? 0;
+      const eleMin = e.elementalDamageMin ?? 0;
+      const eleMax = e.elementalDamageMax ?? 0;
+      const chaosMin = e.chaosDamageMin ?? 0;
+      const chaosMax = e.chaosDamageMax ?? 0;
+
+      // If per-element ranges are present, prefer those for elemental selections.
+      const fireMin = e.fireDamageMin ?? 0;
+      const fireMax = e.fireDamageMax ?? 0;
+      const coldMin = e.coldDamageMin ?? 0;
+      const coldMax = e.coldDamageMax ?? 0;
+      const lightMin = e.lightningDamageMin ?? 0;
+      const lightMax = e.lightningDamageMax ?? 0;
+
+      let selMin = 0;
+      let selMax = 0;
+      if (enemyDamageType === "physical") {
+        selMin = physMin;
+        selMax = physMax;
+      } else if (enemyDamageType === "chaos") {
+        selMin = chaosMin;
+        selMax = chaosMax;
+      } else if (enemyDamageType === "fire") {
+        const has = (fireMin + fireMax) > 0;
+        selMin = has ? fireMin : eleMin;
+        selMax = has ? fireMax : eleMax;
+      } else if (enemyDamageType === "cold") {
+        const has = (coldMin + coldMax) > 0;
+        selMin = has ? coldMin : eleMin;
+        selMax = has ? coldMax : eleMax;
+      } else {
+        const has = (lightMin + lightMax) > 0;
+        selMin = has ? lightMin : eleMin;
+        selMax = has ? lightMax : eleMax;
+      }
+      const out: DemoEnemyDef = {
+        ...e,
+        // Reset all typed buckets; we will set exactly one.
+        physicalDamageMin: 0,
+        physicalDamageMax: 0,
+        elementalDamageMin: 0,
+        elementalDamageMax: 0,
+        fireDamageMin: 0,
+        fireDamageMax: 0,
+        coldDamageMin: 0,
+        coldDamageMax: 0,
+        lightningDamageMin: 0,
+        lightningDamageMax: 0,
+        chaosDamageMin: 0,
+        chaosDamageMax: 0,
+      };
+      if (enemyDamageType === "physical") {
+        out.physicalDamageMin = selMin;
+        out.physicalDamageMax = selMax;
+      } else if (enemyDamageType === "chaos") {
+        out.chaosDamageMin = selMin;
+        out.chaosDamageMax = selMax;
+      } else if (enemyDamageType === "fire") {
+        out.fireDamageMin = selMin;
+        out.fireDamageMax = selMax;
+      } else if (enemyDamageType === "cold") {
+        out.coldDamageMin = selMin;
+        out.coldDamageMax = selMax;
+      } else if (enemyDamageType === "lightning") {
+        out.lightningDamageMin = selMin;
+        out.lightningDamageMax = selMax;
+      }
+      // Keep aggregate total range coherent for UI.
+      out.damageMin = selMin;
+      out.damageMax = selMax;
+      return out;
+    };
+
     if (enemyMode === "nexus" || enemyMode === "crucible") {
       const row = enemyMode === "nexus" ? getNexusTierRow(Math.max(0, Math.floor(nexusTier))) : getCrucibleTierRow(Math.max(0, Math.floor(crucibleTier)));
       const tLabel = enemyMode === "nexus" ? `Nexus ${Math.max(0, Math.floor(nexusTier))}` : `Crucible ${Math.max(0, Math.floor(crucibleTier))}`;
@@ -100,7 +188,7 @@ export default function BattleDemoPage() {
           zone,
         };
       }
-      return {
+      return forceEnemyDamageType({
         id: "enemy",
         name: `${tLabel}${enemyRarity !== "normal" ? ` (${enemyRarity})` : ""}`,
         maxLife: Math.max(1, Math.round(row.health * rarityLifeMult)),
@@ -113,8 +201,9 @@ export default function BattleDemoPage() {
         armour: Math.max(0, Math.round(row.armour)),
         evasionRating: Math.max(0, Math.round(row.evasion)),
         accuracy: Math.max(0, Math.round(row.accuracy)),
-        damageMin: Math.max(0, Math.round(row.physMin * rarityDmgMult)),
-        damageMax: Math.max(0, Math.round(row.physMax * rarityDmgMult)),
+        // Total hit range is phys + elemental + chaos.
+        damageMin: Math.max(0, Math.round((row.physMin + row.elementalMin + row.chaosMin) * rarityDmgMult)),
+        damageMax: Math.max(0, Math.round((row.physMax + row.elementalMax + row.chaosMax) * rarityDmgMult)),
         physicalDamageMin: Math.max(0, Math.round(row.physMin * rarityDmgMult)),
         physicalDamageMax: Math.max(0, Math.round(row.physMax * rarityDmgMult)),
         elementalDamageMin: Math.max(0, Math.round(row.elementalMin * rarityDmgMult)),
@@ -126,13 +215,29 @@ export default function BattleDemoPage() {
         coldResistancePercent: row.elementalResPercent,
         lightningResistancePercent: row.elementalResPercent,
         chaosResistancePercent: row.chaosResPercent,
+        attackIsSpell: enemyAttackKind === "spell",
         zone,
-      };
+      });
     }
 
     const lvl = Math.max(1, Math.floor(enemyLevel || 1));
     const base = enemyStatsAtLevel(lvl);
-    return {
+    // Use Nexus tier-0 split ratios as a default breakdown for level-mode enemies.
+    // (The formulas.csv enemy level curve provides total min/max; the sheet provides a split shape.)
+    const t0 = getNexusTierRow(0);
+    const t0TotalSpan =
+      t0
+        ? (t0.physMin + t0.physMax) + (t0.elementalMin + t0.elementalMax) + (t0.chaosMin + t0.chaosMax)
+        : 1;
+    const baseTotalSpan = base.damageMin + base.damageMax;
+    const kType = t0 && t0TotalSpan > 0 ? baseTotalSpan / t0TotalSpan : 1;
+    const physMin = t0 ? t0.physMin * kType : base.damageMin;
+    const physMax = t0 ? t0.physMax * kType : base.damageMax;
+    const eleMin = t0 ? t0.elementalMin * kType : 0;
+    const eleMax = t0 ? t0.elementalMax * kType : 0;
+    const chaosMin = t0 ? t0.chaosMin * kType : 0;
+    const chaosMax = t0 ? t0.chaosMax * kType : 0;
+    return forceEnemyDamageType({
       id: "enemy",
       name: `Enemy L${lvl}${enemyRarity !== "normal" ? ` (${enemyRarity})` : ""}`,
       maxLife: Math.max(1, Math.round(base.life * rarityLifeMult)),
@@ -144,12 +249,19 @@ export default function BattleDemoPage() {
       armour: Math.max(0, Math.round(base.armour)),
       evasionRating: Math.max(0, Math.round(base.evasion)),
       accuracy: Math.max(0, Math.round(base.accuracy)),
-      damageMin: Math.max(0, Math.round(base.damageMin * rarityDmgMult)),
-      damageMax: Math.max(0, Math.round(base.damageMax * rarityDmgMult)),
+      damageMin: Math.max(0, Math.round((physMin + eleMin + chaosMin) * rarityDmgMult)),
+      damageMax: Math.max(0, Math.round((physMax + eleMax + chaosMax) * rarityDmgMult)),
+      physicalDamageMin: Math.max(0, Math.round(physMin * rarityDmgMult)),
+      physicalDamageMax: Math.max(0, Math.round(physMax * rarityDmgMult)),
+      elementalDamageMin: Math.max(0, Math.round(eleMin * rarityDmgMult)),
+      elementalDamageMax: Math.max(0, Math.round(eleMax * rarityDmgMult)),
+      chaosDamageMin: Math.max(0, Math.round(chaosMin * rarityDmgMult)),
+      chaosDamageMax: Math.max(0, Math.round(chaosMax * rarityDmgMult)),
       aps: Math.max(0.05, Number(base.speed.toFixed(3))),
+      attackIsSpell: enemyAttackKind === "spell",
       zone,
-    };
-  }, [enemyMode, enemyLevel, enemyZone, enemyRarity, nexusTier, crucibleTier]);
+    });
+  }, [enemyMode, enemyLevel, enemyZone, enemyRarity, nexusTier, crucibleTier, enemyAttackKind, enemyDamageType]);
 
   const enemyWithMods = useMemo(() => {
     const mods = enemyModSlots
@@ -221,9 +333,13 @@ export default function BattleDemoPage() {
             >
               Reload active build
             </button>
-            <Link href="/" className="text-sm text-blue-400 hover:text-blue-300 shrink-0">
+            <button
+              type="button"
+              className="text-sm text-blue-400 hover:text-blue-300 shrink-0"
+              onClick={() => window.history.back()}
+            >
               ← Build planner
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -353,6 +469,31 @@ export default function BattleDemoPage() {
               </select>
             </label>
             <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Enemy attack kind</span>
+              <select
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm"
+                value={enemyAttackKind}
+                onChange={(e) => setEnemyAttackKind(e.target.value as EnemyAttackKind)}
+              >
+                <option value="attack">Attack</option>
+                <option value="spell">Spell</option>
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Enemy damage type</span>
+              <select
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm"
+                value={enemyDamageType}
+                onChange={(e) => setEnemyDamageType(e.target.value as EnemyDamageType)}
+              >
+                <option value="physical">Physical</option>
+                <option value="fire">Fire</option>
+                <option value="cold">Cold</option>
+                <option value="lightning">Lightning</option>
+                <option value="chaos">Chaos</option>
+              </select>
+            </label>
+            <label className="space-y-1">
               <span className="text-zinc-500 text-xs">Rarity</span>
               <select
                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm"
@@ -431,7 +572,39 @@ export default function BattleDemoPage() {
             <label className="space-y-1">
               <span className="text-zinc-500 text-xs">Damage / APS</span>
               <div className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs text-zinc-400 font-mono">
-                {enemyWithMods.damageMin}–{enemyWithMods.damageMax} · {enemyWithMods.aps.toFixed(3)}/s
+                total {enemyWithMods.damageMin}–{enemyWithMods.damageMax} · {enemyWithMods.aps.toFixed(3)}/s
+                <div className="mt-1 text-[11px] text-zinc-500">
+                  {((enemyWithMods.physicalDamageMax ?? 0) > 0 || (enemyWithMods.physicalDamageMin ?? 0) > 0) && (
+                    <>
+                      phys {enemyWithMods.physicalDamageMin ?? 0}–{enemyWithMods.physicalDamageMax ?? 0}{" "}
+                    </>
+                  )}
+                  {((enemyWithMods.fireDamageMax ?? 0) > 0 || (enemyWithMods.fireDamageMin ?? 0) > 0) && (
+                    <>
+                      fire {enemyWithMods.fireDamageMin ?? 0}–{enemyWithMods.fireDamageMax ?? 0}{" "}
+                    </>
+                  )}
+                  {((enemyWithMods.coldDamageMax ?? 0) > 0 || (enemyWithMods.coldDamageMin ?? 0) > 0) && (
+                    <>
+                      cold {enemyWithMods.coldDamageMin ?? 0}–{enemyWithMods.coldDamageMax ?? 0}{" "}
+                    </>
+                  )}
+                  {((enemyWithMods.lightningDamageMax ?? 0) > 0 || (enemyWithMods.lightningDamageMin ?? 0) > 0) && (
+                    <>
+                      lightning {enemyWithMods.lightningDamageMin ?? 0}–{enemyWithMods.lightningDamageMax ?? 0}{" "}
+                    </>
+                  )}
+                  {((enemyWithMods.elementalDamageMax ?? 0) > 0 || (enemyWithMods.elementalDamageMin ?? 0) > 0) && (
+                    <>
+                      ele {enemyWithMods.elementalDamageMin ?? 0}–{enemyWithMods.elementalDamageMax ?? 0}{" "}
+                    </>
+                  )}
+                  {((enemyWithMods.chaosDamageMax ?? 0) > 0 || (enemyWithMods.chaosDamageMin ?? 0) > 0) && (
+                    <>
+                      chaos {enemyWithMods.chaosDamageMin ?? 0}–{enemyWithMods.chaosDamageMax ?? 0}
+                    </>
+                  )}
+                </div>
               </div>
             </label>
             <label className="space-y-1">

@@ -147,14 +147,16 @@ export default function BuildPlanner() {
   }, []);
   const [buildJsonImport, setBuildJsonImport] = useState("");
   const [buildJsonImportError, setBuildJsonImportError] = useState<string | null>(null);
+  const [shareUrlCopied, setShareUrlCopied] = useState(false);
+  const [isViewingSharedBuild, setIsViewingSharedBuild] = useState(false);
 
   // Hydrate from multi-build storage (migrates old single-build saves automatically)
+  // If a ?build= URL param is present, load that build instead of localStorage.
   useEffect(() => {
-    queueMicrotask(() => {
+    const loadNormal = () => {
       const state = loadBuildsState();
       setBuilds(state.builds);
       setActiveBuildId(state.activeBuildId);
-
       const active = state.builds.find((b) => b.id === state.activeBuildId);
       const saved = active?.payload ?? null;
       if (saved) {
@@ -170,7 +172,45 @@ export default function BuildPlanner() {
         setInventory(DEFAULT_INVENTORY.map((s) => ({ ...s })));
       }
       setHydrated(true);
-    });
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const buildParam = urlParams.get("build");
+    if (!buildParam) {
+      queueMicrotask(loadNormal);
+      return;
+    }
+
+    // Decompress: base64 → deflate-raw bytes → JSON
+    const decompress = async () => {
+      try {
+        // Restore standard base64 from URL-safe variant (- → +, _ → /)
+        const standard = buildParam.replace(/-/g, "+").replace(/_/g, "/");
+        const compressed = Uint8Array.from(atob(standard), (c) => c.charCodeAt(0));
+        const ds = new DecompressionStream("deflate-raw");
+        const writer = ds.writable.getWriter();
+        void writer.write(compressed);
+        void writer.close();
+        const json = await new Response(ds.readable).text();
+        const shared = parseStoredPlannerJson(json);
+        if (shared) {
+          setUpgradeLevels(shared.upgradeLevels ?? {});
+          if (shared.equipped) setEquipped(migrateEquippedFromSave(shared.equipped));
+          setInventory([]);
+          if (shared.ability) setAbility(normalizeAbilitySelection(shared.ability));
+          // Store in sessionStorage so the battle demo can pick it up without touching localStorage
+          sessionStorage.setItem("eocCraftPreviewBuild", JSON.stringify(shared));
+          setIsViewingSharedBuild(true);
+          setHydrated(true);
+          return;
+        }
+      } catch {
+        // Fall through to normal load if URL param is malformed
+      }
+      loadNormal();
+    };
+
+    void decompress();
   }, []);
 
   const equipmentModifiers = useMemo(() => equipmentModifiersFromEquippedMap(equipped), [equipped, sheetVersion]);
@@ -201,7 +241,7 @@ export default function BuildPlanner() {
 
   // Persist current build state without depending on builds/activeBuildId (uses refs to avoid loop)
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || isViewingSharedBuild) return;
     const payload: StoredPlannerPayload = { upgradeLevels, equipmentModifiers, ability, equipped, inventory };
     const currentBuilds = buildsRef.current;
     const currentId = activeBuildIdRef.current;
@@ -461,6 +501,46 @@ export default function BuildPlanner() {
     void navigator.clipboard.writeText(JSON.stringify(payload));
   }, [upgradeLevels, equipmentModifiers, ability, equipped, inventory]);
 
+  const shareBuild = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
+    // Share only the current build — no inventory, no other builds
+    const payload = { upgradeLevels, equipmentModifiers, ability, equipped, inventory: [] };
+    // Compress: JSON → deflate-raw bytes → base64
+    const compress = async () => {
+      const bytes = new TextEncoder().encode(JSON.stringify(payload));
+      const cs = new CompressionStream("deflate-raw");
+      const writer = cs.writable.getWriter();
+      void writer.write(bytes);
+      void writer.close();
+      const compressed = await new Response(cs.readable).arrayBuffer();
+      // Use loop instead of spread to avoid call stack limits on large payloads
+      const bytes2 = new Uint8Array(compressed);
+      let binary = "";
+      for (let i = 0; i < bytes2.length; i++) binary += String.fromCharCode(bytes2[i]);
+      // Use URL-safe base64 (+ → -, / → _) so the URL doesn't need %2B encoding
+      const encoded = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      const url = `${window.location.origin}${window.location.pathname}?build=${encoded}`;
+      await navigator.clipboard.writeText(url);
+      setShareUrlCopied(true);
+      setTimeout(() => setShareUrlCopied(false), 2000);
+    };
+    void compress();
+  }, [upgradeLevels, equipmentModifiers, ability, equipped]);
+
+  const saveSharedBuildToMyBuilds = useCallback(() => {
+    const payload: StoredPlannerPayload = { upgradeLevels, equipmentModifiers, ability, equipped, inventory: [] };
+    const state = loadBuildsState();
+    const newBuild = createEmptyBuild("Shared Build");
+    newBuild.payload = payload;
+    const updatedBuilds = [...state.builds, newBuild];
+    saveBuildsState({ builds: updatedBuilds, activeBuildId: newBuild.id });
+    setBuilds(updatedBuilds);
+    setActiveBuildId(newBuild.id);
+    sessionStorage.removeItem("eocCraftPreviewBuild");
+    setIsViewingSharedBuild(false);
+    window.history.replaceState(null, "", "/");
+  }, [upgradeLevels, equipmentModifiers, ability, equipped]);
+
   if (dataLoading) {
     return (
       <div className="min-h-screen bg-[#07060c] text-zinc-100 flex items-center justify-center">
@@ -487,6 +567,15 @@ export default function BuildPlanner() {
             <Link href="/battle" className="text-[11px] text-amber-600/80 hover:text-amber-400 uppercase tracking-wider font-medium">
               Demo →
             </Link>
+            {hydrated && (
+              <button
+                type="button"
+                onClick={shareBuild}
+                className="text-[11px] border border-amber-900/40 rounded px-2.5 py-1.5 text-amber-600/80 hover:text-amber-400 hover:border-amber-700/60 uppercase tracking-wider font-medium transition-colors"
+              >
+                {shareUrlCopied ? "Copied!" : "Share Build"}
+              </button>
+            )}
             <details className="text-xs border border-amber-900/30 rounded bg-[#12101a]/95 min-w-[min(100%,240px)]">
               <summary className="cursor-pointer select-none px-2.5 py-1.5 text-zinc-500 hover:text-zinc-300 list-inside text-[11px] tracking-wide">
                 Import / Export Build
@@ -544,8 +633,23 @@ export default function BuildPlanner() {
         </div>
       </header>
       <main className="py-2 sm:py-3">
+        {/* Shared build banner */}
+        {hydrated && isViewingSharedBuild && (
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 mb-2.5">
+            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded border border-amber-700/40 bg-amber-950/20 text-xs text-amber-200/80">
+              <span className="font-cinzel tracking-wide uppercase text-[11px]">Viewing shared build — read only</span>
+              <button
+                type="button"
+                onClick={saveSharedBuildToMyBuilds}
+                className="rounded border border-amber-700/50 bg-amber-900/30 hover:bg-amber-900/50 text-amber-200 text-[11px] font-medium px-3 py-1 transition-colors shrink-0"
+              >
+                Save to my builds
+              </button>
+            </div>
+          </div>
+        )}
         {/* Build tabs */}
-        {hydrated && (
+        {hydrated && !isViewingSharedBuild && (
           <div className="max-w-7xl mx-auto px-3 sm:px-4 mb-2.5">
             <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
               {builds.map((b) => (
