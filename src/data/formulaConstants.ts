@@ -170,7 +170,7 @@ export let FORMULA_CONSTANTS: FormulaConstants = {
   enemyLifeScaleA:     0.108,    enemyLifeScaleB:     0.990201,
   enemyDamageScaleA:   0.089,    enemyDamageScaleB:   0.98217,
   enemyAccuracyScaleA: 0.062,    enemyAccuracyScaleB: 0.9863,
-  enemyEvasionScaleA:  0.103,    enemyEvasionScaleB:  0.981,
+  enemyEvasionScaleA:  0.0954,   enemyEvasionScaleB:  0.981,
   enemyArmourScaleA:   0.17,     enemyArmourScaleB:   0.9835,
 
   eliteLifeMult:   1.8,

@@ -656,7 +656,19 @@ export default function BattleDemoPage() {
                         : "text-zinc-300";
               return (
               <div key={i} className={[tone, heat].filter(Boolean).join(" ")}>
-                <span className="text-zinc-600">[{line.t.toFixed(2)}s]</span> {line.message}
+                <div>
+                  <span className="text-zinc-600">[{line.t.toFixed(2)}s]</span> {line.message}
+                </div>
+                {Boolean(line.details) && (
+                  <details className="ml-5 mt-1 text-[11px] text-zinc-400">
+                    <summary className="cursor-pointer select-none text-zinc-500 hover:text-zinc-300">
+                      breakdown
+                    </summary>
+                    <pre className="mt-1 whitespace-pre-wrap break-words rounded-md border border-zinc-800 bg-zinc-950/60 p-2 text-zinc-200">
+{JSON.stringify(line.details as any, null, 2)}
+                    </pre>
+                  </details>
+                )}
               </div>
               );
             })}

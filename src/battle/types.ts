@@ -74,6 +74,8 @@ export interface BattleLogEntry {
   kind: 'player_attack' | 'enemy_attack' | 'phase' | 'ailment' | 'dot_tick'
   message: string
   damage?: number
+  /** Optional structured breakdown for UI drill-down. */
+  details?: unknown
 }
 
 /** Shock/chill ailments applied to the enemy in the demo sim (for UI summary). */

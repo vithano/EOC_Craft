@@ -3126,7 +3126,6 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     u('increasedDamage')
     + occultistDmgFromEsPct
     + eq.increasedDamageFromGear
-    + levelPctIncreasedDamage
     + damageIncFromCombinedAttrsGear
 
   let damageOverTimeMultiplier =
@@ -3178,12 +3177,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     eq.increasedDamageFromGear,
     (x) => x.increasedDamageFromGear
   )
-  if (levelPctIncreasedDamage !== 0) {
-    attackIncLines.push({
-      label: 'Character level: +1% increased damage per level above 1',
-      value: levelPctIncreasedDamage,
-    })
-  }
+  // NOTE: We model character level via passive ranks for flat accuracy/life/mana,
+  // but do NOT grant generic "% increased damage per level" (that was inflating hit ranges).
   if (damageIncFromCombinedAttrsGear !== 0) {
     attackIncLines.push({
       label: 'Gear: increased damage per 10 combined Str, Dex, and Int',

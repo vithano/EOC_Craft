@@ -643,7 +643,10 @@ export default function EocStatsPanel({
   // Evasion vs attacks and vs spells (spells use half evasion rating)
   const evasionVsAttacks = computeEvasionChancePercent(enemyAccuracy, stats.evasionRating, flatFinalEv);
   const evasionVsSpells = computeEvasionChancePercent(enemyAccuracy, stats.evasionRating / 2, flatFinalEv);
+  // Hit chance vs enemy: spells treat enemy evasion as half-effective.
+  const spellHitChanceVsEnemy = computeHitChancePercent(stats.accuracy, enemyEvasion / 2, 0);
   const hitChanceVsEnemy = computeHitChancePercent(stats.accuracy, enemyEvasion, 0);
+  const selectedIsSpell = stats.abilityContribution?.type === "Spells";
 
   // Armour DR by damage type (formulas.csv: effectiveness per type; not the same as resistances)
   const drPhys = armourDrPercentForPreview(stats, incomingDamage, "physical");
@@ -870,7 +873,11 @@ export default function EocStatsPanel({
           <BreakdownStatRow
             label="Accuracy rating"
             value={stats.accuracy}
-            sub={`(${hitChanceVsEnemy.toFixed(0)}% hit)`}
+            sub={
+              selectedIsSpell
+                ? `(${spellHitChanceVsEnemy.toFixed(0)}% hit)`
+                : `(${hitChanceVsEnemy.toFixed(0)}% hit)`
+            }
             breakdown={sb.accuracy}
           />
           <BreakdownStatRow

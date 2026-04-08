@@ -148,7 +148,7 @@ function mitigatedPlayerHitVsArmour(
   raw: number,
   /** Extra flat fire before armour/resists (e.g. Siegebreaker counter), included in armour hit total. */
   extraFireFlat = 0
-): number {
+): { total: number; details: any } {
   const armourIgnoredFrac = stats.armourIgnorePercent / 100
   const baseArmour = enemy.armour
   const elePen = stats.elementalPenetrationPercent ?? 0
@@ -166,17 +166,23 @@ function mitigatedPlayerHitVsArmour(
   const chaosAmt = raw * (a.chaos     / total)
 
   // Apply armour DR per type using the full multi-type formula (ARMOUR_RESISTANCE splits armour)
-  function afterArmour(amt: number, type: Parameters<typeof computeArmourDR>[3]): number {
-    if (amt <= 0) return 0
+  function afterArmour(amt: number, type: Parameters<typeof computeArmourDR>[3]): { after: number; dr: number } {
+    if (amt <= 0) return { after: 0, dr: 0 }
     const dr = computeArmourDR(baseArmour, amt, hitTotal, type, armourIgnoredFrac)
-    return amt * (1 - dr)
+    return { after: amt * (1 - dr), dr }
   }
 
-  let physOut  = afterArmour(physAmt,  'physical')
-  let fireOut  = afterArmour(fireAmt,  'fire')
-  let coldOut  = afterArmour(coldAmt,  'cold')
-  let lightOut = afterArmour(lightAmt, 'lightning')
-  let chaosOut = afterArmour(chaosAmt, 'chaos')
+  const physArm  = afterArmour(physAmt,  'physical')
+  const fireArm  = afterArmour(fireAmt,  'fire')
+  const coldArm  = afterArmour(coldAmt,  'cold')
+  const lightArm = afterArmour(lightAmt, 'lightning')
+  const chaosArm = afterArmour(chaosAmt, 'chaos')
+
+  let physOut  = physArm.after
+  let fireOut  = fireArm.after
+  let coldOut  = coldArm.after
+  let lightOut = lightArm.after
+  let chaosOut = chaosArm.after
 
   // Apply resistances (optionally mirrored to player resists)
   const enemyFire = stats.enemyResistancesEqualToYours ? stats.fireRes : (enemy.fireResistancePercent ?? 0) + zoneEleResBonus
@@ -184,15 +190,17 @@ function mitigatedPlayerHitVsArmour(
   const enemyLight = stats.enemyResistancesEqualToYours ? stats.lightningRes : (enemy.lightningResistancePercent ?? 0) + zoneEleResBonus
   const enemyChaos = stats.enemyResistancesEqualToYours ? stats.chaosRes : (enemy.chaosResistancePercent ?? 0)
 
-  const fr = Math.max(0, enemyFire - (stats.firePenetrationPercent ?? 0) - elePen)
-  const cr = Math.max(0, enemyCold - (stats.coldPenetrationPercent ?? 0) - elePen)
-  const lr = Math.max(0, enemyLight - (stats.lightningPenetrationPercent ?? 0) - elePen)
-  const chr = Math.max(0, enemyChaos - (stats.chaosPenetrationPercent ?? 0))
+  // Enemy resistances can go below 0 (taking more damage), but are capped at -90%..+90%.
+  const capRes = (r: number) => Math.max(-90, Math.min(90, r))
+  const fr = capRes(enemyFire - (stats.firePenetrationPercent ?? 0) - elePen)
+  const cr = capRes(enemyCold - (stats.coldPenetrationPercent ?? 0) - elePen)
+  const lr = capRes(enemyLight - (stats.lightningPenetrationPercent ?? 0) - elePen)
+  const chr = capRes(enemyChaos - (stats.chaosPenetrationPercent ?? 0))
 
-  if (fr  > 0) fireOut  *= 1 - fr  / 100
-  if (cr  > 0) coldOut  *= 1 - cr  / 100
-  if (lr  > 0) lightOut *= 1 - lr  / 100
-  if (chr > 0) chaosOut *= 1 - chr / 100
+  fireOut  *= 1 - fr  / 100
+  coldOut  *= 1 - cr  / 100
+  lightOut *= 1 - lr  / 100
+  chaosOut *= 1 - chr / 100
 
   // Chieftain: enemies take 40% increased elemental damage.
   if (stats.classBonusesActive.includes('chieftain')) {
@@ -201,7 +209,53 @@ function mitigatedPlayerHitVsArmour(
     lightOut *= 1.4
   }
 
-  return physOut + fireOut + coldOut + lightOut + chaosOut
+  const totalOut = physOut + fireOut + coldOut + lightOut + chaosOut
+  return {
+    total: totalOut,
+    details: {
+      kind: 'player_hit_mitigation',
+      inputs: {
+        raw,
+        extraFireFlat,
+        enemyArmour: baseArmour,
+        armourIgnoredFrac,
+        zone,
+        zoneEleResBonus,
+        penetration: {
+          elementalPen: elePen,
+          firePen: stats.firePenetrationPercent ?? 0,
+          coldPen: stats.coldPenetrationPercent ?? 0,
+          lightningPen: stats.lightningPenetrationPercent ?? 0,
+          chaosPen: stats.chaosPenetrationPercent ?? 0,
+        },
+      },
+      split: {
+        fractions: { ...a },
+        hitTotal,
+        rawByType: { physical: physAmt, fire: fireAmt, cold: coldAmt, lightning: lightAmt, chaos: chaosAmt },
+      },
+      armourDR: {
+        physical: physArm.dr,
+        fire: fireArm.dr,
+        cold: coldArm.dr,
+        lightning: lightArm.dr,
+        chaos: chaosArm.dr,
+      },
+      afterArmour: {
+        physical: physArm.after,
+        fire: fireArm.after,
+        cold: coldArm.after,
+        lightning: lightArm.after,
+        chaos: chaosArm.after,
+      },
+      resist: {
+        enemyBase: { fire: enemyFire, cold: enemyCold, lightning: enemyLight, chaos: enemyChaos },
+        afterPenCapped: { fire: fr, cold: cr, lightning: lr, chaos: chr },
+      },
+      afterRes: { physical: physOut, fire: fireOut, cold: coldOut, lightning: lightOut, chaos: chaosOut },
+      total: totalOut,
+    },
+  }
 }
 
 function enemyApsMultiplier(stats: ComputedBuildStats): number {
@@ -406,9 +460,12 @@ function resolvePlayerAttack(
     extraFlatFireDamage?: number
   }
 ): { damage: number; damageForAilments: number; outcome: PlayerHitOutcome; anyCrit: boolean; anyDouble: boolean; anyTriple: boolean; anyQuad: boolean } {
+  const isSpellAttack = stats.abilityContribution?.type === 'Spells'
+  const enemyEvaForHitCheck = isSpellAttack ? enemy.evasionRating / 2 : enemy.evasionRating
   const evadePct = stats.hitsCannotBeEvaded
     ? 0
-    : computeEvasionChancePercent(stats.accuracy, enemy.evasionRating, 0)
+    // Evasion is half as effective vs spells (enemy evasion treated as halved).
+    : computeEvasionChancePercent(stats.accuracy, enemyEvaForHitCheck, 0)
   const miss = Math.random() * 100 < evadePct
   if (miss) return { damage: 0, damageForAilments: 0, outcome: 'miss', anyCrit: false, anyDouble: false, anyTriple: false, anyQuad: false }
 
@@ -424,6 +481,7 @@ function resolvePlayerAttack(
   let anyDouble = false
   let anyTriple = false
   let anyQuad = false
+  const strikeDetails: any[] = []
 
   for (let s = 0; s < strikes; s++) {
     const blocked = blk > 0 && Math.random() * 100 < blk
@@ -437,6 +495,7 @@ function resolvePlayerAttack(
     }
 
     let isCrit = false
+    let procMult = 1
     if (!blocked) {
       if (Math.random() * 100 < stats.critChance) {
         base *= stats.critMultiplier
@@ -449,37 +508,31 @@ function resolvePlayerAttack(
       if (stats.classBonusesActive.includes('destroyer')) {
         const tripleChance = stats.doubleDamageChance / 2
         if (Math.random() * 100 < tripleChance) {
-          base *= 3
-          extraFire *= 3
+          procMult = 3
           anyTriple = true
         } else if (Math.random() * 100 < stats.doubleDamageChance) {
-          base *= 2
-          extraFire *= 2
+          procMult = 2
           anyDouble = true
         }
       } else if (tChance > 0 && Math.random() * 100 < tChance) {
-        base *= 3
-        extraFire *= 3
+        procMult = 3
         anyTriple = true
       } else if (Math.random() * 100 < stats.doubleDamageChance) {
         // Damage proc chaining: if we "would deal double", allow upgrade to triple
         const up = stats.doubleDamageUpgradesToTripleChance ?? 0
         if (up > 0 && Math.random() * 100 < up) {
-          base *= 3
-          extraFire *= 3
+          procMult = 3
           anyTriple = true
         } else {
-          base *= 2
-          extraFire *= 2
+          procMult = 2
           anyDouble = true
         }
       }
       // Damage proc chaining: if we "would deal triple", allow upgrade to quadruple
-      if (anyTriple) {
+      if (procMult === 3) {
         const up4 = stats.tripleDamageUpgradesToQuadrupleChance ?? 0
         if (up4 > 0 && Math.random() * 100 < up4) {
-          base *= 4 / 3
-          extraFire *= 4 / 3
+          procMult = 4
           anyQuad = true
         }
       }
@@ -487,6 +540,7 @@ function resolvePlayerAttack(
       if (stats.dealNoDamageExceptCrit && !isCrit) {
         base = 0
         extraFire = 0
+        procMult = 1
       }
     }
 
@@ -512,7 +566,26 @@ function resolvePlayerAttack(
       extraFire *= more
     }
 
-    total += mitigatedPlayerHitVsArmour(enemy, stats, base, extraFire)
+    const mit = mitigatedPlayerHitVsArmour(enemy, stats, base, extraFire)
+    const mitigatedBeforeProc = mit.total
+    const mitigatedAfterProc = mitigatedBeforeProc * procMult
+    total += mitigatedAfterProc
+    strikeDetails.push({
+      strikeIndex: s,
+      preMitigation: {
+        base,
+        extraFire,
+      },
+      proc: {
+        mult: procMult,
+        kind: procMult === 4 ? 'quad' : procMult === 3 ? 'triple' : procMult === 2 ? 'double' : 'none',
+      },
+      mitigation: mit.details,
+      totals: {
+        mitigatedBeforeProc,
+        mitigatedAfterProc,
+      },
+    })
   }
 
   const outcome: PlayerHitOutcome =
@@ -528,6 +601,8 @@ function resolvePlayerAttack(
     anyDouble,
     anyTriple,
     anyQuad,
+    // @ts-expect-error – extra field for UI drilldown (kept out of public type)
+    strikeDetails,
   }
 }
 
@@ -815,9 +890,12 @@ function resolveEnemyAttack(
   /** Total prevented damage vs the player (includes block + armour + resist + other mitigation after this point). */
   preventedTotal: number
 } {
+  const enemyAttackIsSpell = (enemy as any).attackIsSpell ?? false
   const acc = enemy.accuracy
   let eva = stats.evasionRating
   const flat = flatEvasionFromClassBonuses(stats)
+  // Evasion is half as effective vs spells (apply when the enemy attack is a spell).
+  if (enemyAttackIsSpell) eva = eva / 2
   if ((stats.cannotEvadeWhileYouHaveEnergyShield ?? false) && playerState.energyShield > 0) {
     eva = 0
   }
@@ -1427,11 +1505,13 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           + (fx?.enemiesTakeIncreasedDamagePerChillEffectPercent ?? 0) * chillPctNow
         const shadowMore = (!firstPlayerActionThisEncounter.used && stats.classBonusesActive.includes('shadow')) ? 1.5 : 1
         if (shadowMore !== 1) firstPlayerActionThisEncounter.used = true
-        const { damage, damageForAilments, outcome, anyCrit, anyDouble, anyTriple, anyQuad } = resolvePlayerAttack(enemy, enemyLife, stats, {
+        const atk = resolvePlayerAttack(enemy, enemyLife, stats, {
           targetTakesIncreasedDamagePct: shockNow,
           extraTargetTakesIncreasedDamagePct: extraInc,
           moreDamageMult: shadowMore,
         })
+        const { damage, damageForAilments, outcome, anyCrit, anyDouble, anyTriple, anyQuad } = atk
+        const strikeDetails = (atk as any).strikeDetails as any[] | undefined
         applyDamageToEnemyPools(enemyState, damage)
         enemyLife = enemyState.life
         if (enemyLifeBeforeHit > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
@@ -1478,7 +1558,24 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
                 : damage > 0
                   ? `You hit for ${damage.toFixed(1)}${tagStr} (${enemyPoolsText()} left)`
                   : 'Glancing hit (no damage)'
-          tryLog({ t, kind: 'player_attack', message: msg, damage })
+          tryLog({
+            t,
+            kind: 'player_attack',
+            message: msg,
+            damage,
+            details: {
+              kind: 'player_attack',
+              outcome,
+              tags,
+              strikes: (strikeDetails as any[]) ?? [],
+              multipliers: {
+                damageDealtLessMult: stats.damageDealtLessMult ?? 1,
+                shockPct: shockNow,
+                extraIncPct: extraInc,
+                moreDamageMult: shadowMore,
+              },
+            },
+          })
         }
         if (damageForAilments > 0) {
           const hitWasCritical = (stats.firstAttackAlwaysCrit ?? false) && !firstHitFlag.used ? true : anyCrit
@@ -1597,7 +1694,19 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
                 : ctr.damage > 0
                   ? `Counter attack — ${ctr.damage.toFixed(1)}${tagStr} (${enemyPoolsText()} left)`
                   : 'Counter attack (no damage)'
-          tryLog({ t, kind: 'player_attack', message: msg, damage: ctr.damage })
+          tryLog({
+            t,
+            kind: 'player_attack',
+            message: msg,
+            damage: ctr.damage,
+            details: {
+              kind: 'counter_attack',
+              preventedTotal: r.preventedTotal,
+              counterPct: stats.counterAttackFirePctOfPrevented,
+              extraFlatFireDamage: extraFire,
+              strikes: (ctr as any).strikeDetails ?? [],
+            },
+          })
         }
         if (ctr.damageForAilments > 0) {
           applyPlayerAilmentsOnHit(
