@@ -291,13 +291,18 @@ export default function BattleDemoPage() {
 
   useEffect(() => {
     queueMicrotask(() => {
+      const isPreview = !!sessionStorage.getItem("eocCraftPreviewBuild");
       const { name, payload } = loadActiveBuild();
       setActiveBuildName(name);
       setPlannerSnapshot(payload);
       const state = loadBuildsState();
       setSavedBuilds(state.builds);
-      setPlayerBuildId(state.activeBuildId ?? state.builds[0]?.id ?? null);
-      setEnemyBuildId(state.builds.find((b) => b.id !== state.activeBuildId)?.id ?? null);
+      // When viewing a shared/preview build, don't set playerBuildId so the
+      // saved-build effect doesn't override plannerSnapshot with a local build.
+      if (!isPreview) {
+        setPlayerBuildId(state.activeBuildId ?? state.builds[0]?.id ?? null);
+        setEnemyBuildId(state.builds.find((b) => b.id !== state.activeBuildId)?.id ?? null);
+      }
     });
   }, []);
 
