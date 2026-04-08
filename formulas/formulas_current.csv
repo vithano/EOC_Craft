@@ -1,0 +1,91 @@
+Category,Stat,Formula,Constants_Used,Notes
+Player Stats,Character Level,"characterLevel = passiveRanksSpent + 1",,
+Player Stats,Flat Accuracy per Level,"levelFlatAccuracy = 3 × (characterLevel - 2)",,Starts at 0 for level 1
+Player Stats,Flat Life per Level,"levelFlatLife = 10 × (characterLevel - 2)",,Starts at 0 for level 1
+Player Stats,Flat Mana per Level,"levelFlatMana = 10 × (characterLevel - 2)",,Starts at 0 for level 1
+Player Stats,Increased Damage per Level,"+1% increased damage per level above 1",,Additive pool
+Player Stats,Max Life,"(BASE_LIFE + floor(STR/10)×10×attrLifeMult + level×10 + flatLifeGear) × (1 + Σinc_life%/100) × Πmore_life",,Occultist special case: maxLife = 1
+Player Stats,Max Mana,"(BASE_MANA + floor(INT/10)×10×attrManaMult + level×10 + flatManaGear) × (1 + Σinc_mana%/100) × Πmore_mana",,noManaFromGear flag: maxMana = 0
+Player Stats,Energy Shield,"esBase × (1 + (esInc + defFromDex)/100) × occultistMoreES × esLessMult","occultistMoreES=1.4","esBase = maxMana×classManaAsExtraBaseEsPercent/100 + flatES + maxLife×lifeAsExtraEsPercent/100 + maxMana×manaAsExtraEsPercent/100"
+Player Stats,Armour Rating,"armourFlatBase × (1 + (armourInc + defFromDex)/100) × defLessMult",,"armourFlatBase = BASE_ARMOUR + flatArmourGear + maxMana×armourEqualToPercentOfMaxMana/100 + floor(INT/10)×armourPer10Int; convertEvasionToArmour adds evasion to base"
+Player Stats,Evasion Rating,"evasionFlatBase × (1 + (evasionInc + defFromDex)/100) × evasionMoreMult × defLessMult",,"convertEvasionToArmour: evasionRating = 0"
+Player Stats,Def from Dex,"floor(DEX/10) × 2 × attrDefMult",,Applied to both armour and evasion increased pool
+Player Stats,Block Chance,"min(75 + maxBlockBonus + gearMaxBonus, upgradesBlock + gearBlock)",,Dragoon: base cap = 100
+Player Stats,Dodge Chance,"min(75 + maxDodgeBonus, upgradesDodge + gearDodge + floor(DEX/10)×dodgePerDex)",,
+Player Stats,Elemental Resistance (Fire/Cold/Lightning),"FINAL_RES = resistAllFlat + typeRes; capped at min(90, 75 + maxResBonus)",hardCap=90; baseCap=75,"Chieftain: +5% fire max res (cap 80%)"
+Player Stats,Chaos Resistance,"chaosRes + allRes; capped at min(90, 75 + maxChaosResBonus)",hardCap=90; baseCap=75,
+Player Stats,Accuracy Rating,"accuracyFlatBase × (1 + Σinc_acc%/100) × accLessMult","BASE_ACCURACY; level×3","accuracyFlatBase = BASE_ACCURACY + classLvlAcc + level×3 + gearFlatAcc; special: ×(1 + mod%×attackTime/0.1) if moreAccuracyPer0.1sAttackTime"
+Player Stats,Crit Chance,"min(100, attackCritFlatBase × (1 + Σinc_crit%/100))","Assassin +8 base","attackCritFlatBase = weaponBaseCrit + floor(DEX/10)×attrCritMult×2 + (Assassin?8:0) + floor(INT/10)×meleeCritIncPerInt + gearAttackCrit + abilityBaseCrit; Guardian doubles attrCritMult"
+Player Stats,Crit Multiplier,"BASE_CRIT_MULT + gearFlatBonus/100 + critMultFromCritChanceAbove100 + Σinc_crit_mult%/100",,"Σinc_crit_mult includes gear and attunement; +critMultPer20Acc × accuracy/20"
+Player Stats,Attacks Per Second (APS),"weaponBaseAPS × (1 + Σinc_speed%/100) × Πmore_speed × lessSpeedMult",,"inc_speed includes upgrades; Mercenary +1% APS per 10 min(STR,DEX); Rogue ×1.1 more; Berserker ×(1 + missing_life_pct)"
+Player Stats,Mana Cost per Attack,"(BASE_MANA_COST + additionalCostFlat) × max(0.05, 1 - classReduce%/100) × max(0.2, 1 - gearReduce%/100) × (1 + gearInc%/100)","BASE_MANA_COST=baseManaPerAttack","additionalCostFlat = maxES × additionalCostPctOfMaxES/100"
+Player Stats,Mana Regen per Second,"(maxMana × 2.5/100 + DruidBonus + maxMana×gearRegenPct/100) × (1 + Σinc_regen%/100)","BASE_REGEN_PCT=2.5","DruidBonus = maxMana × 0.02"
+Player Stats,ES Regen per Second,"(maxES × esRegenPct/100) + (manaRegenPerSec × manaRegenToESPercent/100)",,"esRegenPct = gearPct + floor(INT/150)×esRegenPerIntGroupFromGear"
+Player Stats,Avg Hit Damage,"(minDmg + maxDmg) / 2 per damage type, summed",,Calculated per type then summed across physical/fire/cold/lightning/chaos
+Player Stats,Avg Effective Damage,"avgHit × (1 + (critChance/100) × (critMult - 1))",,
+Player Stats,DPS,"avgEffectiveDamage × APS × Πstrike_mults",,"strikesPerAttack = 1 + flatAdditions + (increased%×baseValue/100)"
+Defense Formulas,Armour DR (single damage type),"finalArmour / (K × (dmg/(dmg+dmgRef)) + finalArmour); capped at armourDrCap","K=10000; dmgRef=500; armourDrCap=0.9","finalArmour = armour × (1-armourIgnoredFrac) × effectiveness; additionalDR added after"
+Defense Formulas,Armour DR (multi damage type),"armourResistance = 1 - dmgThisType/dmgTotal; finalArmour = armour × (1-ignoreF) × effectiveness × (1-armourResistance); DR = finalArmour/(K×(dmg/(dmg+dmgRef))+finalArmour)","K=10000; dmgRef=500","When single type: dmgTotal=dmgThisType so armourResistance=0"
+Defense Formulas,Armour Effectiveness vs Physical,effective_armour = armour × 1.0,armourVsPhysical=1.0,
+Defense Formulas,Armour Effectiveness vs Fire,effective_armour = armour × 0.5,armourVsFire=0.5,
+Defense Formulas,Armour Effectiveness vs Cold,effective_armour = armour × 0.5,armourVsCold=0.5,
+Defense Formulas,Armour Effectiveness vs Lightning,effective_armour = armour × 0.5,armourVsLightning=0.5,
+Defense Formulas,Armour Effectiveness vs Chaos,effective_armour = armour × 0.25,armourVsChaos=0.25,
+Defense Formulas,Evasion Chance,"clamp(0, 90%, (1 - ACC×1.35/(ACC + EVA×0.1)) × 100 + flatEvasionChance%)","evasionAccCoeff=1.35; evasionDivisor=0.1; evasionCap=0.9","Rounded to 2 decimal places"
+Defense Formulas,Hit Chance,"100 - evasionChance%",,
+Defense Formulas,Shock Effect (non-damaging ailment),"sqrt(dmgPostMit / ((life+ES)×5)) × ailmentMult × shockExtraEffectMult × 100; capped at 50%","ailmentPoolDivisor=5; shockExtraEffectMult=1.0 player / 0.7 enemy-sourced","Rounded to 2 decimals; discarded if < 0.01"
+Defense Formulas,Chill Effect (non-damaging ailment),"sqrt(dmgPostMit / ((life+ES)×5)) × ailmentMult × shockExtraEffectMult × chillSpecialMult × 100; capped at 30","ailmentPoolDivisor=5; chillSpecialMult=0.7","Rounded to 2 decimals; discarded if < 0.01"
+Defense Formulas,Bleed Effect (damaging ailment),"dmgPreMit_phys × bleedInherentMult × Πmods",bleedInherentMult=0.3,Pre-mitigation physical damage
+Defense Formulas,Ignite Effect (damaging ailment),"dmgPreMit_fire × igniteInherentMult × Πmods",igniteInherentMult=0.45,Pre-mitigation fire damage
+Defense Formulas,Poison Effect (damaging ailment),"dmgPreMit_chaosOrPhys × poisonInherentMult × Πmods",poisonInherentMult=0.15,Pre-mitigation chaos or physical damage
+Defense Formulas,Ailment Duration (Shock/Chill),"ailmentBaseDurationSec × (1 + inc_duration%/100)",ailmentBaseDurationSec=1.8,
+Enemy Base Stats,Life at Level 1,40,enemyBaseLife=40,
+Enemy Base Stats,Armour at Level 1,1,enemyBaseArmour=1,
+Enemy Base Stats,Evasion at Level 1,50,enemyBaseEvasion=50,
+Enemy Base Stats,Speed (APS) at Level 1,0.95,enemyBaseSpeed=0.95,Not scaled by level; only scaled by Nexus tier
+Enemy Base Stats,Accuracy at Level 1,12,enemyBaseAccuracy=12,
+Enemy Base Stats,Crit Chance at Level 1,5%,enemyBaseCritChance=5,
+Enemy Base Stats,Crit Multiplier at Level 1,1.5,enemyBaseCritMultiplier=1.5,
+Enemy Base Stats,Damage Min at Level 1,5,enemyBaseDamageMin=5,
+Enemy Base Stats,Damage Max at Level 1,7,enemyBaseDamageMax=7,
+Enemy Base Stats,Elemental Damage Multiplier (at level 100),×2.0 vs physical baseline,enemyBaseEleDamageMult=2.0,
+Enemy Base Stats,Chaos Damage Multiplier (at level 100),×1.33 vs physical baseline,enemyBaseChaosDamageMult=1.33,
+Enemy Base Stats,Shock/Chill Effect Multiplier,1.0,enemyShockChillEffect=1.0,
+Enemy Level Scaling,Per-Level Scaling Formula,"stat_at_level = stat_prev × (1 + A × B^(level-2)); applied iteratively for each level from 2 to target",,
+Enemy Level Scaling,Life Scaling,"A=0.108, B=0.990201",enemyLifeScaleA=0.108; enemyLifeScaleB=0.990201,
+Enemy Level Scaling,Damage Scaling,"A=0.089, B=0.98217",enemyDamageScaleA=0.089; enemyDamageScaleB=0.98217,Applied to both min and max damage
+Enemy Level Scaling,Accuracy Scaling,"A=0.062, B=0.9863",enemyAccuracyScaleA=0.062; enemyAccuracyScaleB=0.9863,
+Enemy Level Scaling,Evasion Scaling,"A=0.0954, B=0.981",enemyEvasionScaleA=0.0954; enemyEvasionScaleB=0.981,
+Enemy Level Scaling,Armour Scaling,"A=0.17, B=0.9835",enemyArmourScaleA=0.17; enemyArmourScaleB=0.9835,
+Enemy Rarity,Elite Life Multiplier,×1.8,eliteLifeMult=1.8,Applied to base life and ES
+Enemy Rarity,Elite Damage Multiplier,×1.4,eliteDamageMult=1.4,
+Enemy Rarity,Elite Regen Multiplier,×1.4,eliteRegenMult=1.4,Applied to life and ES regen
+Enemy Rarity,Boss Life Multiplier,×2.6,bossLifeMult=2.6,Applied to base life and ES
+Enemy Rarity,Boss Damage Multiplier,×1.8,bossDamageMult=1.8,
+Enemy Rarity,Boss Regen Multiplier,×1.8,bossRegenMult=1.8,Applied to life and ES regen
+Enemy Zone Scaling,Enemy Elemental Resistance,"3% × (zone - 1); capped at 15%","enemyEleResPerZone=3; enemyEleResMax=15",Zone 1 = 0%; zone 6 = 15%
+Nexus Tier Scaling,Life per Nexus Tier,life_tier = life_prev × 1.27479,nexusLifeMult=1.27479,Also applies to life-linked regen
+Nexus Tier Scaling,DPS per Nexus Tier,dps_tier = dps_prev × 1.2589,nexusDamageMult=1.2589,Sheet DPS multiplier; per-hit adjusted for speed increase
+Nexus Tier Scaling,APS per Nexus Tier,+5% increased APS per tier,nexusSpeedPerTierPct=5,
+Nexus Tier Scaling,Per-Hit Damage Multiplier per Tier,"perHitMult = nexusDamageMult × 100 / (100 + nexusSpeedPerTierPct)","nexusDamageMult=1.2589; nexusSpeedPerTierPct=5","Removes speed portion from hit damage so DPS = ×1.2589 not ×1.2589×1.05"
+Enemy Modifiers,Vital — Life,+20 flat life,modVitalLife=20,
+Enemy Modifiers,Plated — Armour,+1 armour,modPlatedArmour=1,
+Enemy Modifiers,Elusive — Evasion,+30 evasion,modElusiveEvasion=30,
+Enemy Modifiers,Barrier — Energy Shield,+20 energy shield,modBarrierEs=20,
+Enemy Modifiers,Hallowed — Chaos Resistance,+25% chaos resistance,modHallowedChaosRes=25,
+Enemy Modifiers,Warded — Elemental Resistance,+20% elemental resistance,modWardedEleRes=20,
+Enemy Modifiers,Regenerating — Life Regen,+2 life per second,modRegeneratingLifeRegen=2,
+Enemy Modifiers,Replenishing — ES Regen,+2 ES per second,modReplenishingEsRegen=2,
+Enemy Modifiers,Powerful — Damage,×1.5 damage multiplier,modPowerfulDamageMult=1.5,
+Enemy Modifiers,Swift — APS,+0.5 attacks per second,modSwiftSpeed=0.5,
+Enemy Modifiers,Deadeye — Accuracy,+15 accuracy,modDeadeyeAccuracy=15,
+Enemy Modifiers,Assassin — Crit Chance,+70% crit chance,modAssassinCritChance=70,
+Enemy Modifiers,Sundering — Armour Ignore,25% armour ignore,modSunderingArmourIgnore=25,
+Enemy Modifiers,Sundering — Penetration,20% elemental and chaos penetration,modSunderingPen=20,
+Enemy Modifiers,Defender — Block Chance,50% block chance,modDefenderBlock=50,
+Enemy Modifiers,Phasing — Dodge Chance,25% dodge chance,modPhasingDodge=25,
+Enemy Modifiers,Vampiric — Life Leech,160% life leech,modVampiricLifeLeech=160,
+Enemy Modifiers,Soul Eater — ES Leech,160% ES leech,modSoulEaterEsLeech=160,
+Enemy Modifiers,Fragile — Life,-14 flat life,modFragileLife=-14,
+Enemy Modifiers,Slow — APS,-0.33 attacks per second,modSlowSpeed=-0.33,
+Enemy Modifiers,Weak — Damage,×0.66 damage multiplier,modWeakDamageMult=0.66,

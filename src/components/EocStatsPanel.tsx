@@ -1077,9 +1077,24 @@ export default function EocStatsPanel({
 
           <SectionHeader label="Recovery" />
           <BreakdownStatRow
+            label="Life regeneration"
+            value={`${(stats.lifeRegenPercentOfMaxPerSecond ?? 0).toFixed(2)}%/s`}
+            sub={
+              (stats.flatLifeRegenPerSecond ?? 0) !== 0
+                ? `+${(stats.flatLifeRegenPerSecond ?? 0).toFixed(1)}/s flat`
+                : undefined
+            }
+            breakdown={sb.lifeRegenPercentOfMaxPerSecond}
+          />
+          <BreakdownStatRow
             label="Mana regeneration"
             value={`${stats.manaRegenPerSecond.toFixed(1)}/s`}
             breakdown={sb.manaRegenPerSecond}
+          />
+          <BreakdownStatRow
+            label="Energy shield regeneration"
+            value={`${(stats.esRegenPerSecond ?? 0).toFixed(1)}/s`}
+            breakdown={sb.esRegenPerSecond}
           />
           {lifeOnKill > 0 && (
             <BreakdownStatRow label="Life recovery on kill" value={lifeOnKill} breakdown={lifeOnKillBreak} />

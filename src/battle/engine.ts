@@ -1252,6 +1252,15 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   let hitsPlayer = 0
   let hitsEnemy = 0
   let totalDotDamage = 0
+  let totalHitDamageToEnemy = 0
+  let totalDamageToPlayerFromEnemyHits = 0
+  let totalDamageToPlayerFromDots = 0
+  let totalDamageToPlayerFromSelf = 0
+  let totalRegenToPlayerLife = 0
+  let totalRegenToPlayerMana = 0
+  let totalRegenToPlayerEs = 0
+  let totalRegenToEnemyLife = 0
+  let totalRegenToEnemyEs = 0
   let lastDotLogT = -DOT_LOG_INTERVAL
   let lastDebuffPulseT = -DOT_LOG_INTERVAL
   let dotLogAcc = { bleed: 0, poison: 0, ignite: 0 }
@@ -1277,7 +1286,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
 
     // Enemy regen from mods (scaled off life per formulas.csv note).
     if (enemyLifeRegenPerSecond > 0 && enemyState.life > 0 && enemyState.life < enemy.maxLife - 1e-9) {
+      const before = enemyState.life
       enemyState.life = Math.min(enemy.maxLife, enemyState.life + enemyLifeRegenPerSecond * dt)
+      totalRegenToEnemyLife += Math.max(0, enemyState.life - before)
       enemyLife = enemyState.life
     }
     if (
@@ -1286,10 +1297,12 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       enemyState.energyShield > 0 &&
       enemyState.energyShield < (enemy.maxEnergyShield ?? 0) - 1e-9
     ) {
+      const before = enemyState.energyShield
       enemyState.energyShield = Math.min(
         enemy.maxEnergyShield ?? 0,
         enemyState.energyShield + enemyEsRegenPerSecond * dt
       )
+      totalRegenToEnemyEs += Math.max(0, enemyState.energyShield - before)
     }
 
     // Timed gear triggers
@@ -1320,7 +1333,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         if (lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
           const d = stats.periodicLifeRegenDurationSec
           const pctPerSec = stats.periodicLifeRegenPct / d
+          const before = player.life
           player.life = Math.min(runtimeMaxLife, player.life + runtimeMaxLife * (pctPerSec / 100) * dt * rec)
+          totalRegenToPlayerLife += Math.max(0, player.life - before)
         }
       }
     }
@@ -1517,6 +1532,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         const strikeDetails = (atk as any).strikeDetails as any[] | undefined
         applyDamageToEnemyPools(enemyState, damage)
         enemyLife = enemyState.life
+        totalHitDamageToEnemy += Math.max(0, damage)
         if (enemyLifeBeforeHit > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
         if (damage > 0 || damageForAilments > 0) {
           hitsPlayer++
@@ -1649,6 +1665,30 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           kind: 'enemy_attack',
           message: `${enemy.name} hits for ${dmg.toFixed(1)}${r.critical ? ' (CRIT)' : ''}${r.blocked ? ' (blocked)' : ''}`,
           damage: dmg,
+          details: {
+            kind: 'enemy_attack',
+            enemy: enemy.name,
+            flags: {
+              enemyAttackIsSpell: (enemy as any).attackIsSpell ?? false,
+              critical: r.critical,
+              blocked: r.blocked,
+            },
+            roll: {
+              baseRange: [enemy.damageMin, enemy.damageMax],
+              rawBeforeMitigation: r.fullBeforeArmour,
+            },
+            mitigation: {
+              damageTakenMultiplierFromGear: stats.damageTakenMultiplierFromGear ?? 1,
+              championDamageReductionFrac: championDamageReductionFrac(stats, player.life),
+              blockedDamagePreventedBeforeArmour: r.preventedByBlock,
+              mitigatedByArmour: r.mitigatedByArmour,
+              preventedTotal: r.preventedTotal,
+            },
+            final: {
+              damageAppliedToPools: dmg,
+              playerPoolsAfter: { ...player },
+            },
+          },
         })
       }
 
@@ -1743,6 +1783,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         actionBar = Math.min(1, actionBar + 0.35)
       }
       if (!r.evaded && !r.dodged && r.damageToDisplay > 0) hitsEnemy++
+      totalDamageToPlayerFromEnemyHits += Math.max(0, r.damageToDisplay ?? 0)
 
       // Enemy leech from damage dealt (post-mitigation value).
       if (r.damageToDisplay > 0 && (enemyLifeLeechPct > 0 || enemyEsLeechPct > 0)) {
@@ -1769,9 +1810,13 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     } else {
       const toEs = stats.maxEnergyShield > 0 ? manaRegen * (regenToEs / 100) : 0
       const toMana = manaRegen - toEs
+      const manaBefore = player.mana
       player.mana = Math.min(stats.maxMana, player.mana + toMana)
+      totalRegenToPlayerMana += Math.max(0, player.mana - manaBefore)
       if (toEs > 0) {
+        const esBefore = player.energyShield
         player.energyShield = Math.min(stats.maxEnergyShield, player.energyShield + toEs)
+        totalRegenToPlayerEs += Math.max(0, player.energyShield - esBefore)
       }
     }
     const ignited = playerAilments.igniteUntil > t
@@ -1782,10 +1827,12 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     if (lifeRegenPct > 0 && player.life > 0) {
       const rec = stats.lifeRecoveryRateMult ?? 1
       if (lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
+        const before = player.life
         player.life = Math.min(
           runtimeMaxLife,
           player.life + runtimeMaxLife * (lifeRegenPct / 100) * dt * rec
         )
+        totalRegenToPlayerLife += Math.max(0, player.life - before)
       }
     }
     // Ascendant: 50% of life regeneration per second also applies to your energy shield.
@@ -1793,13 +1840,17 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       const rec = stats.lifeRecoveryRateMult ?? 1
       const toEs = runtimeMaxLife * ((baseLifeRegenPct + ignitedBonus + ascendantLifeRegenPct) / 100) * dt * rec * 0.5
       if (toEs > 0) {
+        const before = player.energyShield
         player.energyShield = Math.min(stats.maxEnergyShield, player.energyShield + toEs)
+        totalRegenToPlayerEs += Math.max(0, player.energyShield - before)
       }
     }
     const flatLifeRegen = stats.flatLifeRegenPerSecond ?? 0
     if (flatLifeRegen > 0 && player.life > 0 && lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
       const rec = stats.lifeRecoveryRateMult ?? 1
+      const before = player.life
       player.life = Math.min(runtimeMaxLife, player.life + flatLifeRegen * dt * rec)
+      totalRegenToPlayerLife += Math.max(0, player.life - before)
     }
 
     // Poison damage on player (currently only sourced from reflected poison in this demo model)
@@ -1809,6 +1860,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     if (poisonSelfDps > 0) {
       const tick = poisonSelfDps * dt * (1 - poisonTakenLess / 100)
       player.life = Math.max(0, player.life - tick)
+      totalDamageToPlayerFromDots += Math.max(0, tick)
       if (tick > 0.01) {
         tryLog({ t, kind: 'dot_tick', message: `DoT — Poison on you: ${tick.toFixed(1)} (${(poisonSelfDps * (1 - poisonTakenLess / 100)).toFixed(1)} DPS)`, damage: tick })
       }
@@ -1817,7 +1869,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     // Flat self damage over time from gear
     const loseLife = stats.loseLifePerSecond ?? 0
     if (loseLife > 0) {
-      player.life = Math.max(0, player.life - loseLife * dt)
+      const tick = loseLife * dt
+      player.life = Math.max(0, player.life - tick)
+      totalDamageToPlayerFromSelf += Math.max(0, tick)
       if (loseLife * dt > 0.01) {
         tryLog({ t, kind: 'dot_tick', message: `DoT — You lose ${loseLife.toFixed(0)} life/s`, damage: loseLife * dt })
       }
@@ -1825,14 +1879,18 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     const chaosDps = stats.takeChaosDamagePerSecond ?? 0
     if (chaosDps > 0) {
       // Simplified: treat as direct life loss (ignores ES / chaos bypass rules)
-      player.life = Math.max(0, player.life - chaosDps * dt)
+      const tick = chaosDps * dt
+      player.life = Math.max(0, player.life - tick)
+      totalDamageToPlayerFromSelf += Math.max(0, tick)
       if (chaosDps * dt > 0.01) {
         tryLog({ t, kind: 'dot_tick', message: `DoT — You take ${chaosDps.toFixed(0)} chaos damage/s`, damage: chaosDps * dt })
       }
     }
     const chaosDpsAfterPrevent = deathPreventUsed ? (stats.takeChaosDamagePerSecondIfDeathPrevented ?? 0) : 0
     if (chaosDpsAfterPrevent > 0) {
-      player.life = Math.max(0, player.life - chaosDpsAfterPrevent * dt)
+      const tick = chaosDpsAfterPrevent * dt
+      player.life = Math.max(0, player.life - tick)
+      totalDamageToPlayerFromSelf += Math.max(0, tick)
     }
 
     if (player.life <= 0 && (stats.preventDeathOncePerStage ?? false) && !deathPreventUsed) {
@@ -1845,10 +1903,12 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     }
     const esRegenPct = stats.esRegenPercentOfMaxPerSecond ?? 0
     if (esRegenPct > 0 && stats.maxEnergyShield > 0) {
+      const before = player.energyShield
       player.energyShield = Math.min(
         stats.maxEnergyShield,
         player.energyShield + stats.maxEnergyShield * (esRegenPct / 100) * dt * recAll
       )
+      totalRegenToPlayerEs += Math.max(0, player.energyShield - before)
     }
 
     // Conditional mana sacrifice (current mana per second)
@@ -1886,5 +1946,23 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     enemyDebuffEvents,
     enemyAilmentSummary,
     logTruncated,
+    totals: {
+      damageToEnemy: totalHitDamageToEnemy + totalDotDamage,
+      damageToEnemyFromHits: totalHitDamageToEnemy,
+      damageToEnemyFromDots: totalDotDamage,
+
+      damageToPlayer:
+        totalDamageToPlayerFromEnemyHits + totalDamageToPlayerFromDots + totalDamageToPlayerFromSelf,
+      damageToPlayerFromEnemyHits: totalDamageToPlayerFromEnemyHits,
+      damageToPlayerFromDots: totalDamageToPlayerFromDots,
+      damageToPlayerFromSelf: totalDamageToPlayerFromSelf,
+
+      regenToPlayerLife: totalRegenToPlayerLife,
+      regenToPlayerMana: totalRegenToPlayerMana,
+      regenToPlayerEnergyShield: totalRegenToPlayerEs,
+
+      regenToEnemyLife: totalRegenToEnemyLife,
+      regenToEnemyEnergyShield: totalRegenToEnemyEs,
+    },
   }
 }

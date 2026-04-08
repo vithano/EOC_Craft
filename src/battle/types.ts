@@ -117,6 +117,25 @@ export interface EncounterResult {
   enemyAilmentSummary?: EnemyAilmentSummary
   /** True if combat log was truncated to fit UI limit. */
   logTruncated?: boolean
+
+  /** Aggregated totals for the encounter (for UI summary). */
+  totals?: {
+    damageToEnemy: number
+    damageToEnemyFromHits: number
+    damageToEnemyFromDots: number
+
+    damageToPlayer: number
+    damageToPlayerFromEnemyHits: number
+    damageToPlayerFromDots: number
+    damageToPlayerFromSelf: number
+
+    regenToPlayerLife: number
+    regenToPlayerMana: number
+    regenToPlayerEnergyShield: number
+
+    regenToEnemyLife: number
+    regenToEnemyEnergyShield: number
+  }
 }
 
 export interface EncounterOptions {

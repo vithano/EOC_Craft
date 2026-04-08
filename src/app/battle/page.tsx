@@ -575,6 +575,52 @@ export default function BattleDemoPage() {
             {Math.round(result.playerFinal.energyShield)} / mana {Math.round(result.playerFinal.mana)} — enemy life{" "}
             {Math.max(0, Math.round(result.enemyLifeFinal))}
           </div>
+          {result.totals && (
+            <div className="mb-3 grid md:grid-cols-2 gap-2">
+              <div className="rounded-lg border border-zinc-800 bg-black/20 p-3">
+                <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5">Totals</div>
+                <div className="text-xs font-mono text-zinc-300 space-y-0.5">
+                  <div>
+                    Damage to enemy: {result.totals.damageToEnemy.toFixed(1)}{" "}
+                    <span className="text-zinc-500">
+                      (hits {result.totals.damageToEnemyFromHits.toFixed(1)} · DoT {result.totals.damageToEnemyFromDots.toFixed(1)})
+                    </span>
+                  </div>
+                  <div>
+                    Damage to you: {result.totals.damageToPlayer.toFixed(1)}{" "}
+                    <span className="text-zinc-500">
+                      (enemy hits {result.totals.damageToPlayerFromEnemyHits.toFixed(1)} · DoT {result.totals.damageToPlayerFromDots.toFixed(1)} · self {result.totals.damageToPlayerFromSelf.toFixed(1)})
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-black/20 p-3">
+                <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5">Regen gained (this run)</div>
+                <div className="text-xs font-mono text-zinc-300 space-y-0.5">
+                  <div>
+                    You: +{result.totals.regenToPlayerLife.toFixed(1)} life · +{result.totals.regenToPlayerEnergyShield.toFixed(1)} ES · +{result.totals.regenToPlayerMana.toFixed(1)} mana
+                  </div>
+                  <div>
+                    Enemy: +{result.totals.regenToEnemyLife.toFixed(1)} life · +{result.totals.regenToEnemyEnergyShield.toFixed(1)} ES
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="mb-3 rounded-lg border border-zinc-800 bg-black/20 p-3">
+            <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5">Key multipliers (from build stats)</div>
+            <div className="text-xs font-mono text-zinc-300 space-y-0.5">
+              <div>
+                Enemies take increased damage: +{(stats.enemiesTakeIncreasedDamagePercent ?? 0).toFixed(1)}%
+              </div>
+              <div>
+                Damage taken mult (gear): ×{(stats.damageTakenMultiplierFromGear ?? 1).toFixed(4)}
+              </div>
+              <div>
+                Damage dealt less mult (gear): ×{(stats.damageDealtLessMult ?? 1).toFixed(4)}
+              </div>
+            </div>
+          </div>
           {(result.enemyAilmentSummary || (result.enemyDebuffEvents?.length ?? 0) > 0) && (
             <div className="mb-3 rounded-lg border border-violet-800/70 bg-violet-950/25 px-3 py-2 text-sm">
               <div className="text-[10px] uppercase tracking-wider text-violet-300/90 mb-1.5">

@@ -209,6 +209,7 @@ export interface StatBreakdowns {
   hitsCannotBeEvaded: StatBreakdownBlock
   blockDamageTakenMult: StatBreakdownBlock
   lifeRegenPercentOfMaxPerSecond: StatBreakdownBlock
+  flatLifeRegenPerSecond: StatBreakdownBlock
   esRegenPercentOfMaxPerSecond: StatBreakdownBlock
   enemiesTakeIncreasedDamagePercent: StatBreakdownBlock
   damageTakenMultiplierFromGear: StatBreakdownBlock
@@ -5182,6 +5183,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       { label: 'From block power % (gear)', value: blockDamageTakenMult },
     ]),
     lifeRegenPercentOfMaxPerSecond: blk([{ label: 'Gear', value: lifeRegenPercentOfMaxPerSecond }]),
+    flatLifeRegenPerSecond: blk(
+      [
+        { label: 'Gear: life regen per second per character level', value: eq.flatLifeRegenPerSecondPerCharacterLevelFromGear },
+        { label: 'Character level', value: characterLevel },
+      ],
+      `${flatLifeRegenPerSecond.toFixed(2)}/s`
+    ),
     esRegenPercentOfMaxPerSecond: blk([
       { label: 'Gear: base ES regen %/s', value: eq.esRegenPercentOfMaxPerSecondFromGear },
       { label: 'Gear: % ES regen per 150 intelligence (floored)', value: Math.floor(int_ / 150) * eq.esRegenPctPerSecondPer150IntFromGear },
