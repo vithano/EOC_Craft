@@ -19,6 +19,7 @@ import {
   type BattleParticipantState,
   type DemoEnemyDef,
   type EncounterResult,
+  type EncounterTimelinePoint,
   type EnemyDebuffEvent,
 } from './types'
 
@@ -1222,6 +1223,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   const maxDuration = options.maxDurationSeconds ?? 120
   const dt = options.dt ?? 0.05
   const maxLog = options.maxLogEntries ?? 80
+  const recordTimeline = options.recordTimeline ?? false
   const maxLogNormal = Math.max(0, maxLog - 2) // reserve: truncation marker + final outcome line
   let logTruncated = false
 
@@ -1298,6 +1300,17 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   }
 
   const log: BattleLogEntry[] = [{ t: 0, kind: 'phase', message: `Encounter: ${enemy.name}` }]
+
+  const timeline: EncounterTimelinePoint[] | undefined = recordTimeline ? [] : undefined
+  const pushTimeline = () => {
+    if (!timeline) return
+    timeline.push({
+      t,
+      player: { life: player.life, energyShield: player.energyShield, mana: player.mana },
+      enemy: { life: enemyState.life, energyShield: enemyState.energyShield },
+    })
+  }
+  pushTimeline()
 
   const enemyPoolsText = () => {
     const es = Math.max(0, enemyState.energyShield)
@@ -2015,6 +2028,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       player.mana = Math.max(0, player.mana * (1 - (manaSacPct / 100) * dt))
     }
     t += dt
+    pushTimeline()
   }
 
   let winner: EncounterResult['winner'] = 'timeout'
@@ -2037,6 +2051,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     durationSeconds: t,
     playerFinal: player,
     enemyLifeFinal: enemyLife,
+    enemyEnergyShieldFinal: enemyState.energyShield,
     log,
     hitsLandedPlayer: hitsPlayer,
     hitsLandedEnemy: hitsEnemy,
@@ -2044,6 +2059,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     enemyDebuffEvents,
     enemyAilmentSummary,
     logTruncated,
+    timeline,
     totals: {
       damageToEnemy: totalHitDamageToEnemy + totalDotDamage,
       damageToEnemyFromHits: totalHitDamageToEnemy,

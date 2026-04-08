@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { simulateEncounter } from "../../battle/engine";
 import type { DemoEnemyDef } from "../../battle/types";
+import BattleHud from "../../components/battle/BattleHud";
 import {
   applyEnemyModifierBaseRatiosToScaledEnemy,
   ENEMY_MODIFIER_ORDER,
@@ -278,7 +279,7 @@ export default function BattleDemoPage() {
       enemyModsWithTiers: enemyModSlots
         .filter((s): s is { id: EnemyModifierId; tier: 1 | 2 | 3 } => Boolean(s.id))
         .map((s) => ({ id: s.id!, tier: s.tier })),
-      options: { maxDurationSeconds: 90, maxLogEntries: 100, dt: 0.05 },
+      options: { maxDurationSeconds: 90, maxLogEntries: 100, dt: 0.05, recordTimeline: true },
     });
   }, [stats, derivedEnemy, enemyModSlots, runKey]);
 
@@ -639,6 +640,14 @@ export default function BattleDemoPage() {
         >
           Run again (new random rolls)
         </button>
+
+        <BattleHud
+          result={result}
+          playerLabel={activeBuildName ? `You (${activeBuildName})` : "You"}
+          enemyLabel={derivedEnemy.name}
+          playerMax={{ life: stats.maxLife, energyShield: stats.maxEnergyShield, mana: stats.maxMana }}
+          enemyMax={{ life: derivedEnemy.maxLife, energyShield: derivedEnemy.maxEnergyShield ?? 0 }}
+        />
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm space-y-1">

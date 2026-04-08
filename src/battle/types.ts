@@ -84,6 +84,12 @@ export interface BattleParticipantState {
   mana: number
 }
 
+export interface EncounterTimelinePoint {
+  t: number
+  player: BattleParticipantState
+  enemy: { life: number; energyShield: number }
+}
+
 export interface BattleLogEntry {
   t: number
   kind: 'player_attack' | 'enemy_attack' | 'phase' | 'ailment' | 'dot_tick'
@@ -116,6 +122,8 @@ export interface EncounterResult {
   durationSeconds: number
   playerFinal: BattleParticipantState
   enemyLifeFinal: number
+  /** Optional final enemy ES for UI (enemy pools can include Barrier ES). */
+  enemyEnergyShieldFinal?: number
   log: BattleLogEntry[]
   hitsLandedPlayer: number
   hitsLandedEnemy: number
@@ -127,6 +135,9 @@ export interface EncounterResult {
   enemyAilmentSummary?: EnemyAilmentSummary
   /** True if combat log was truncated to fit UI limit. */
   logTruncated?: boolean
+
+  /** Optional per-step playback timeline (when `options.recordTimeline` is enabled). */
+  timeline?: EncounterTimelinePoint[]
 
   /** Aggregated totals for the encounter (for UI summary). */
   totals?: {
@@ -155,6 +166,8 @@ export interface EncounterOptions {
   dt?: number
   /** Log at most N combat lines (plus start/end). */
   maxLogEntries?: number
+  /** Record a per-step timeline suitable for real-time playback UI. */
+  recordTimeline?: boolean
 }
 
 export interface BattleContext {
