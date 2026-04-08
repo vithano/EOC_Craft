@@ -386,6 +386,7 @@ export default function EquipmentPanel({
 
     const mods = item.modifiers ?? {};
     const udef = isUniqueItemId(itemId) ? EOC_UNIQUE_BY_ID[itemId] : undefined;
+    const isWeaponSlotForTooltip = slot === "Weapon" || (slot === "Off-hand" && isAttackWeaponItem(itemId));
 
     const mutedBtn = "rounded-sm border border-[#5c4d3d] bg-[#1c1814] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#c9baa8] hover:border-[#8b7355] hover:text-[#e8dcc8]";
 
@@ -399,7 +400,7 @@ export default function EquipmentPanel({
       const craftedTexts = craftedBase ? craftedEquipStatParseTexts(craftedBase, craftedPrefixes, craftedSuffixes, craftedEnh) : [];
       const craftedPatch = craftedBase
         ? (() => {
-            const p = equipmentModifiersFromUniqueTexts(craftedTexts, { isWeapon: slot === "Weapon" });
+            const p = equipmentModifiersFromUniqueTexts(craftedTexts, { isWeapon: isWeaponSlotForTooltip });
             applyExtraCraftedModPatterns(p, craftedTexts);
             return p;
           })()
@@ -408,7 +409,7 @@ export default function EquipmentPanel({
       const craftedBaseStatRows: { label: string; value: string }[] = [];
       let craftedWeaponDamageByType: HitDamageTypeRow[] = [];
       if (craftedBase && craftedPatch) {
-        const isWeapon = slot === "Weapon";
+        const isWeapon = isWeaponSlotForTooltip;
         if (isWeapon) {
           if (craftedBase.baseDamageMin != null && craftedBase.baseDamageMax != null) {
             const localPct = craftedPatch.localIncreasedPhysDamagePct ?? 0;
@@ -703,7 +704,7 @@ export default function EquipmentPanel({
     // ── Unique item: game-style tooltip ───────────────────────────────────────
     const parsedRolls = parseRollTextsToValues(udef, detailRollTexts);
     const resolved = resolveUniqueMods(udef, parsedRolls, detailEnhancement);
-    const isWeapon = slot === "Weapon";
+    const isWeapon = isWeaponSlotForTooltip;
     const mx = maxEnhancementForUnique(udef);
 
     // Compute effective base stats from current rolls
