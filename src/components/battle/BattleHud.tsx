@@ -35,7 +35,7 @@ type BattleHudProps = {
   playerLabel?: string;
   enemyLabel?: string;
   playerMax: { life: number; energyShield: number; mana: number };
-  enemyMax: { life: number; energyShield: number };
+  enemyMax: { life: number; energyShield: number; mana?: number };
 };
 
 type DerivedEvent = {
@@ -198,7 +198,7 @@ export default function BattleHud({
   }, [timeline, playheadSec]);
 
   const player = frame?.player ?? { life: playerMax.life, energyShield: playerMax.energyShield, mana: playerMax.mana, actionBar: 0 };
-  const enemy = frame?.enemy ?? { life: enemyMax.life, energyShield: enemyMax.energyShield, actionBar: 0 };
+  const enemy = frame?.enemy ?? { life: enemyMax.life, energyShield: enemyMax.energyShield, mana: enemyMax.mana ?? 0, actionBar: 0 };
 
   return (
     <div className="space-y-3">
@@ -317,6 +317,15 @@ export default function BattleHud({
                   current={enemy.energyShield}
                   max={effectiveEnemyMaxEs}
                   colorClass="bg-sky-600"
+                  rightAligned
+                />
+              )}
+              {(enemyMax.mana ?? 0) > 0 && (
+                <ResourceBar
+                  label="Mana"
+                  current={enemy.mana}
+                  max={enemyMax.mana ?? 0}
+                  colorClass="bg-indigo-600"
                   rightAligned
                 />
               )}

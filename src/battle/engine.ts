@@ -67,11 +67,30 @@ interface HitDamageByType {
 }
 
 function applyDamageToEnemyPools(
-  enemyState: { life: number; energyShield: number },
-  amount: number
+  enemyState: { life: number; energyShield: number; mana?: number },
+  amount: number,
+  enemy?: DemoEnemyDef
 ): number {
   if (amount <= 0) return 0
   let remaining = amount
+  if (enemy) {
+    const maxMana = Math.max(0, enemy.maxMana ?? 0)
+    let mana = Math.max(0, enemyState.mana ?? 0)
+    const manaFirstPct = Math.min(100, Math.max(0, enemy.damageTakenToManaFirstPercent ?? 0))
+    if (manaFirstPct > 0 && mana > 0 && remaining > 0) {
+      const wantMana = remaining * (manaFirstPct / 100)
+      const fromMana = Math.min(wantMana, mana)
+      mana -= fromMana
+      remaining -= fromMana
+    }
+    if ((enemy.manaShieldActive ?? false) && maxMana > 0 && mana > maxMana * 0.5 && remaining > 0) {
+      const portion = remaining * 0.25
+      const fromMana = Math.min(portion, mana)
+      mana -= fromMana
+      remaining -= fromMana
+    }
+    enemyState.mana = mana
+  }
   if (enemyState.energyShield > 0) {
     const takenEs = Math.min(enemyState.energyShield, remaining)
     enemyState.energyShield -= takenEs
@@ -1455,6 +1474,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   const enemyState = {
     life: Math.max(1, enemy.maxLife),
     energyShield: Math.max(0, enemy.maxEnergyShield ?? 0),
+    mana: Math.max(0, enemy.maxMana ?? 0),
   }
   let enemyLife = enemyState.life
   const startLosePct = Math.min(100, Math.max(0, stats.enemyLoseMaxLifeAtStartPercent ?? 0))
@@ -1463,7 +1483,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     enemyLife = enemyState.life
   }
   let t = 0
-  let nextPlayer = 0
+  // Match enemy timing model: first action after one full base interval.
+  // (Action bar can still be modified by uniques after encounter starts.)
+  let nextPlayer = 1 / Math.max(0.05, stats.aps)
   const apsEnemy = enemy.useOwnApsOnly
     ? Math.max(0.05, enemy.aps)
     : Math.max(0.05, enemy.aps * enemyApsMultiplier(stats))
@@ -1526,6 +1548,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       enemy: {
         life: enemyState.life,
         energyShield: enemyState.energyShield,
+        mana: enemyState.mana,
         actionBar: enemyActionBar,
       },
     })
@@ -1608,6 +1631,14 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       )
       totalRegenToEnemyEs += Math.max(0, enemyState.energyShield - before)
     }
+    if (!(enemy.noMana ?? false) && (enemy.maxMana ?? 0) > 0 && (enemy.manaRegenPerSecond ?? 0) > 0) {
+      enemyState.mana = Math.min(
+        enemy.maxMana ?? 0,
+        enemyState.mana + (enemy.manaRegenPerSecond ?? 0) * dt * (stats.recoveryRateMult ?? 1)
+      )
+    } else if (enemy.noMana ?? false) {
+      enemyState.mana = 0
+    }
 
     // Timed gear triggers
     if ((stats.periodicShockEverySec ?? 0) > 0 && (stats.periodicShockPct ?? 0) > 0) {
@@ -1655,7 +1686,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           .reduce((sum, d) => sum + (d.burstDamageOnExpire ?? 0), 0)
         if (totalStored > 0) {
           const enemyLifeBefore = enemyLife
-          applyDamageToEnemyPools(enemyState, totalStored)
+          applyDamageToEnemyPools(enemyState, totalStored, enemy)
           enemyLife = enemyState.life
           totalDotDamage += totalStored
           if (enemyLifeBefore > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
@@ -1666,7 +1697,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           const burst = d.burstDamageOnExpire ?? 0
           if (burst > 0) {
             const enemyLifeBefore = enemyLife
-            applyDamageToEnemyPools(enemyState, burst)
+            applyDamageToEnemyPools(enemyState, burst, enemy)
             enemyLife = enemyState.life
             totalDotDamage += burst
             if (enemyLifeBefore > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
@@ -1699,7 +1730,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     if (dotDpsTotal > 0) {
       const tick = dotDpsTotal * dt
       const enemyLifeBeforeDot = enemyLife
-      applyDamageToEnemyPools(enemyState, tick)
+      applyDamageToEnemyPools(enemyState, tick, enemy)
       enemyLife = enemyState.life
       if (enemyLifeBeforeDot > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
       totalDotDamage += tick
@@ -1795,6 +1826,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     const chillSelfMult = Math.max(0.05, 1 - chillOnYou / 100)
 
     let speedMult = chillSelfMult
+    if ((enemy.enemiesMoreSpeedMultiplier ?? 1) !== 1) {
+      speedMult *= Math.max(0.05, enemy.enemiesMoreSpeedMultiplier ?? 1)
+    }
     if (deathPreventUsed && (stats.moreSpeedIfDeathPreventedThisStagePercent ?? 0) > 0) {
       speedMult *= 1 + (stats.moreSpeedIfDeathPreventedThisStagePercent / 100)
     }
@@ -1851,7 +1885,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         })
         const { damage, damageForAilments, outcome, anyCrit, anyDouble, anyTriple, anyQuad } = atk
         const strikeDetails = (atk as any).strikeDetails as any[] | undefined
-        applyDamageToEnemyPools(enemyState, damage)
+        applyDamageToEnemyPools(enemyState, damage, enemy)
         enemyLife = enemyState.life
         totalHitDamageToEnemy += Math.max(0, damage)
         if (enemyLifeBeforeHit > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
@@ -2051,6 +2085,53 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
 
     const chillMult = activeChillMult(ailmentState, t)
     if (t + 1e-9 >= nextEnemy) {
+      const enemyCost = Math.max(0, enemy.manaCostPerAttack ?? 0)
+      const payLife = enemy.manaCostPaidWithLife ?? false
+      const payEs = enemy.manaCostPaidWithEnergyShield ?? false
+      const enemyCanPay =
+        (enemy.noMana ?? false)
+          ? true
+          : payLife
+            ? enemyState.life > enemyCost
+            : payEs
+              ? enemyState.energyShield >= enemyCost
+              : enemyState.mana >= enemyCost
+      if (!enemyCanPay) {
+        tryLog({
+          t,
+          kind: 'enemy_attack',
+          message: payLife
+            ? `${enemy.name} lacks life for action cost`
+            : payEs
+              ? `${enemy.name} lacks ES for action cost`
+              : `${enemy.name} lacks mana for action cost`,
+        })
+        nextEnemy = t + 1 / Math.max(0.15, apsEnemy * chillMult)
+        t += dt
+        pushTimeline()
+        continue
+      }
+      if (!(enemy.noMana ?? false) && enemyCost > 0) {
+        if (payLife) enemyState.life = Math.max(0, enemyState.life - enemyCost)
+        else if (payEs) enemyState.energyShield = Math.max(0, enemyState.energyShield - enemyCost)
+        else enemyState.mana = Math.max(0, enemyState.mana - enemyCost)
+      }
+      const enemyChaosPct = enemy.takeChaosDamageEqualToPctOfAbilityCostOnSpellCast ?? 0
+      if ((enemy.attackIsSpell ?? false) && enemyChaosPct > 0 && enemyCost > 0) {
+        enemyState.life = Math.max(0, enemyState.life - enemyCost * (enemyChaosPct / 100))
+      }
+      const enemySelfPhysPct = enemy.takePhysicalDamagePercentOfMaxLifeWhenYouAttack ?? 0
+      if (enemySelfPhysPct > 0) {
+        enemyState.life = Math.max(0, enemyState.life - enemy.maxLife * (enemySelfPhysPct / 100))
+      }
+      enemyLife = enemyState.life
+      if (enemyLife <= 0) {
+        tryLog({ t, kind: 'phase', message: `${enemy.name} died from self-costs` })
+        nextEnemy = t + 1 / Math.max(0.15, apsEnemy * chillMult)
+        t += dt
+        pushTimeline()
+        continue
+      }
       const r = resolveEnemyAttack(enemy, stats, player, firstHitFlag, runtimeMaxLife)
       if (r.blocked) {
         const fill = stats.actionBarFilledByPercentOnBlock ?? 0
@@ -2092,6 +2173,37 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
             },
           },
         })
+      } else {
+        tryLog({
+          t,
+          kind: 'enemy_attack',
+          message: `${enemy.name} hits for 0.0 (fully mitigated)`,
+          damage: 0,
+          details: {
+            kind: 'enemy_attack',
+            enemy: enemy.name,
+            flags: {
+              enemyAttackIsSpell: (enemy as any).attackIsSpell ?? false,
+              critical: r.critical,
+              blocked: r.blocked,
+            },
+            roll: {
+              baseRange: [enemy.damageMin, enemy.damageMax],
+              rawBeforeMitigation: r.fullBeforeArmour,
+            },
+            mitigation: {
+              damageTakenMultiplierFromGear: stats.damageTakenMultiplierFromGear ?? 1,
+              championDamageReductionFrac: championDamageReductionFrac(stats, player.life),
+              blockedDamagePreventedBeforeArmour: r.preventedByBlock,
+              mitigatedByArmour: r.mitigatedByArmour,
+              preventedTotal: r.preventedTotal,
+            },
+            final: {
+              damageAppliedToPools: 0,
+              playerPoolsAfter: { ...player },
+            },
+          },
+        })
       }
 
       // Siegebreaker-style: blocked hit → counter attack with added fire from prevented damage.
@@ -2119,7 +2231,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
           extraTargetTakesIncreasedDamagePct: extraInc,
           extraFlatFireDamage: extraFire,
         })
-        applyDamageToEnemyPools(enemyState, ctr.damage)
+        applyDamageToEnemyPools(enemyState, ctr.damage, enemy)
         enemyLife = enemyState.life
         if (enemyLifeBeforeCounter > 0 && enemyLife <= 0) applyOnKillRecovery(player, stats, runtimeMaxLife)
         if (ctr.damage > 0 || ctr.damageForAilments > 0) hitsPlayer++

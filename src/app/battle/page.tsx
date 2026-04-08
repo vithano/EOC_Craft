@@ -229,6 +229,18 @@ export default function BattleDemoPage() {
       id: "enemy-build",
       name: label,
       maxLife: Math.max(1, Math.round(s.maxLife)),
+      maxMana: Math.max(0, Math.round(s.maxMana)),
+      manaCostPerAttack: Math.max(0, s.manaCostPerAttack ?? 0),
+      manaRegenPerSecond: Math.max(0, s.manaRegenPerSecond ?? 0),
+      damageTakenToManaFirstPercent: Math.max(0, Math.min(100, s.damageTakenToManaFirstPercent ?? 0)),
+      manaShieldActive: Boolean(s.manaShieldActive),
+      noMana: Boolean(s.noMana),
+      manaCostPaidWithLife: Boolean(s.manaCostPaidWithLife),
+      manaCostPaidWithEnergyShield: Boolean(s.manaCostPaidWithEnergyShield),
+      takeChaosDamageEqualToPctOfAbilityCostOnSpellCast:
+        Math.max(0, s.takeChaosDamageEqualToPctOfAbilityCostOnSpellCast ?? 0),
+      takePhysicalDamagePercentOfMaxLifeWhenYouAttack:
+        Math.max(0, s.takePhysicalDamagePercentOfMaxLifeWhenYouAttack ?? 0),
       maxEnergyShield: Math.max(0, Math.round(s.maxEnergyShield)),
       armour: Math.max(0, Math.round(s.armour)),
       evasionRating: Math.max(0, Math.round(s.evasionRating)),
@@ -261,6 +273,7 @@ export default function BattleDemoPage() {
       lightningResistancePercent: s.lightningRes,
       chaosResistancePercent: s.chaosRes,
       attackIsSpell: s.abilityContribution?.type === "Spells",
+      enemiesMoreSpeedMultiplier: s.enemiesMoreSpeedMultiplier ?? 1,
       zone,
     };
   }
@@ -559,7 +572,7 @@ export default function BattleDemoPage() {
       stats,
       enemy: derivedEnemy,
       enemyModsWithTiers: mods,
-      options: { maxDurationSeconds: 90, maxLogEntries: 250, dt: 0.05, recordTimeline: true },
+      options: { maxDurationSeconds: 90, maxLogEntries: 250, dt: 0.01, recordTimeline: true },
     });
   }, [stats, derivedEnemy, enemyModSlots, battleMode, runKey]);
 
@@ -633,7 +646,7 @@ export default function BattleDemoPage() {
           playerLabel={activeBuildName ? `You (${activeBuildName})` : "You"}
           enemyLabel={enemyWithMods.name}
           playerMax={{ life: stats.maxLife, energyShield: stats.maxEnergyShield, mana: stats.maxMana }}
-          enemyMax={{ life: enemyWithMods.maxLife, energyShield: enemyWithMods.maxEnergyShield ?? 0 }}
+          enemyMax={{ life: enemyWithMods.maxLife, energyShield: enemyWithMods.maxEnergyShield ?? 0, mana: enemyWithMods.maxMana ?? 0 }}
         />
 
         <button

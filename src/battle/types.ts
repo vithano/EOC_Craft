@@ -19,6 +19,24 @@ export interface DemoEnemyDef {
   id: string
   name: string
   maxLife: number
+  /** Optional mana pool (used for build-vs-build symmetry). */
+  maxMana?: number
+  /** Optional per-action mana cost for enemy attacks/casts. */
+  manaCostPerAttack?: number
+  /** Optional mana regeneration per second for the enemy. */
+  manaRegenPerSecond?: number
+  /** Optional: % of incoming damage taken from mana before ES/life. */
+  damageTakenToManaFirstPercent?: number
+  /** Optional: if active, 25% of incoming damage is taken from mana while above 50% mana. */
+  manaShieldActive?: boolean
+  /** If true, enemy ignores mana costs and keeps mana at 0. */
+  noMana?: boolean
+  manaCostPaidWithLife?: boolean
+  manaCostPaidWithEnergyShield?: boolean
+  /** Mirror player stat: take chaos damage equal to % of ability cost when casting spells. */
+  takeChaosDamageEqualToPctOfAbilityCostOnSpellCast?: number
+  /** Mirror player stat: lose % of max life when taking an attack action. */
+  takePhysicalDamagePercentOfMaxLifeWhenYouAttack?: number
   /** Optional extra pool (e.g. Barrier enemy mod). Damage is applied to ES before life. */
   maxEnergyShield?: number
   /**
@@ -82,6 +100,8 @@ export interface DemoEnemyDef {
 
   /** If true, enemy attacks are treated as spells for evasion rules (evasion is half as effective vs spells). */
   attackIsSpell?: boolean
+  /** Opponent speed multiplier this enemy applies (e.g. "enemies have less attack/cast speed"). */
+  enemiesMoreSpeedMultiplier?: number
 }
 
 export interface BattleParticipantState {
@@ -93,7 +113,7 @@ export interface BattleParticipantState {
 export interface EncounterTimelinePoint {
   t: number
   player: BattleParticipantState & { actionBar: number }
-  enemy: { life: number; energyShield: number; actionBar: number }
+  enemy: { life: number; energyShield: number; mana: number; actionBar: number }
 }
 
 export interface BattleLogEntry {
