@@ -27,9 +27,12 @@ import {
   type EquippedEntry,
   type InventoryStack,
 } from "../data/equipment";
+import { EOC_UNIQUE_BY_ID, isUniqueItemId, rollBoundsForUnique } from "../data/eocUniques";
+import { isCraftedEquipItemId } from "../data/eocBaseEquipment";
 import {
   aggregateEquippedToEquipmentModifiers,
   computeBuildStats,
+  emptyEquipmentModifiers,
   normalizeAbilitySelection,
   type AbilitySelectionState,
 } from "../data/gameStats";
@@ -42,11 +45,48 @@ import {
   type StoredBuild,
   type StoredPlannerPayload,
 } from "../lib/eocBuildStorage";
+import { decodeShare, encodeShareV2, resolveShareV2 } from "../lib/eocShareCodec";
 import { NEXUS_TIER_ROWS } from "../data/nexusEnemyScaling";
 import { useGameData } from "../contexts/GameDataContext";
 
 function equipmentModifiersFromEquippedMap(equipped: Record<string, EquippedEntry>) {
   return aggregateEquippedToEquipmentModifiers(EQUIPMENT_SLOTS, (slot) => getEquippedEntry(equipped, slot));
+}
+
+function maxEnhancementForItemId(itemId: string): number | undefined {
+  if (!itemId || itemId === "none") return undefined;
+  // Sharing rule: max enchant is 10 for everything, except The Gilden Apex which is 40.
+  if (itemId === "unique_the_gilden_apex") return 40;
+  void isUniqueItemId;
+  void isCraftedEquipItemId;
+  return 10;
+}
+
+function applyMaxEnhancementToEquipped(equipped: Record<string, EquippedEntry>): Record<string, EquippedEntry> {
+  const out: Record<string, EquippedEntry> = {};
+  for (const slot of EQUIPMENT_SLOTS) {
+    const cur = equipped?.[slot] ?? { itemId: "none" };
+    const mx = maxEnhancementForItemId(cur.itemId);
+    out[slot] = mx !== undefined ? { ...cur, enhancement: mx } : { ...cur, enhancement: undefined };
+  }
+  return out;
+}
+
+function applySharedDefaultsToEquipped(equipped: Record<string, EquippedEntry>): Record<string, EquippedEntry> {
+  const withEnchant = applyMaxEnhancementToEquipped(equipped);
+  const out: Record<string, EquippedEntry> = {};
+  for (const slot of EQUIPMENT_SLOTS) {
+    const cur = withEnchant?.[slot] ?? { itemId: "none" };
+    if (cur.itemId && cur.itemId !== "none" && isUniqueItemId(cur.itemId)) {
+      const def = EOC_UNIQUE_BY_ID[cur.itemId];
+      // If uniques aren't loaded yet, we can't compute roll bounds; deferred resolver will fix it.
+      const rolls = def ? rollBoundsForUnique(def).map((b) => b.max) : undefined;
+      out[slot] = { ...cur, rolls: rolls?.length ? rolls : cur.rolls };
+    } else {
+      out[slot] = { ...cur };
+    }
+  }
+  return out;
 }
 
 function stackIdentityKey(rolls: number[] | undefined, enhancement?: number, craftedPrefixes?: AppliedModifier[], craftedSuffixes?: AppliedModifier[]): string {
@@ -149,6 +189,12 @@ export default function BuildPlanner() {
   const [buildJsonImportError, setBuildJsonImportError] = useState<string | null>(null);
   const [shareUrlCopied, setShareUrlCopied] = useState(false);
   const [isViewingSharedBuild, setIsViewingSharedBuild] = useState(false);
+  const [pendingV2Aliases, setPendingV2Aliases] = useState<{
+    equippedAliases: string[];
+    abilityAlias: string | null;
+    upgradeLevels: Record<string, number>;
+    craftedBySlot: Array<{ cp?: string[]; cs?: string[] } | null>;
+  } | null>(null);
 
   // Hydrate from multi-build storage (migrates old single-build saves automatically)
   // If a ?build= URL param is present, load that build instead of localStorage.
@@ -181,37 +227,91 @@ export default function BuildPlanner() {
       return;
     }
 
-    // Decompress: base64 → deflate-raw bytes → JSON
     const decompress = async () => {
-      try {
-        // Restore standard base64 from URL-safe variant (- → +, _ → /)
-        const standard = buildParam.replace(/-/g, "+").replace(/_/g, "/");
-        const compressed = Uint8Array.from(atob(standard), (c) => c.charCodeAt(0));
-        const ds = new DecompressionStream("deflate-raw");
-        const writer = ds.writable.getWriter();
-        void writer.write(compressed);
-        void writer.close();
-        const json = await new Response(ds.readable).text();
-        const shared = parseStoredPlannerJson(json);
+      const decoded = await decodeShare(buildParam);
+      if (decoded.kind === "legacy") {
+        const shared = parseStoredPlannerJson(decoded.legacyParamJson);
         if (shared) {
           setUpgradeLevels(shared.upgradeLevels ?? {});
           if (shared.equipped) setEquipped(migrateEquippedFromSave(shared.equipped));
           setInventory([]);
           if (shared.ability) setAbility(normalizeAbilitySelection(shared.ability));
-          // Store in sessionStorage so the battle demo can pick it up without touching localStorage
           sessionStorage.setItem("eocCraftPreviewBuild", JSON.stringify(shared));
           setIsViewingSharedBuild(true);
           setHydrated(true);
           return;
         }
-      } catch {
-        // Fall through to normal load if URL param is malformed
+        loadNormal();
+        return;
+      }
+      if (decoded.kind === "v2") {
+        const shared = decoded.data;
+        setUpgradeLevels(shared.upgradeLevels ?? {});
+        setEquipped(applySharedDefaultsToEquipped(migrateEquippedFromSave(shared.equipped)));
+        setInventory([]);
+        const abilityId = shared.abilityId;
+        // If game data isn't loaded yet, abilityId/equipped may be unresolved. Defer resolution.
+        setPendingV2Aliases({
+          equippedAliases: shared.equippedAliases ?? [],
+          abilityAlias: shared.abilityAlias ?? null,
+          upgradeLevels: shared.upgradeLevels ?? {},
+          craftedBySlot: shared.craftedBySlot ?? [],
+        });
+        if (abilityId) {
+          setAbility({ abilityId, abilityLevel: 20, attunementPct: 100 });
+        } else {
+          setAbility({ abilityId: null, abilityLevel: 0, attunementPct: 0 });
+        }
+        const payloadForBattle: StoredPlannerPayload = {
+          upgradeLevels: shared.upgradeLevels ?? {},
+          equipmentModifiers: emptyEquipmentModifiers(),
+          equipped: applySharedDefaultsToEquipped(migrateEquippedFromSave(shared.equipped)),
+          ability: normalizeAbilitySelection(
+            abilityId
+              ? { abilityId, abilityLevel: 20, attunementPct: 100 }
+              : null
+          ),
+          inventory: [],
+        };
+        sessionStorage.setItem("eocCraftPreviewBuild", JSON.stringify(payloadForBattle));
+        setIsViewingSharedBuild(true);
+        setHydrated(true);
+        return;
       }
       loadNormal();
     };
 
     void decompress();
   }, []);
+
+  // Resolve v2 equipment/ability once game data has loaded.
+  useEffect(() => {
+    if (!pendingV2Aliases) return;
+    if (dataLoading) return;
+    const resolved = resolveShareV2({
+      equippedAliases: pendingV2Aliases.equippedAliases,
+      abilityAlias: pendingV2Aliases.abilityAlias,
+      craftedBySlot: pendingV2Aliases.craftedBySlot,
+    });
+    setEquipped(applySharedDefaultsToEquipped(migrateEquippedFromSave(resolved.equipped)));
+    const abilityId = resolved.abilityId;
+    if (abilityId) {
+      setAbility({ abilityId, abilityLevel: 20, attunementPct: 100 });
+    } else {
+      setAbility({ abilityId: null, abilityLevel: 0, attunementPct: 0 });
+    }
+    const payloadForBattle: StoredPlannerPayload = {
+      upgradeLevels: pendingV2Aliases.upgradeLevels ?? {},
+      equipmentModifiers: emptyEquipmentModifiers(),
+      equipped: applySharedDefaultsToEquipped(migrateEquippedFromSave(resolved.equipped)),
+      ability: normalizeAbilitySelection(
+        abilityId ? { abilityId, abilityLevel: 20, attunementPct: 100 } : null
+      ),
+      inventory: [],
+    };
+    sessionStorage.setItem("eocCraftPreviewBuild", JSON.stringify(payloadForBattle));
+    setPendingV2Aliases(null);
+  }, [pendingV2Aliases, dataLoading]);
 
   const equipmentModifiers = useMemo(() => equipmentModifiersFromEquippedMap(equipped), [equipped, sheetVersion]);
 
@@ -504,40 +604,16 @@ export default function BuildPlanner() {
   const shareBuild = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
     // Share only the current build — no inventory, no other builds
-    const payload = { upgradeLevels, equipmentModifiers, ability, equipped, inventory: [] };
-    // Compress: JSON → deflate-raw bytes → base64
     const compress = async () => {
-      const bytes = new TextEncoder().encode(JSON.stringify(payload));
-      const cs = new CompressionStream("deflate-raw");
-      const writer = cs.writable.getWriter();
-      void writer.write(bytes);
-      void writer.close();
-      const compressed = await new Response(cs.readable).arrayBuffer();
-      // Use loop instead of spread to avoid call stack limits on large payloads
-      const bytes2 = new Uint8Array(compressed);
-      let binary = "";
-      for (let i = 0; i < bytes2.length; i++) binary += String.fromCharCode(bytes2[i]);
-      // Use URL-safe base64 (+ → -, / → _) so the URL doesn't need %2B encoding
-      const encoded = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-      const longUrl = `${window.location.origin}${window.location.pathname}?build=${encoded}`;
-      let shareUrl = longUrl;
-      try {
-        const res = await fetch("/api/shorten", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: longUrl }),
-        });
-        if (res.ok) {
-          const data = await res.json() as { shortUrl?: string };
-          if (data.shortUrl) shareUrl = data.shortUrl;
-        }
-      } catch { /* fall back to long URL */ }
+      const abilityId = ability?.abilityId ?? null;
+      const encoded = await encodeShareV2({ upgradeLevels, equipped, abilityId });
+      const shareUrl = `${window.location.origin}${window.location.pathname}?build=${encoded}`;
       await navigator.clipboard.writeText(shareUrl);
       setShareUrlCopied(true);
       setTimeout(() => setShareUrlCopied(false), 2000);
     };
     void compress();
-  }, [upgradeLevels, equipmentModifiers, ability, equipped]);
+  }, [upgradeLevels, ability, equipped]);
 
   const saveSharedBuildToMyBuilds = useCallback(() => {
     const payload: StoredPlannerPayload = { upgradeLevels, equipmentModifiers, ability, equipped, inventory: [] };
