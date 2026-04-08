@@ -2394,6 +2394,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // 2. Aggregate upgrade modifier totals
   // -------------------------------------------------------------------------
   const upgAcc: Partial<Record<UpgradeModifierKey, number>> = {}
+  const upgSources: Partial<Record<UpgradeModifierKey, StatContributionLine[]>> = {}
 
   for (const [key, points] of Object.entries(config.upgradeLevels)) {
     const [classId, upgradeId] = key.split('/')
@@ -2406,10 +2407,28 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         : 1
     const total = upg.valuePerPoint * points * effectMult
     upgAcc[upg.id as UpgradeModifierKey] = (upgAcc[upg.id as UpgradeModifierKey] ?? 0) + total
+    const upgKey = upg.id as UpgradeModifierKey
+    ;(upgSources[upgKey] ??= []).push({
+      label: `${cls?.name ?? classId}: ${upg.label} (${points})`,
+      value: total,
+    })
   }
 
   // Convenient accessor with fallback to 0
   const u = (key: UpgradeModifierKey): number => upgAcc[key] ?? 0
+
+  const pushUpgrades = (lines: StatContributionLine[], totalLabel: string, key: UpgradeModifierKey) => {
+    const sources = upgSources[key] ?? []
+    if (sources.length === 0) {
+      dmgPushIf(lines, totalLabel, u(key))
+      return
+    }
+    for (const s of sources) {
+      if (s.value !== 0) lines.push({ label: `${totalLabel} (${s.label})`, value: s.value })
+    }
+    const total = u(key)
+    if (total !== 0) lines.push({ label: `${totalLabel} (total)`, value: total })
+  }
 
   // Character level: 1 = BASE_GAME stats only for these bonuses. Each passive rank spent is one level-up
   // (planner shows ranks 0…MAX; 0 ranks ⇒ level 1; 1 rank ⇒ level 2 ⇒ first +3 acc / +10 life / +10 mana / +1% dmg).
@@ -2419,10 +2438,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const levelFlatAccuracy = 3 * levelsGainedFromBase
   const levelFlatLife = 10 * levelsGainedFromBase
   const levelFlatMana = 10 * levelsGainedFromBase
-  // The sheet's “+1% increased damage per level” baseline starts later than the
-  // first “level-up” that grants accuracy/life/mana. Empirically (EOC 1.3.2),
-  // damage begins 13 levels after the first level-up bonuses.
-  const levelPctIncreasedDamage = Math.max(0, levelsGainedFromBase - 13)
+  // +1% increased damage per character level above 1.
+  // With our level definition (`characterLevel = passiveRanksSpent + 1`),
+  // this is exactly equal to `passiveRanksSpent`.
+  const levelPctIncreasedDamage = Math.max(0, levelsGainedFromBase)
 
   // -------------------------------------------------------------------------
   // 3. Per-level attribute gains from each class
@@ -3170,7 +3189,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const physStyleIncTotal = attackIncSum + attIncPhysical
 
   const attackIncLines: StatContributionLine[] = []
-  dmgPushIf(attackIncLines, 'Upgrades: increased damage', u('increasedDamage'))
+  pushUpgrades(attackIncLines, 'Upgrades: increased damage', 'increasedDamage')
   if (occultistDmgFromEsPct !== 0) {
     attackIncLines.push({
       label: 'Occultist: increased damage per 100 maximum energy shield',
@@ -3191,7 +3210,13 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
       value: damageIncFromCombinedAttrsGear,
     })
   }
-  dmgPushIf(attackIncLines, 'Upgrades: increased attack damage', u('increasedAttackDamage'))
+  if (levelPctIncreasedDamage !== 0) {
+    attackIncLines.push({
+      label: 'Per level above 1: increased damage',
+      value: levelPctIncreasedDamage,
+    })
+  }
+  pushUpgrades(attackIncLines, 'Upgrades: increased attack damage', 'increasedAttackDamage')
   pushGear(
     attackIncLines,
     'Gear: increased attack damage',
@@ -3208,7 +3233,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     attackIncLines.push({ label: 'Ability attunement: increased damage', value: attIncDamage })
   }
   if (meleePortionForHit > 0) {
-    dmgPushIf(attackIncLines, 'Upgrades: increased melee damage', u('increasedMeleeDamage'))
+    pushUpgrades(attackIncLines, 'Upgrades: increased melee damage', 'increasedMeleeDamage')
     if (meleeDmgFromStr !== 0) {
       attackIncLines.push({
         label: 'Strength: +1% increased melee damage per 10 Str (floored)',
@@ -3229,11 +3254,11 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   }
 
   const elementalLines: StatContributionLine[] = []
-  dmgPushIf(elementalLines, 'Upgrades: increased elemental damage', u('increasedElementalDamage'))
-  dmgPushIf(
+  pushUpgrades(elementalLines, 'Upgrades: increased elemental damage', 'increasedElementalDamage')
+  pushUpgrades(
     elementalLines,
     'Upgrades: increased elemental damage with attacks',
-    u('increasedElementalDamageWithAttacks')
+    'increasedElementalDamageWithAttacks'
   )
   pushGear(
     elementalLines,
@@ -3462,7 +3487,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             )
           }
           const increasedDamagePercentSources: StatContributionLine[] = []
-          dmgPushIf(increasedDamagePercentSources, 'Upgrades: increased spell damage', u('increasedSpellDamage'))
+          pushUpgrades(increasedDamagePercentSources, 'Upgrades: increased spell damage', 'increasedSpellDamage')
           if (spellDmgFromInt !== 0) {
             increasedDamagePercentSources.push({
               label: 'Intelligence: +1% increased spell damage per 10 Int (floored)',
@@ -3475,18 +3500,28 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             eq.increasedSpellDamageFromGear,
             (x) => x.increasedSpellDamageFromGear
           )
-          dmgPushIf(increasedDamagePercentSources, 'Upgrades: increased damage', u('increasedDamage'))
+          pushUpgrades(increasedDamagePercentSources, 'Upgrades: increased damage', 'increasedDamage')
           pushGear(
             increasedDamagePercentSources,
             'Gear: increased damage',
             eq.increasedDamageFromGear,
             (x) => x.increasedDamageFromGear
           )
+          if (levelPctIncreasedDamage !== 0) {
+            increasedDamagePercentSources.push({
+              label: 'Per level above 1: increased damage',
+              value: levelPctIncreasedDamage,
+            })
+          }
           if (spellAttIncDmg !== 0) {
             increasedDamagePercentSources.push({ label: 'Ability attunement: increased damage', value: spellAttIncDmg })
           }
           if (isEle) {
-            dmgPushIf(increasedDamagePercentSources, 'Upgrades: increased elemental damage', u('increasedElementalDamage'))
+            pushUpgrades(
+              increasedDamagePercentSources,
+              'Upgrades: increased elemental damage',
+              'increasedElementalDamage'
+            )
             dmgPushIf(
               increasedDamagePercentSources,
               'Upgrades: increased elemental damage with attacks (not spells)',
