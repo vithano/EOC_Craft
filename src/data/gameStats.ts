@@ -16,6 +16,7 @@ import {
   type ItemModifiers,
 } from './equipment'
 import {
+  abilityManaCostAtLevelTrueRaw,
   abilityManaCostAtLevel,
   abilityMatchesWeapon,
   attackDamageMultiplierAtAbilityLevel,
@@ -3340,7 +3341,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
 
   if (sel?.abilityId) {
     const def = EOC_ABILITY_BY_ID[sel.abilityId]
-    const baseLevel = Math.max(0, Math.floor(sel.abilityLevel) + classBonusAbilityLevelAdd)
+    // “Natural” level: what the user selected (no +ability level bonuses).
+    // Requirement: increased ability levels should NOT affect mana cost scaling.
+    const naturalAbilityLevel = Math.max(0, Math.floor(sel.abilityLevel))
+    const baseLevel = Math.max(0, naturalAbilityLevel + classBonusAbilityLevelAdd)
     const isColdAbility = def?.spellHit?.element?.toLowerCase?.() === 'cold'
     const level =
       baseLevel
@@ -3360,7 +3364,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         const aspFactor = (def.attackSpeedMultiplierPct ?? 100) / 100
         aps = aps * aspFactor
         // Ability base mana (scaled by ability level) × global reduced/increased mana costs (Sorcerer/gear/etc).
-        manaCostPerAttack = Math.max(0, Math.round(abilityManaCostAtLevel(baseAbilityMana, startLvl, level) * manaCostMult))
+        // IMPORTANT: round only once after all multipliers (avoid double-rounding).
+        manaCostPerAttack = abilityManaCostAtLevelTrueRaw(baseAbilityMana, startLvl, naturalAbilityLevel) * manaCostMult
+        // Display and downstream systems expect whole-number mana costs (floor like the game).
+        manaCostPerAttack = Math.max(0, Math.floor(manaCostPerAttack))
         avgHit = (hitDamageMin + hitDamageMax) / 2
         avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
         dps = avgEffectiveDamage * aps
@@ -3675,11 +3682,11 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
           aps = castsPerSec
           // Ability mana cost (spells): base-at-starting-level scaled by level, then global reduced/increased costs.
           manaCostPerAttack =
-            abilityManaCostAtLevel(baseAbilityMana, startLvl, level, "spells") *
+            abilityManaCostAtLevelTrueRaw(baseAbilityMana, startLvl, naturalAbilityLevel, "spells") *
             Math.max(0.05, 1 - classReducedManaCostPercent / 100) *
             Math.max(0.2, 1 - eq.manaCostReductionFromGear / 100) *
             (1 + eq.manaCostIncreasePercentFromGear / 100)
-          manaCostPerAttack = Math.max(0, Math.round(manaCostPerAttack))
+          manaCostPerAttack = Math.max(0, Math.floor(manaCostPerAttack))
           avgHit = (hitDamageMin + hitDamageMax) / 2
           avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
           dps = avgEffectiveDamage * aps * Math.max(0, hitsPerCast)

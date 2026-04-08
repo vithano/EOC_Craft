@@ -717,6 +717,12 @@ export function equipmentModifiersFromUniqueTexts(
     );
     if (m) { dmgTakenMoreMult *= 1 + pctFromParenOrSingle(m) / 100; mark() }
 
+    // Conditional drawback (kept as matched for audit; modeled in battle sim when state exists).
+    m = l.match(
+      /take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+increased\s+damage\s+while\s+you\s+are\s+below\s+50%\s+of\s+maximum\s+life\b/i
+    );
+    if (m) { mark() }
+
     m = l.match(/take\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+reduced\s+damage\b/i);
     if (m) { dmgTakenMoreMult *= Math.max(0.05, 1 - pctFromParenOrSingle(m) / 100); mark() }
 
@@ -1518,7 +1524,8 @@ export function equipmentModifiersFromUniqueTexts(
     );
     if (m) add({ damageIncPctPer10CombinedAttrsFromGear: pctFromParenOrSingle(m) });
 
-    m = l.match(/([\d.]+)%\s+increased\s+damage\b/i);
+    // Anchor to start so we don't accidentally match drawback lines like "Take 10% increased damage".
+    m = l.match(/^\s*\+?([\d.]+)%\s+increased\s+damage\b/i);
     if (m && !/elemental/i.test(l) && !/\bper\s+10\b/i.test(l)) {
       add({ increasedDamageFromGear: num(m)! });
     }

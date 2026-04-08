@@ -127,25 +127,47 @@ export function abilityManaCostAtLevel(
   baseMana: number,
   startingAbilityLevel: number,
   abilityLevel: number,
-  kind: "attacks" | "spells" = "attacks"
+  kind: "attacks" | "spells" = "attacks",
+  hiddenOffset = 0.5
+): number {
+  return Math.max(
+    0,
+    Math.floor(abilityManaCostAtLevelTrueRaw(baseMana, startingAbilityLevel, abilityLevel, kind, hiddenOffset))
+  );
+}
+
+/**
+ * Raw (unfloored) mana cost at a given ability level, including the hidden in-game offset.
+ *
+ * This matches the stepwise multiplicative rule:
+ * `COST_next = COST_prev × (1 + 0.3 × 0.92^(ABILITY_LEVEL - 1))`
+ *
+ * The game displays whole-number mana costs by flooring the internal (hidden-offset) value.
+ */
+export function abilityManaCostAtLevelTrueRaw(
+  baseMana: number,
+  startingAbilityLevel: number,
+  abilityLevel: number,
+  kind: "attacks" | "spells" = "attacks",
+  hiddenOffset = 0.5
 ): number {
   void kind; // kept for backwards-compat call sites; mana scaling is shared across ability types.
-  let cost = Math.max(0, baseMana);
+  const base = Math.max(0, baseMana);
   const L = Math.max(0, Math.floor(abilityLevel));
   const S = Math.max(0, Math.floor(startingAbilityLevel));
 
-  const stepFactor = (B: number) => 1 + 0.3 * 0.92 ** (B - 1);
+  // Clamp offset just in case.
+  const offset = Math.max(0, Math.min(hiddenOffset, 0.999999));
 
-  if (L >= S) {
-    for (let B = S + 1; B <= L; B++) cost *= stepFactor(B);
-  } else {
-    for (let B = S; B > L; B--) {
-      const f = stepFactor(B);
-      if (f !== 0) cost /= f;
-    }
+  // Per user-provided formula, levels at or below the CSV “starting level” display as floor(baseMana).
+  if (L <= S) return Math.floor(base);
+
+  // Start from estimated hidden value, not the displayed floored value.
+  let trueMana = base + offset;
+  for (let level = S + 1; level <= L; level++) {
+    trueMana *= 1 + 0.3 * Math.pow(0.92, level - 1);
   }
-
-  return Math.max(0, Math.round(cost));
+  return trueMana;
 }
 
 /** Physical → elemental conversion % from ability line text (e.g. Bladesurge, Consecration). */
