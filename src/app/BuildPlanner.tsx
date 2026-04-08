@@ -45,7 +45,7 @@ import {
   type StoredBuild,
   type StoredPlannerPayload,
 } from "../lib/eocBuildStorage";
-import { decodeShare, encodeShareV2, resolveShareV2 } from "../lib/eocShareCodec";
+import { decodeShareV3, encodeShareV3, resolveShareV3, type ShareV3Parsed } from "../lib/eocShareCodec";
 import { NEXUS_TIER_ROWS } from "../data/nexusEnemyScaling";
 import { useGameData } from "../contexts/GameDataContext";
 
@@ -189,12 +189,7 @@ export default function BuildPlanner() {
   const [buildJsonImportError, setBuildJsonImportError] = useState<string | null>(null);
   const [shareUrlCopied, setShareUrlCopied] = useState(false);
   const [isViewingSharedBuild, setIsViewingSharedBuild] = useState(false);
-  const [pendingV2Aliases, setPendingV2Aliases] = useState<{
-    equippedAliases: string[];
-    abilityAlias: string | null;
-    upgradeLevels: Record<string, number>;
-    craftedBySlot: Array<{ cp?: string[]; cs?: string[] } | null>;
-  } | null>(null);
+  const [pendingV3, setPendingV3] = useState<ShareV3Parsed | null>(null);
 
   // Hydrate from multi-build storage (migrates old single-build saves automatically)
   // If a ?build= URL param is present, load that build instead of localStorage.
@@ -228,71 +223,44 @@ export default function BuildPlanner() {
     }
 
     const decompress = async () => {
-      const decoded = await decodeShare(buildParam);
-      if (decoded.kind === "legacy") {
-        const shared = parseStoredPlannerJson(decoded.legacyParamJson);
-        if (shared) {
-          setUpgradeLevels(shared.upgradeLevels ?? {});
-          if (shared.equipped) setEquipped(migrateEquippedFromSave(shared.equipped));
-          setInventory([]);
-          if (shared.ability) setAbility(normalizeAbilitySelection(shared.ability));
-          sessionStorage.setItem("eocCraftPreviewBuild", JSON.stringify(shared));
-          setIsViewingSharedBuild(true);
-          setHydrated(true);
-          return;
-        }
+      const parsed = decodeShareV3(buildParam);
+      if (!parsed) {
         loadNormal();
         return;
       }
-      if (decoded.kind === "v2") {
-        const shared = decoded.data;
-        setUpgradeLevels(shared.upgradeLevels ?? {});
-        setEquipped(applySharedDefaultsToEquipped(migrateEquippedFromSave(shared.equipped)));
-        setInventory([]);
-        const abilityId = shared.abilityId;
-        // If game data isn't loaded yet, abilityId/equipped may be unresolved. Defer resolution.
-        setPendingV2Aliases({
-          equippedAliases: shared.equippedAliases ?? [],
-          abilityAlias: shared.abilityAlias ?? null,
-          upgradeLevels: shared.upgradeLevels ?? {},
-          craftedBySlot: shared.craftedBySlot ?? [],
-        });
-        if (abilityId) {
-          setAbility({ abilityId, abilityLevel: 20, attunementPct: 100 });
-        } else {
-          setAbility({ abilityId: null, abilityLevel: 0, attunementPct: 0 });
-        }
-        const payloadForBattle: StoredPlannerPayload = {
-          upgradeLevels: shared.upgradeLevels ?? {},
-          equipmentModifiers: emptyEquipmentModifiers(),
-          equipped: applySharedDefaultsToEquipped(migrateEquippedFromSave(shared.equipped)),
-          ability: normalizeAbilitySelection(
-            abilityId
-              ? { abilityId, abilityLevel: 20, attunementPct: 100 }
-              : null
-          ),
-          inventory: [],
-        };
-        sessionStorage.setItem("eocCraftPreviewBuild", JSON.stringify(payloadForBattle));
-        setIsViewingSharedBuild(true);
-        setHydrated(true);
-        return;
-      }
-      loadNormal();
+      setPendingV3(parsed);
+
+      // Best-effort immediate resolve (works if game data is already loaded).
+      const resolved = resolveShareV3(parsed);
+      setUpgradeLevels(resolved.upgradeLevels ?? {});
+      setEquipped(applySharedDefaultsToEquipped(migrateEquippedFromSave(resolved.equipped)));
+      setInventory([]);
+      const abilityId = resolved.abilityId;
+      if (abilityId) setAbility({ abilityId, abilityLevel: 20, attunementPct: 100 });
+      else setAbility({ abilityId: null, abilityLevel: 0, attunementPct: 0 });
+
+      const payloadForBattle: StoredPlannerPayload = {
+        upgradeLevels: resolved.upgradeLevels ?? {},
+        equipmentModifiers: emptyEquipmentModifiers(),
+        equipped: applySharedDefaultsToEquipped(migrateEquippedFromSave(resolved.equipped)),
+        ability: normalizeAbilitySelection(
+          abilityId ? { abilityId, abilityLevel: 20, attunementPct: 100 } : null
+        ),
+        inventory: [],
+      };
+      sessionStorage.setItem("eocCraftPreviewBuild", JSON.stringify(payloadForBattle));
+      setIsViewingSharedBuild(true);
+      setHydrated(true);
     };
 
     void decompress();
   }, []);
 
-  // Resolve v2 equipment/ability once game data has loaded.
+  // Resolve v3 once game data has loaded.
   useEffect(() => {
-    if (!pendingV2Aliases) return;
+    if (!pendingV3) return;
     if (dataLoading) return;
-    const resolved = resolveShareV2({
-      equippedAliases: pendingV2Aliases.equippedAliases,
-      abilityAlias: pendingV2Aliases.abilityAlias,
-      craftedBySlot: pendingV2Aliases.craftedBySlot,
-    });
+    const resolved = resolveShareV3(pendingV3);
     setEquipped(applySharedDefaultsToEquipped(migrateEquippedFromSave(resolved.equipped)));
     const abilityId = resolved.abilityId;
     if (abilityId) {
@@ -301,7 +269,7 @@ export default function BuildPlanner() {
       setAbility({ abilityId: null, abilityLevel: 0, attunementPct: 0 });
     }
     const payloadForBattle: StoredPlannerPayload = {
-      upgradeLevels: pendingV2Aliases.upgradeLevels ?? {},
+      upgradeLevels: resolved.upgradeLevels ?? {},
       equipmentModifiers: emptyEquipmentModifiers(),
       equipped: applySharedDefaultsToEquipped(migrateEquippedFromSave(resolved.equipped)),
       ability: normalizeAbilitySelection(
@@ -310,8 +278,8 @@ export default function BuildPlanner() {
       inventory: [],
     };
     sessionStorage.setItem("eocCraftPreviewBuild", JSON.stringify(payloadForBattle));
-    setPendingV2Aliases(null);
-  }, [pendingV2Aliases, dataLoading]);
+    setPendingV3(null);
+  }, [pendingV3, dataLoading]);
 
   const equipmentModifiers = useMemo(() => equipmentModifiersFromEquippedMap(equipped), [equipped, sheetVersion]);
 
@@ -606,7 +574,7 @@ export default function BuildPlanner() {
     // Share only the current build — no inventory, no other builds
     const compress = async () => {
       const abilityId = ability?.abilityId ?? null;
-      const encoded = await encodeShareV2({ upgradeLevels, equipped, abilityId });
+      const encoded = await encodeShareV3({ upgradeLevels, equipped, abilityId });
       const shareUrl = `${window.location.origin}${window.location.pathname}?build=${encoded}`;
       await navigator.clipboard.writeText(shareUrl);
       setShareUrlCopied(true);
