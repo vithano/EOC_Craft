@@ -323,6 +323,55 @@ function main() {
     assert(Boolean(stats.countsAsDualWielding), "Expected stats.countsAsDualWielding true");
   }
 
+  // Ironstance: evasion→armour conversion should occur before armour multipliers
+  {
+    const mk = (p: Partial<ReturnType<typeof emptyEquipmentModifiers>>) => {
+      const eq = emptyEquipmentModifiers();
+      Object.assign(eq, p);
+      return computeBuildStats(buildWithEqMods(eq));
+    };
+
+    // Keep other factors stable; add a clear armour "increased" signal.
+    const incArmour = 100;
+    const flatStep = 1000;
+
+    // Avoid coupling this test to global defences multipliers.
+    const base = mk({ pctIncreasedArmourFromGear: incArmour, defencesLessMultFromGear: 1 });
+
+    // Evasion baseline (no conversion): measure the "total evasion rating" that should convert.
+    const evNoConv = mk({ pctIncreasedArmourFromGear: incArmour, defencesLessMultFromGear: 1, flatEvasion: flatStep });
+    assert(evNoConv.evasionRating > 0, `Expected evasionRating > 0 without conversion; got ${evNoConv.evasionRating}`);
+
+    // With conversion, evasion should be 0 and armour should increase by the converted total evasion rating.
+    const evConv = mk({
+      pctIncreasedArmourFromGear: incArmour,
+      defencesLessMultFromGear: 1,
+      flatEvasion: flatStep,
+      convertEvasionToArmourFromGear: true,
+    });
+    assert(evConv.evasionRating === 0, `Expected evasionRating=0 with conversion; got ${evConv.evasionRating}`);
+
+    const expectedDelta = evNoConv.evasionRating;
+    const actualDelta = evConv.armour - base.armour;
+    assert(
+      Math.abs(actualDelta - expectedDelta) <= 2,
+      `Expected conversion delta≈${expectedDelta.toFixed(2)} (total evasion), got ${actualDelta}`
+    );
+
+    // Global defences "less" should NOT be applied twice to the converted value.
+    const defLess = 0.5;
+    const base2 = mk({ defencesLessMultFromGear: defLess });
+    const evNoConv2 = mk({ defencesLessMultFromGear: defLess, flatEvasion: flatStep });
+    const evConv2 = mk({ defencesLessMultFromGear: defLess, flatEvasion: flatStep, convertEvasionToArmourFromGear: true });
+    assert(evConv2.evasionRating === 0, `Expected evasionRating=0 with conversion under defencesLess; got ${evConv2.evasionRating}`);
+    // Since both evasion and armour are reduced by defLess once, conversion should contribute ~evNoConv2.evasionRating (not half again).
+    const actualDelta2 = evConv2.armour - base2.armour;
+    assert(
+      Math.abs(actualDelta2 - evNoConv2.evasionRating) <= 25,
+      `Expected conversion delta≈${evNoConv2.evasionRating} under defencesLess, got ${actualDelta2}`
+    );
+  }
+
   // Mind Bulwark / Tide of Corruption / Soulthirst: mana→armour and leech-to-ES flags
   {
     const patch = equipmentModifiersFromUniqueTexts(

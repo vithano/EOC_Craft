@@ -2512,11 +2512,16 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   // -------------------------------------------------------------------------
   // 10–11. Armour & evasion rating (defFromDex: §6)
   // -------------------------------------------------------------------------
+  // Ironstance conversion model (matches the breakdown expectation):
+  // - Compute armour and evasion independently with their own % increases (including shared ones).
+  // - Apply global defences "less" to each once.
+  // - If converting, add the final evasion rating into armour (so the converted portion does NOT
+  //   receive armour-specific increased %, avoiding double multiplication).
   const armourFromUpgrades =
-    u('increasedArmour') +
-    u('increasedArmourAndEvasionRating') +
-    u('increasedArmourAndEnergyShield') +
-    eq.pctIncreasedArmourFromGear
+    u('increasedArmour')
+    + u('increasedArmourAndEvasionRating')
+    + u('increasedArmourAndEnergyShield')
+    + eq.pctIncreasedArmourFromGear
   const armourFromMaxMana = Math.round(maxMana * (eq.armourEqualToPercentOfMaxManaFromGear / 100))
   const armourFromInt = Math.round((int_ / 10) * eq.armourPer10IntFromGear)
   const armourFlatBase = BASE_GAME_STATS.baseArmour + eq.flatArmour + armourFromMaxMana + armourFromInt
@@ -2527,10 +2532,10 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   )
 
   const evasionFromUpgrades =
-    u('increasedEvasionRating') +
-    u('increasedArmourAndEvasionRating') +
-    u('increasedEvasionRatingAndEnergyShield') +
-    eq.pctIncreasedEvasionFromGear
+    u('increasedEvasionRating')
+    + u('increasedArmourAndEvasionRating')
+    + u('increasedEvasionRatingAndEnergyShield')
+    + eq.pctIncreasedEvasionFromGear
   const evasionFlatBase = BASE_GAME_STATS.baseEvasion + eq.flatEvasion
   let evasionRating = Math.round(
     evasionFlatBase
@@ -2538,9 +2543,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     * eq.evasionMoreMultFromGear
     * eq.defencesLessMultFromGear
   )
-  if (eq.cannotEvadeFromGear) evasionRating = 0
+
+  // "Cannot evade" should zero evasion mechanics, but conversion still consumes the rating.
   if (eq.convertEvasionToArmourFromGear && evasionRating > 0) {
     armour += evasionRating
+    evasionRating = 0
+  } else if (eq.cannotEvadeFromGear) {
     evasionRating = 0
   }
 
