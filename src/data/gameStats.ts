@@ -3124,6 +3124,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     Math.floor((str + dex + int_) / 10) * eq.damageIncPctPer10CombinedAttrsFromGear
   const increasedDamage         =
     u('increasedDamage')
+    + levelPctIncreasedDamage
     + occultistDmgFromEsPct
     + eq.increasedDamageFromGear
     + damageIncFromCombinedAttrsGear
@@ -3633,17 +3634,18 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
               : baseType === "cold" ? spellFlatRanges.cold
               : baseType === "lightning" ? spellFlatRanges.lightning
               : /* chaos */ spellFlatRanges.chaos;
-          const baseMin = scaledHit.min + baseAdded.min;
-          const baseMax = scaledHit.max + baseAdded.max;
+          // "Added damage multiplier" applies to added flat damage (gear), not the spell's own base hit.
+          const baseMin = scaledHit.min + baseAdded.min * added;
+          const baseMax = scaledHit.max + baseAdded.max * added;
           const baseTypeMore = baseType === "fire" ? blazingRadianceMoreFireMult : 1
           const incFracBase = incFracForType(baseType)
           spellRows.push({
             type: baseType,
             min: roundDamageNearest(
-              baseMin * added * (1 + incFracBase) * enemyDamageTakenIncreasedMult * spellMoreMult * baseTypeMore
+              baseMin * (1 + incFracBase) * enemyDamageTakenIncreasedMult * spellMoreMult * baseTypeMore
             ),
             max: roundDamageNearest(
-              baseMax * added * (1 + incFracBase) * enemyDamageTakenIncreasedMult * spellMoreMult * baseTypeMore
+              baseMax * (1 + incFracBase) * enemyDamageTakenIncreasedMult * spellMoreMult * baseTypeMore
             ),
           });
 
