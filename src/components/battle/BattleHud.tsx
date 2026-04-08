@@ -197,8 +197,8 @@ export default function BattleHud({
     return timeline[i] ?? null;
   }, [timeline, playheadSec]);
 
-  const player = frame?.player ?? { life: playerMax.life, energyShield: playerMax.energyShield, mana: playerMax.mana };
-  const enemy = frame?.enemy ?? { life: enemyMax.life, energyShield: enemyMax.energyShield };
+  const player = frame?.player ?? { life: playerMax.life, energyShield: playerMax.energyShield, mana: playerMax.mana, actionBar: 0 };
+  const enemy = frame?.enemy ?? { life: enemyMax.life, energyShield: enemyMax.energyShield, actionBar: 0 };
 
   return (
     <div className="space-y-3">
@@ -264,6 +264,27 @@ export default function BattleHud({
                       />
                     )}
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="absolute inset-x-0 top-[38%] flex items-center justify-between px-8">
+              <div className="w-24">
+                <div className="text-[10px] text-zinc-400 mb-1 text-center">Action</div>
+                <div className="h-1.5 w-full rounded bg-zinc-800 overflow-hidden border border-zinc-700/70">
+                  <div
+                    className="h-full bg-amber-400 transition-[width] duration-75 ease-linear"
+                    style={{ width: `${Math.max(0, Math.min(100, player.actionBar * 100))}%` }}
+                  />
+                </div>
+              </div>
+              <div className="w-24">
+                <div className="text-[10px] text-zinc-400 mb-1 text-center">Action</div>
+                <div className="h-1.5 w-full rounded bg-zinc-800 overflow-hidden border border-zinc-700/70">
+                  <div
+                    className="h-full bg-amber-400 transition-[width] duration-75 ease-linear"
+                    style={{ width: `${Math.max(0, Math.min(100, enemy.actionBar * 100))}%` }}
+                  />
                 </div>
               </div>
             </div>

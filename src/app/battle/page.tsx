@@ -316,7 +316,7 @@ export default function BattleDemoPage() {
       enemyModsWithTiers: enemyModSlots
         .filter((s): s is { id: EnemyModifierId; tier: 1 | 2 | 3 } => Boolean(s.id))
         .map((s) => ({ id: s.id!, tier: s.tier })),
-      options: { maxDurationSeconds: 90, maxLogEntries: 100, dt: 0.05, recordTimeline: true },
+      options: { maxDurationSeconds: 90, maxLogEntries: 250, dt: 0.05, recordTimeline: true },
     });
   }, [stats, derivedEnemy, enemyModSlots, runKey]);
 
@@ -887,6 +887,36 @@ export default function BattleDemoPage() {
                   ))}
                 </ul>
               )}
+            </div>
+          )}
+          {result.playerAilmentSummary && (
+            result.playerAilmentSummary.maxStacks.bleed > 0
+            || result.playerAilmentSummary.maxStacks.poison > 0
+            || result.playerAilmentSummary.maxStacks.ignite > 0
+            || result.playerAilmentSummary.maxNonDotMagnitudePct.shock > 0
+            || result.playerAilmentSummary.maxNonDotMagnitudePct.chill > 0
+          ) && (
+            <div className="mb-3 rounded-lg border border-rose-800/70 bg-rose-950/25 px-3 py-2 text-sm">
+              <div className="text-[10px] uppercase tracking-wider text-rose-300/90 mb-1.5">
+                Ailments on you (this run)
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2 text-xs font-mono text-rose-100/95">
+                <div className="space-y-0.5">
+                  <div className="text-zinc-500">Max stacks</div>
+                  <div>Bleed: {result.playerAilmentSummary.maxStacks.bleed}</div>
+                  <div>Poison: {result.playerAilmentSummary.maxStacks.poison}</div>
+                  <div>Ignite: {result.playerAilmentSummary.maxStacks.ignite}</div>
+                  <div>Shock: +{result.playerAilmentSummary.maxNonDotMagnitudePct.shock.toFixed(0)}% max</div>
+                  <div>Chill: −{result.playerAilmentSummary.maxNonDotMagnitudePct.chill.toFixed(0)}% max</div>
+                </div>
+                <div className="space-y-0.5">
+                  <div className="text-zinc-500">Max DoT DPS on you</div>
+                  <div>Bleed: {result.playerAilmentSummary.maxDotDps.bleed.toFixed(1)}</div>
+                  <div>Poison: {result.playerAilmentSummary.maxDotDps.poison.toFixed(1)}</div>
+                  <div>Ignite: {result.playerAilmentSummary.maxDotDps.ignite.toFixed(1)}</div>
+                  <div>Total: {result.playerAilmentSummary.maxDotDps.total.toFixed(1)}</div>
+                </div>
+              </div>
             </div>
           )}
 

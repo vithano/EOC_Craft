@@ -21,6 +21,7 @@ import {
   type EncounterResult,
   type EncounterTimelinePoint,
   type EnemyDebuffEvent,
+  type PlayerAilmentSummary,
 } from './types'
 
 type DotKind = 'bleed' | 'poison' | 'ignite'
@@ -49,10 +50,20 @@ interface EnemyAilmentRuntime {
 }
 
 interface PlayerAilmentRuntime {
+  bleeds: { expiresAt: number; dps: number }[]
   poisons: { expiresAt: number; dps: number }[]
+  ignites: { expiresAt: number; dps: number }[]
   igniteUntil: number
   shock: NonDotAilmentInstance | null
   chill: NonDotAilmentInstance | null
+}
+
+interface HitDamageByType {
+  physical: number
+  fire: number
+  cold: number
+  lightning: number
+  chaos: number
 }
 
 function applyDamageToEnemyPools(
@@ -681,6 +692,143 @@ function formatActiveEnemyAilmentSuffix(state: EnemyAilmentRuntime, t: number): 
   return parts.length ? ` · ${parts.join(' · ')}` : ''
 }
 
+function enemyModTier(rawMods: ReadonlyArray<{ id: EnemyModifierId; tier: 1 | 2 | 3 }>, id: EnemyModifierId): 0 | 1 | 2 | 3 {
+  const hit = rawMods.find((m) => m.id === id)
+  return hit?.tier ?? 0
+}
+
+function enemyModTierAmp(tier: 0 | 1 | 2 | 3): number {
+  // formulas.csv only defines I/II behavior. For III in this demo, continue linearly (x3 / +200% effect).
+  return tier <= 1 ? 1 : tier
+}
+
+function applyEnemyModifierAilmentsOnHit(
+  rawMods: ReadonlyArray<{ id: EnemyModifierId; tier: 1 | 2 | 3 }>,
+  damageByType: HitDamageByType,
+  playerMaxLife: number,
+  t: number,
+  playerAilments: PlayerAilmentRuntime,
+  stats: ComputedBuildStats,
+  tryLog: (entry: BattleLogEntry) => void
+): void {
+  const C = FORMULA_CONSTANTS
+  const avoidAll = Math.min(100, Math.max(0, stats.avoidAilmentsChance ?? 0))
+  const avoidEle = Math.min(100, Math.max(0, avoidAll + (stats.avoidElementalAilmentsChance ?? 0)))
+  const bleedTier = enemyModTier(rawMods, 'rending')
+  const burnTier = enemyModTier(rawMods, 'burning')
+  const toxicTier = enemyModTier(rawMods, 'toxic')
+  const shockTier = enemyModTier(rawMods, 'electrifying')
+  const chillTier = enemyModTier(rawMods, 'freezing')
+
+  const tryInflict = (chance: number, avoidChance: number): boolean =>
+    chance > 0 && Math.random() * 100 < chance && Math.random() * 100 >= avoidChance
+
+  if (
+    bleedTier > 0
+    && damageByType.physical > 0.01
+    && tryInflict(100, avoidAll)
+  ) {
+    const dps =
+      ((damageByType.physical * C.bleedInherentMult) / BASE_BLEED_SEC) * enemyModTierAmp(bleedTier)
+    playerAilments.bleeds.push({ dps, expiresAt: t + BASE_BLEED_SEC })
+    tryLog({
+      t,
+      kind: 'ailment',
+      message: `Enemy mod — Rending bleed on you: ~${dps.toFixed(1)} DPS for ${BASE_BLEED_SEC.toFixed(1)}s`,
+    })
+  }
+
+  if (
+    toxicTier > 0
+    && (damageByType.physical + damageByType.chaos) > 0.01
+    && tryInflict(100, avoidAll)
+  ) {
+    const dps =
+      (((damageByType.physical + damageByType.chaos) * C.poisonInherentMult) / BASE_POISON_SEC)
+      * enemyModTierAmp(toxicTier)
+    playerAilments.poisons.push({ dps, expiresAt: t + BASE_POISON_SEC })
+    tryLog({
+      t,
+      kind: 'ailment',
+      message: `Enemy mod — Toxic poison on you: ~${dps.toFixed(1)} DPS for ${BASE_POISON_SEC.toFixed(1)}s`,
+    })
+  }
+
+  if (
+    burnTier > 0
+    && damageByType.fire > 0.01
+    && tryInflict(100, avoidEle)
+  ) {
+    const dps =
+      ((damageByType.fire * C.igniteInherentMult) / BASE_IGNITE_SEC) * enemyModTierAmp(burnTier)
+    const expiresAt = t + BASE_IGNITE_SEC
+    playerAilments.ignites.push({ dps, expiresAt })
+    playerAilments.igniteUntil = Math.max(playerAilments.igniteUntil, expiresAt)
+    tryLog({
+      t,
+      kind: 'ailment',
+      message: `Enemy mod — Burning ignite on you: ~${dps.toFixed(1)} DPS for ${BASE_IGNITE_SEC.toFixed(1)}s`,
+    })
+  }
+
+  if (
+    shockTier > 0
+    && damageByType.lightning > 0.01
+    && tryInflict(100, avoidEle)
+  ) {
+    const raw = computeNonDamagingAilmentEffectPercent(
+      damageByType.lightning,
+      Math.max(1, playerMaxLife),
+      0,
+      C.enemyShockChillEffect,
+      1,
+      1
+    )
+    const magnitudePct = Math.min(50, Math.max(5, raw * 1.15 * enemyModTierAmp(shockTier)))
+    const expiresAt = t + getBaseShockChillDurationSec()
+    if (!playerAilments.shock || playerAilments.shock.expiresAt <= t) {
+      playerAilments.shock = { magnitudePct, expiresAt }
+    } else {
+      playerAilments.shock.magnitudePct = Math.max(playerAilments.shock.magnitudePct, magnitudePct)
+      playerAilments.shock.expiresAt = Math.max(playerAilments.shock.expiresAt, expiresAt)
+    }
+    tryLog({
+      t,
+      kind: 'ailment',
+      message: `Enemy mod — Electrifying shock on you: +${magnitudePct.toFixed(0)}% for ${(expiresAt - t).toFixed(1)}s`,
+    })
+  }
+
+  if (
+    chillTier > 0
+    && damageByType.cold > 0.01
+    && tryInflict(100, avoidEle)
+    && !(stats.unaffectedByChill ?? false)
+  ) {
+    const raw = computeNonDamagingAilmentEffectPercent(
+      damageByType.cold,
+      Math.max(1, playerMaxLife),
+      0,
+      C.enemyShockChillEffect,
+      1,
+      C.chillSpecialMult as 0.7
+    )
+    const magnitudePct = Math.min(30, Math.max(5, raw * 0.85 * enemyModTierAmp(chillTier)))
+    const expiresAt = t + getBaseShockChillDurationSec()
+    if (!playerAilments.chill || playerAilments.chill.expiresAt <= t) {
+      playerAilments.chill = { magnitudePct, expiresAt }
+    } else {
+      playerAilments.chill.magnitudePct = Math.max(playerAilments.chill.magnitudePct, magnitudePct)
+      playerAilments.chill.expiresAt = Math.max(playerAilments.chill.expiresAt, expiresAt)
+    }
+    tryLog({
+      t,
+      kind: 'ailment',
+      message: `Enemy mod — Freezing chill on you: -${magnitudePct.toFixed(0)}% speed for ${(expiresAt - t).toFixed(1)}s`,
+    })
+  }
+}
+
 /**
  * Demo ailment model: on hit, roll bleed / poison / elemental ailments from sheet stats.
  * Damaging ailments add timed DoT instances; shock/chill use Non-Damaging Ailment Effect-style scaling.
@@ -928,6 +1076,7 @@ function resolveEnemyAttack(
   damageToDisplay: number
   fullBeforeArmour: number
   mitigatedByArmour: number
+  damageByType: HitDamageByType
   evaded: boolean
   dodged: boolean
   blocked: boolean
@@ -958,6 +1107,7 @@ function resolveEnemyAttack(
       damageToDisplay: 0,
       fullBeforeArmour: 0,
       mitigatedByArmour: 0,
+      damageByType: { physical: 0, fire: 0, cold: 0, lightning: 0, chaos: 0 },
       evaded: true,
       dodged: false,
       blocked: false,
@@ -979,6 +1129,7 @@ function resolveEnemyAttack(
       damageToDisplay: 0,
       fullBeforeArmour: 0,
       mitigatedByArmour: 0,
+      damageByType: { physical: 0, fire: 0, cold: 0, lightning: 0, chaos: 0 },
       evaded: false,
       dodged: true,
       blocked: false,
@@ -1036,6 +1187,7 @@ function resolveEnemyAttack(
         damageToDisplay: 0,
         fullBeforeArmour: 0,
         mitigatedByArmour: 0,
+        damageByType: { physical: 0, fire: 0, cold: 0, lightning: 0, chaos: 0 },
         evaded: false,
         dodged: true,
         blocked: false,
@@ -1194,6 +1346,14 @@ function resolveEnemyAttack(
   }
 
   const dealt = applyDamageToPools(playerState, afterConversion, stats, stats.maxMana)
+  const damageByType: HitDamageByType = {
+    // Keep pre-pool amounts for ailment logic; mitigation/pathing is already applied above.
+    physical: physAfterRes * incMult(stats.increasedPhysicalDamageTakenPercent),
+    fire: fireAfterRes * incMult(stats.increasedFireDamageTakenPercent),
+    cold: coldAfterRes * incMult(stats.increasedColdDamageTakenPercent),
+    lightning: lightAfterRes * incMult(stats.increasedLightningDamageTakenPercent),
+    chaos: chaosAfterRes * incMult(stats.increasedChaosDamageTakenPercent),
+  }
 
   applyBlockRecovery(playerState, stats, blocked, maxLife)
 
@@ -1209,6 +1369,7 @@ function resolveEnemyAttack(
     damageToDisplay: dealt,
     fullBeforeArmour: raw,
     mitigatedByArmour: prevented,
+    damageByType,
     evaded: false,
     dodged: false,
     blocked,
@@ -1288,7 +1449,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   }
 
   const playerAilments: PlayerAilmentRuntime = {
+    bleeds: [],
     poisons: [],
+    ignites: [],
     igniteUntil: 0,
     shock: null,
     chill: null,
@@ -1299,15 +1462,35 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     playerAilments.chill = { magnitudePct: 20, expiresAt: 1e9 }
   }
 
+  // Action bar: 0..1.0; when it reaches 1 you can act.
+  // Demo model: bar fills at (player attack rate) per second, so time-to-act matches APS,
+  // but uniques can set/fill the bar directly.
+  let actionBar = Math.min(1, Math.max(0, (stats.actionBarSetToPercentAtStart ?? 0) / 100))
+
   const log: BattleLogEntry[] = [{ t: 0, kind: 'phase', message: `Encounter: ${enemy.name}` }]
 
   const timeline: EncounterTimelinePoint[] | undefined = recordTimeline ? [] : undefined
   const pushTimeline = () => {
     if (!timeline) return
+    const enemyChillMultNow = activeChillMult(ailmentState, t)
+    const enemyInterval = 1 / Math.max(0.15, apsEnemy * enemyChillMultNow)
+    const enemyActionBar = Math.max(
+      0,
+      Math.min(1, 1 - Math.max(0, nextEnemy - t) / Math.max(1e-6, enemyInterval))
+    )
     timeline.push({
       t,
-      player: { life: player.life, energyShield: player.energyShield, mana: player.mana },
-      enemy: { life: enemyState.life, energyShield: enemyState.energyShield },
+      player: {
+        life: player.life,
+        energyShield: player.energyShield,
+        mana: player.mana,
+        actionBar: Math.max(0, Math.min(1, actionBar)),
+      },
+      enemy: {
+        life: enemyState.life,
+        energyShield: enemyState.energyShield,
+        actionBar: enemyActionBar,
+      },
     })
   }
   pushTimeline()
@@ -1356,14 +1539,14 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     maxDotDps: { bleed: 0, poison: 0, ignite: 0, total: 0 },
     maxNonDotMagnitudePct: { shock: 0, chill: 0 },
   }
+  const playerAilmentSummary: PlayerAilmentSummary = {
+    maxStacks: { bleed: 0, poison: 0, ignite: 0 },
+    maxDotDps: { bleed: 0, poison: 0, ignite: 0, total: 0 },
+    maxNonDotMagnitudePct: { shock: 0, chill: 0 },
+  }
   let nextPeriodicShockT = 0
   let nextPeriodicLifeRegenT = 0
   let periodicLifeRegenActiveUntil = 0
-  // Action bar: 0..1.0; when it reaches 1 you can act.
-  // Demo model: bar fills at (player attack rate) per second, so time-to-act matches APS,
-  // but uniques can set/fill the bar directly.
-  let actionBar = Math.min(1, Math.max(0, (stats.actionBarSetToPercentAtStart ?? 0) / 100))
-
   while (t < maxDuration) {
     if (player.life <= 0) break
     if (enemyLife <= 0) break
@@ -1458,8 +1641,13 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     ailmentState.shocks = ailmentState.shocks.filter((s) => s.expiresAt > t)
     ailmentState.chills = ailmentState.chills.filter((c) => c.expiresAt > t)
 
+    playerAilments.bleeds = playerAilments.bleeds.filter((b) => b.expiresAt > t)
     playerAilments.poisons = playerAilments.poisons.filter((p) => p.expiresAt > t)
-    if (playerAilments.igniteUntil <= t) playerAilments.igniteUntil = 0
+    playerAilments.ignites = playerAilments.ignites.filter((i) => i.expiresAt > t)
+    playerAilments.igniteUntil = playerAilments.ignites.reduce(
+      (mx, i) => Math.max(mx, i.expiresAt),
+      playerAilments.igniteUntil > t ? playerAilments.igniteUntil : 0
+    )
     if (playerAilments.shock && playerAilments.shock.expiresAt <= t) playerAilments.shock = null
     if (playerAilments.chill && playerAilments.chill.expiresAt <= t) playerAilments.chill = null
     let dotDpsBleed = 0
@@ -1516,8 +1704,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     if (
       enemyDebuffActive &&
       dotDpsTotal <= 0 &&
-      t - lastDebuffPulseT + 1e-9 >= DOT_LOG_INTERVAL &&
-      log.length < maxLogNormal
+      t - lastDebuffPulseT + 1e-9 >= DOT_LOG_INTERVAL
     ) {
       const parts: string[] = []
       if (shockLive > 0) parts.push(`shocked +${shockLive.toFixed(0)}% damage taken`)
@@ -1555,6 +1742,19 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     const poisonCount = playerAilments.poisons.length
     const shockOnYou = playerAilments.shock?.magnitudePct ?? 0
     const chillOnYou = (stats.unaffectedByChill ?? false) ? 0 : (playerAilments.chill?.magnitudePct ?? 0)
+    const bleedOnYouDps = playerAilments.bleeds.reduce((sum, b) => sum + b.dps, 0)
+    const poisonOnYouDps = playerAilments.poisons.reduce((sum, p) => sum + p.dps, 0)
+    const igniteOnYouDps = playerAilments.ignites.reduce((sum, i) => sum + i.dps, 0)
+    const totalOnYouDps = bleedOnYouDps + poisonOnYouDps + igniteOnYouDps
+    playerAilmentSummary.maxStacks.bleed = Math.max(playerAilmentSummary.maxStacks.bleed, playerAilments.bleeds.length)
+    playerAilmentSummary.maxStacks.poison = Math.max(playerAilmentSummary.maxStacks.poison, playerAilments.poisons.length)
+    playerAilmentSummary.maxStacks.ignite = Math.max(playerAilmentSummary.maxStacks.ignite, playerAilments.ignites.length)
+    playerAilmentSummary.maxDotDps.bleed = Math.max(playerAilmentSummary.maxDotDps.bleed, bleedOnYouDps)
+    playerAilmentSummary.maxDotDps.poison = Math.max(playerAilmentSummary.maxDotDps.poison, poisonOnYouDps)
+    playerAilmentSummary.maxDotDps.ignite = Math.max(playerAilmentSummary.maxDotDps.ignite, igniteOnYouDps)
+    playerAilmentSummary.maxDotDps.total = Math.max(playerAilmentSummary.maxDotDps.total, totalOnYouDps)
+    playerAilmentSummary.maxNonDotMagnitudePct.shock = Math.max(playerAilmentSummary.maxNonDotMagnitudePct.shock, shockOnYou)
+    playerAilmentSummary.maxNonDotMagnitudePct.chill = Math.max(playerAilmentSummary.maxNonDotMagnitudePct.chill, chillOnYou)
     const chillSelfMult = Math.max(0.05, 1 - chillOnYou / 100)
 
     let speedMult = chillSelfMult
@@ -1896,6 +2096,24 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       if (!r.evaded && !r.dodged && r.damageToDisplay > 0) hitsEnemy++
       totalDamageToPlayerFromEnemyHits += Math.max(0, r.damageToDisplay ?? 0)
 
+      const typedHitTotal =
+        r.damageByType.physical
+        + r.damageByType.fire
+        + r.damageByType.cold
+        + r.damageByType.lightning
+        + r.damageByType.chaos
+      if (!r.evaded && !r.dodged && typedHitTotal > 0.01) {
+        applyEnemyModifierAilmentsOnHit(
+          rawMods,
+          r.damageByType,
+          runtimeMaxLife,
+          t,
+          playerAilments,
+          stats,
+          tryLog
+        )
+      }
+
       // Enemy leech from damage dealt (post-mitigation value).
       if (r.damageToDisplay > 0 && (enemyLifeLeechPct > 0 || enemyEsLeechPct > 0)) {
         const leeched = r.damageToDisplay
@@ -1964,7 +2182,29 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
       totalRegenToPlayerLife += Math.max(0, player.life - before)
     }
 
-    // Poison damage on player (currently only sourced from reflected poison in this demo model)
+    // Damaging ailments on player (from reflections and enemy damaging modifiers).
+    let bleedSelfDps = 0
+    for (const b of playerAilments.bleeds) bleedSelfDps += b.dps
+    if (bleedSelfDps > 0) {
+      const tick = bleedSelfDps * dt
+      player.life = Math.max(0, player.life - tick)
+      totalDamageToPlayerFromDots += Math.max(0, tick)
+      if (tick > 0.01) {
+        tryLog({ t, kind: 'dot_tick', message: `DoT — Bleed on you: ${tick.toFixed(1)} (${bleedSelfDps.toFixed(1)} DPS)`, damage: tick })
+      }
+    }
+
+    let igniteSelfDps = 0
+    for (const i of playerAilments.ignites) igniteSelfDps += i.dps
+    if (igniteSelfDps > 0) {
+      const tick = igniteSelfDps * dt
+      player.life = Math.max(0, player.life - tick)
+      totalDamageToPlayerFromDots += Math.max(0, tick)
+      if (tick > 0.01) {
+        tryLog({ t, kind: 'dot_tick', message: `DoT — Ignite on you: ${tick.toFixed(1)} (${igniteSelfDps.toFixed(1)} DPS)`, damage: tick })
+      }
+    }
+
     const poisonTakenLess = Math.min(100, Math.max(0, stats.poisonDamageTakenLessPercent ?? 0))
     let poisonSelfDps = 0
     for (const p of playerAilments.poisons) poisonSelfDps += p.dps
@@ -2058,6 +2298,7 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
     totalDotDamageToEnemy: totalDotDamage,
     enemyDebuffEvents,
     enemyAilmentSummary,
+    playerAilmentSummary,
     logTruncated,
     timeline,
     totals: {

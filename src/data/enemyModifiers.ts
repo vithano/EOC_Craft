@@ -206,15 +206,15 @@ export function enemyModifierDescription(id: EnemyModifierId): string {
     case "soul_eater":
       return `${k.modSoulEaterEsLeech}% ES leech`;
     case "rending":
-      return "Bleed-themed (see sheet)";
+      return "100% bleed chance; tier II+ increases bleed damage (demo scaling)";
     case "electrifying":
-      return "Shock-themed (see sheet)";
+      return "100% shock chance; tier II+ increases shock effect (demo scaling)";
     case "freezing":
-      return "Chill-themed (see sheet)";
+      return "100% chill chance; tier II+ increases chill effect (demo scaling)";
     case "burning":
-      return "Ignite-themed (see sheet)";
+      return "100% ignite chance; tier II+ increases ignite damage (demo scaling)";
     case "toxic":
-      return "Poison-themed (see sheet)";
+      return "100% poison chance; tier II+ increases poison damage (demo scaling)";
     case "fragile":
       return `${k.modFragileLife} life`;
     case "slow":

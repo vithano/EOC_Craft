@@ -86,8 +86,8 @@ export interface BattleParticipantState {
 
 export interface EncounterTimelinePoint {
   t: number
-  player: BattleParticipantState
-  enemy: { life: number; energyShield: number }
+  player: BattleParticipantState & { actionBar: number }
+  enemy: { life: number; energyShield: number; actionBar: number }
 }
 
 export interface BattleLogEntry {
@@ -117,6 +117,15 @@ export interface EnemyAilmentSummary {
   maxNonDotMagnitudePct: { shock: number; chill: number }
 }
 
+export interface PlayerAilmentSummary {
+  /** Maximum concurrent stacks observed on the player during the encounter. */
+  maxStacks: { bleed: number; poison: number; ignite: number }
+  /** Maximum total DoT DPS observed on the player. */
+  maxDotDps: { bleed: number; poison: number; ignite: number; total: number }
+  /** Maximum non-damaging ailment magnitudes observed on the player. */
+  maxNonDotMagnitudePct: { shock: number; chill: number }
+}
+
 export interface EncounterResult {
   winner: 'player' | 'enemy' | 'timeout'
   durationSeconds: number
@@ -133,6 +142,8 @@ export interface EncounterResult {
   enemyDebuffEvents?: EnemyDebuffEvent[]
   /** Aggregated ailment stats for UI display (includes damaging + non-damaging). */
   enemyAilmentSummary?: EnemyAilmentSummary
+  /** Aggregated ailment stats applied to the player during the encounter. */
+  playerAilmentSummary?: PlayerAilmentSummary
   /** True if combat log was truncated to fit UI limit. */
   logTruncated?: boolean
 
