@@ -139,7 +139,9 @@ function mitigatedPlayerHitVsArmour(
   stats: ComputedBuildStats,
   raw: number,
   /** Extra flat fire before armour/resists (e.g. Siegebreaker counter), included in armour hit total. */
-  extraFireFlat = 0
+  extraFireFlat = 0,
+  /** Optional per-type multipliers applied before armour/resists (e.g. stateful "more" by type). */
+  preMitigationTypeMult?: Partial<{ physical: number; fire: number; cold: number; lightning: number; chaos: number }>
 ): { total: number; details: any } {
   const armourIgnoredFrac = stats.armourIgnorePercent / 100
   const baseArmour = enemy.armour
@@ -151,12 +153,17 @@ function mitigatedPlayerHitVsArmour(
   // Split raw hit into per-type amounts using current fractions
   const a = avgHitByDamageType(stats)
   const total = Math.max(1, a.total)
-  const hitTotal = raw + extraFireFlat
-  const physAmt  = raw * (a.physical  / total)
-  const fireAmt  = raw * (a.fire      / total) + extraFireFlat
-  const coldAmt  = raw * (a.cold      / total)
-  const lightAmt = raw * (a.lightning / total)
-  const chaosAmt = raw * (a.chaos     / total)
+  const physMult = preMitigationTypeMult?.physical ?? 1
+  const fireMult = preMitigationTypeMult?.fire ?? 1
+  const coldMult = preMitigationTypeMult?.cold ?? 1
+  const lightMult = preMitigationTypeMult?.lightning ?? 1
+  const chaosMult = preMitigationTypeMult?.chaos ?? 1
+  const physAmt  = raw * (a.physical  / total) * physMult
+  const fireAmt  = raw * (a.fire      / total) * fireMult + extraFireFlat
+  const coldAmt  = raw * (a.cold      / total) * coldMult
+  const lightAmt = raw * (a.lightning / total) * lightMult
+  const chaosAmt = raw * (a.chaos     / total) * chaosMult
+  const hitTotal = physAmt + fireAmt + coldAmt + lightAmt + chaosAmt
 
   // Apply armour DR per type using the full multi-type formula (ARMOUR_RESISTANCE splits armour)
   function afterArmour(amt: number, type: Parameters<typeof computeArmourDR>[3]): { after: number; dr: number } {
@@ -441,28 +448,37 @@ function applyDamageToPools(
 
 type PlayerHitOutcome = 'miss' | 'enemy_blocked' | 'hit'
 
-function statefulMoreDamageMultFromPlayerPools(stats: ComputedBuildStats, player: BattleParticipantState): number {
+function statefulMoreDamageMultByTypeFromPlayerPools(
+  stats: ComputedBuildStats,
+  player: BattleParticipantState
+): { fire: number; chaos: number } {
   const fx = stats.abilityLineEffects
-  if (!fx) return 1
+  if (!fx) return { fire: 1, chaos: 1 }
 
-  let m = 1
+  let fire = 1
+  let chaos = 1
 
   // Deal 1% more chaos damage per 1% missing combined life and energy shield (Dark Pact).
+  // Planner baseline assumes full pools => missing% = 0 => baseline multiplier = 1.
   if ((fx.darkPactMoreChaosDamagePerMissingCombinedPct ?? 0) > 0) {
     const maxCombined = Math.max(0, (stats.maxLife ?? 0) + (stats.maxEnergyShield ?? 0))
     const curCombined = Math.max(0, (player.life ?? 0) + (player.energyShield ?? 0))
     const missingPct = maxCombined > 0 ? ((maxCombined - curCombined) / maxCombined) * 100 : 0
-    m *= 1 + (missingPct * (fx.darkPactMoreChaosDamagePerMissingCombinedPct / 100))
+    chaos *= 1 + (missingPct * (fx.darkPactMoreChaosDamagePerMissingCombinedPct / 100))
   }
 
   // Deal 1% more fire damage per 40 combined current life and energy shield (Blazing Radiance).
-  // This scales continuously with current pools during combat.
+  // Planner baseline assumes full pools at cast start, so we apply a ratio (now / baseline) to avoid double-counting.
   if ((fx.blazingRadianceMoreFireDamagePer40CombinedCurrentPct ?? 0) > 0) {
+    const pct = fx.blazingRadianceMoreFireDamagePer40CombinedCurrentPct
     const combinedNow = Math.max(0, (player.life ?? 0) + (player.energyShield ?? 0))
-    m *= 1 + (combinedNow / 40) * (fx.blazingRadianceMoreFireDamagePer40CombinedCurrentPct / 100)
+    const combinedStart = Math.max(0, (stats.maxLife ?? 0) + (stats.maxEnergyShield ?? 0))
+    const multNow = 1 + (combinedNow / 40) * (pct / 100)
+    const multStart = 1 + (combinedStart / 40) * (pct / 100)
+    fire *= multStart > 0 ? (multNow / multStart) : 1
   }
 
-  return Math.max(0.01, m)
+  return { fire: Math.max(0.01, fire), chaos: Math.max(0.01, chaos) }
 }
 
 function resolvePlayerAttack(
@@ -508,12 +524,9 @@ function resolvePlayerAttack(
     let base = rollDamage(stats.hitDamageMin, stats.hitDamageMax, zealot)
     let extraFire = s === 0 ? Math.max(0, attackOpts?.extraFlatFireDamage ?? 0) : 0
     // Stateful "more" multipliers that depend on current in-combat pools.
-    // We apply them here (pre-crit/procs) so they respond immediately to being hit / spending mana / etc.
-    const statefulMore = statefulMoreDamageMultFromPlayerPools(stats, playerState)
-    if (statefulMore !== 1) {
-      base *= statefulMore
-      extraFire *= statefulMore
-    }
+    // IMPORTANT: apply per-type (not to the whole hit), and avoid double-counting multipliers already baked into
+    // planner hit ranges. These are applied inside mitigation splitting.
+    const statefulMoreByType = statefulMoreDamageMultByTypeFromPlayerPools(stats, playerState)
     if (blocked) {
       base *= DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
       extraFire *= DEFAULT_BLOCK_DAMAGE_TAKEN_MULT
@@ -591,7 +604,10 @@ function resolvePlayerAttack(
       extraFire *= more
     }
 
-    const mit = mitigatedPlayerHitVsArmour(enemy, stats, base, extraFire)
+    const mit = mitigatedPlayerHitVsArmour(enemy, stats, base, extraFire, {
+      fire: statefulMoreByType.fire,
+      chaos: statefulMoreByType.chaos,
+    })
     const mitigatedBeforeProc = mit.total
     const mitigatedAfterProc = mitigatedBeforeProc * procMult
     total += mitigatedAfterProc
