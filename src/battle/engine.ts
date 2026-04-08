@@ -1537,23 +1537,50 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
         if (damage > 0 || damageForAilments > 0) {
           hitsPlayer++
           const rec = stats.lifeRecoveryRateMult ?? 1
-          const gainOnHit =
-            (stats.lifeOnHit ?? 0)
-            + (damage * ((stats.lifeLeechFromHitDamagePercent ?? 0) / 100)
-              + damagePortionsFromHit(stats, damage).physical
-                * ((stats.lifeLeechFromPhysicalHitPercent ?? 0) / 100)) * rec
-          if (gainOnHit !== 0 && lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
-            player.life = Math.min(
-              runtimeMaxLife,
-              Math.max(0, player.life + gainOnHit)
-            )
+          const portions = damagePortionsFromHit(stats, damage)
+          const lifeLeechGain =
+            (damage * ((stats.lifeLeechFromHitDamagePercent ?? 0) / 100)
+              + portions.physical * ((stats.lifeLeechFromPhysicalHitPercent ?? 0) / 100)) * rec
+
+          // Life-on-hit is not "leech" and should not be scaled by life recovery rate.
+          const flatLifeOnHit = (stats.lifeOnHit ?? 0)
+
+          // Life leech routing to ES (if enabled).
+          if ((stats.lifeLeechAppliesToEnergyShield ?? false) && stats.maxEnergyShield > 0) {
+            const esBefore = player.energyShield
+            player.energyShield = Math.min(stats.maxEnergyShield, player.energyShield + lifeLeechGain)
+            totalRegenToPlayerEs += Math.max(0, player.energyShield - esBefore)
+          } else if ((flatLifeOnHit !== 0 || lifeLeechGain !== 0) && lifeRecoveryAllowed(player, stats, runtimeMaxLife)) {
+            const before = player.life
+            player.life = Math.min(runtimeMaxLife, Math.max(0, player.life + flatLifeOnHit + lifeLeechGain))
+            totalRegenToPlayerLife += Math.max(0, player.life - before)
+
+            // Excess life recovery from leech to ES (if enabled).
+            if ((stats.excessLifeLeechRecoveryToEnergyShield ?? false) && stats.maxEnergyShield > 0) {
+              const overflow = Math.max(0, before + flatLifeOnHit + lifeLeechGain - runtimeMaxLife)
+              if (overflow > 0) {
+                const esBefore = player.energyShield
+                player.energyShield = Math.min(stats.maxEnergyShield, player.energyShield + overflow)
+                totalRegenToPlayerEs += Math.max(0, player.energyShield - esBefore)
+              }
+            }
+          }
+
+          // Mana leech (physical-only, attacks) — recovered as mana.
+          const manaLeechPct = stats.manaLeechFromPhysicalHitPercent ?? 0
+          if (!(stats.noMana ?? false) && stats.maxMana > 0 && manaLeechPct > 0) {
+            const manaBefore = player.mana
+            player.mana = Math.min(stats.maxMana, player.mana + portions.physical * (manaLeechPct / 100))
+            totalRegenToPlayerMana += Math.max(0, player.mana - manaBefore)
           }
           const spellEsLeechPct = stats.spellHitDamageLeechedAsEnergyShieldPercent ?? 0
           if (spellEsLeechPct > 0 && stats.maxEnergyShield > 0) {
             // Demo simplification: apply spell hit leech to ES on any hit event (we don't simulate actual spell casts here).
             const gainEs = damage * (spellEsLeechPct / 100)
             if (gainEs > 0) {
+              const esBefore = player.energyShield
               player.energyShield = Math.min(stats.maxEnergyShield, player.energyShield + gainEs)
+              totalRegenToPlayerEs += Math.max(0, player.energyShield - esBefore)
             }
           }
         }

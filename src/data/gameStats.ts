@@ -550,6 +550,7 @@ export interface EquipmentModifiers {
   lifeOnHitFromGear: number
   lifeLeechFromHitDamagePercentFromGear: number
   lifeLeechFromPhysicalHitPercentFromGear: number
+  manaLeechFromPhysicalHitPercentFromGear: number
 
   physicalConvertedToFirePctFromGear: number
   physicalConvertedToColdPctFromGear: number
@@ -932,6 +933,7 @@ export interface ComputedBuildStats {
   lifeOnHit: number
   lifeLeechFromHitDamagePercent: number
   lifeLeechFromPhysicalHitPercent: number
+  manaLeechFromPhysicalHitPercent: number
   hitsCannotBeEvaded: boolean
   tripleDamageChance: number
   /** Effective fraction of enemy hit damage taken when a block succeeds (after block power). */
@@ -1155,6 +1157,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     lifeOnHitFromGear: 0,
     lifeLeechFromHitDamagePercentFromGear: 0,
     lifeLeechFromPhysicalHitPercentFromGear: 0,
+    manaLeechFromPhysicalHitPercentFromGear: 0,
 
     physicalConvertedToFirePctFromGear: 0,
     physicalConvertedToColdPctFromGear: 0,
@@ -1595,6 +1598,9 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
   if (p.lifeLeechFromPhysicalHitPercentFromGear !== undefined) {
     addNum('lifeLeechFromPhysicalHitPercentFromGear', p.lifeLeechFromPhysicalHitPercentFromGear)
+  }
+  if (p.manaLeechFromPhysicalHitPercentFromGear !== undefined) {
+    addNum('manaLeechFromPhysicalHitPercentFromGear', p.manaLeechFromPhysicalHitPercentFromGear)
   }
   if (p.physicalConvertedToFirePctFromGear !== undefined) {
     addNum('physicalConvertedToFirePctFromGear', p.physicalConvertedToFirePctFromGear)
@@ -4135,6 +4141,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const lifeLeechFromHitDamagePercent =
     eq.lifeLeechAppliesToEnergyShieldFromGear ? 0 : eq.lifeLeechFromHitDamagePercentFromGear
   const lifeLeechFromPhysicalHitPercent = eq.lifeLeechFromPhysicalHitPercentFromGear
+  const manaLeechFromPhysicalHitPercent = eq.manaLeechFromPhysicalHitPercentFromGear
   const hitsCannotBeEvaded =
     eq.hitsCannotBeEvadedFromGear
     || Boolean(selectedAbilityLineEffects?.hitsCannotBeEvaded)
@@ -5440,6 +5447,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     lifeOnHit,
     lifeLeechFromHitDamagePercent,
     lifeLeechFromPhysicalHitPercent,
+    manaLeechFromPhysicalHitPercent,
     hitsCannotBeEvaded,
     blockDamageTakenMult,
     lifeRegenPercentOfMaxPerSecond,

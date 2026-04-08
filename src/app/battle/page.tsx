@@ -619,6 +619,9 @@ export default function BattleDemoPage() {
               <div>
                 Damage dealt less mult (gear): ×{(stats.damageDealtLessMult ?? 1).toFixed(4)}
               </div>
+              <div>
+                Life recovery rate mult: ×{(stats.lifeRecoveryRateMult ?? 1).toFixed(4)} · All recovery rate mult: ×{(stats.recoveryRateMult ?? 1).toFixed(4)}
+              </div>
             </div>
           </div>
           {(result.enemyAilmentSummary || (result.enemyDebuffEvents?.length ?? 0) > 0) && (

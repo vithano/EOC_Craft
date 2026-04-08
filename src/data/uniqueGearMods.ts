@@ -230,6 +230,8 @@ export interface UniqueGearStatPatch {
   lifeLeechFromHitDamagePercentFromGear?: number;
   /** Leech as % of physical portion of attack damage. */
   lifeLeechFromPhysicalHitPercentFromGear?: number;
+  /** Leech as % of physical attack hit damage to mana. */
+  manaLeechFromPhysicalHitPercentFromGear?: number;
 
   physicalConvertedToFirePctFromGear?: number;
   physicalConvertedToColdPctFromGear?: number;
@@ -636,6 +638,9 @@ export function equipmentModifiersFromUniqueTexts(
       /leech\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+physical\s+hit\s+damage\s+from\s+attacks\s+as\s+life\b/i
     );
     if (m) add({ lifeLeechFromPhysicalHitPercentFromGear: pctFromParenOrSingle(m) });
+
+    m = l.match(/(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+physical\s+attack\s+damage\s+leeched\s+as\s+mana\b/i);
+    if (m) add({ manaLeechFromPhysicalHitPercentFromGear: pctFromParenOrSingle(m) });
 
     m = l.match(
       /convert\s+(?:\(([\d.]+)\s+to\s+([\d.]+)\)|([\d.]+))%\s+of\s+your\s+physical\s+damage\s+(?:to|into)\s+fire\s+damage\b/i
