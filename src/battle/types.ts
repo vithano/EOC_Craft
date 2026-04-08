@@ -57,6 +57,8 @@ export interface DemoEnemyDef {
   chaosDamageMin?: number
   chaosDamageMax?: number
   aps: number
+  /** When true, simulator uses `aps` as-is (skip player-side enemy speed modifiers). */
+  useOwnApsOnly?: boolean
   /** 0–100; default enemy has no block */
   blockChance?: number
   dodgeChance?: number
@@ -66,6 +68,10 @@ export interface DemoEnemyDef {
   armourIgnorePercent?: number
   /** 0–100; attacker elemental/chaos resistance penetration (e.g. Sundering mod). */
   resistancePenetrationPercent?: number
+  /** If true, this enemy can counter-attack when it blocks, using `counterAttackFirePctOfPrevented`. */
+  counterAttackOnBlock?: boolean
+  /** Counter-attack bonus: % of prevented damage added as flat fire to the counter hit. */
+  counterAttackFirePctOfPrevented?: number
   /** 0–100; optional — lightning portion of player hits is reduced by this minus player penetration. */
   lightningResistancePercent?: number
   fireResistancePercent?: number

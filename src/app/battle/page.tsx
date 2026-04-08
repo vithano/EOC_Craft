@@ -26,6 +26,7 @@ import { EOC_ABILITY_BY_ID } from "../../data/eocAbilities";
 import { getEquippedEntry, migrateEquippedFromSave } from "../../data/equipment";
 import { GAME_CLASSES, getClassLevel } from "../../data/gameClasses";
 import { computeBuildStats, emptyEquipmentModifiers, type BuildConfig, type ComputedBuildStats } from "../../data/gameStats";
+import { computeHitChancePercent } from "../../data/eocFormulas";
 import { loadBuildsState, type StoredBuild, type StoredPlannerPayload } from "../../lib/eocBuildStorage";
 
 type EnemyModSlot = { id: EnemyModifierId | null; tier: 1 | 2 | 3 };
@@ -53,6 +54,93 @@ function sharedBuildDefaultName(payload: StoredPlannerPayload): string {
   return "Shared Build";
 }
 
+function isDamageLikeKey(key: string): boolean {
+  const k = key.toLowerCase();
+  return (
+    k.includes("damage")
+    || k === "min"
+    || k === "max"
+    || k.includes("dps")
+    || k.includes("dot")
+    || k.includes("ailment")
+    || k.includes("leech")
+  );
+}
+
+function scaleNumericDeep(value: unknown, factor: number, damageFactor: number, parentKey?: string): unknown {
+  const key = (parentKey ?? "").toLowerCase();
+  const coreFactor = Math.pow(factor, 0.9);
+  const speedFactor = Math.pow(factor, 0.55);
+  const accEvaFactor = Math.pow(factor, 0.65);
+  const chanceFactor = Math.pow(factor, 0.55);
+  if (typeof value === "number") {
+    if (key.includes("mult") || key.includes("multiplier")) {
+      // Multipliers are centered around 1.0; scale the deviation, not the absolute value.
+      return 1 + (value - 1) * chanceFactor;
+    }
+    if (isDamageLikeKey(key)) return value * damageFactor;
+    if (key === "aps" || key.includes("speed")) return value * speedFactor;
+    if (key.includes("accuracy") || key.includes("evasion")) return value * accEvaFactor;
+    if (key.includes("chance")) return value * chanceFactor;
+    return value * coreFactor;
+  }
+  if (Array.isArray(value)) return value.map((v) => scaleNumericDeep(v, factor, damageFactor, parentKey));
+  if (!value || typeof value !== "object") return value;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    out[k] = scaleNumericDeep(v, factor, damageFactor, k);
+  }
+  return out;
+}
+
+function scaleBuildStatsForBattle(stats: ComputedBuildStats, scalePct: number): ComputedBuildStats {
+  const factor = Math.max(0, scalePct) / 100;
+  if (Math.abs(factor - 1) < 1e-9) return stats;
+  // Damage should scale slower than core stats.
+  const damageFactor = Math.pow(factor, 0.58);
+  const scaled = scaleNumericDeep(stats, factor, damageFactor) as ComputedBuildStats;
+  // Keep a few chance/cap driven values sane after full numeric scaling.
+  scaled.blockChance = Math.max(0, Math.min(85, scaled.blockChance));
+  scaled.dodgeChance = Math.max(0, Math.min(75, scaled.dodgeChance));
+  scaled.critChance = Math.max(0, Math.min(95, scaled.critChance));
+  scaled.aps = Math.max(0.05, scaled.aps);
+  return scaled;
+}
+
+function solveAccuracyForTargetHit(targetHitPct: number, defenderEvasion: number): number {
+  const target = Math.max(1, Math.min(99, targetHitPct));
+  const eva = Math.max(0, defenderEvasion);
+  let lo = 0;
+  let hi = Math.max(1, eva * 12 + 5000);
+  while (computeHitChancePercent(hi, eva) < target && hi < 10_000_000) hi *= 2;
+  for (let i = 0; i < 32; i++) {
+    const mid = (lo + hi) / 2;
+    if (computeHitChancePercent(mid, eva) < target) lo = mid;
+    else hi = mid;
+  }
+  return hi;
+}
+
+function normalizeDuelHitBands(
+  player: ComputedBuildStats,
+  enemy: ComputedBuildStats
+): { player: ComputedBuildStats; enemy: ComputedBuildStats } {
+  const p = { ...player };
+  const e = { ...enemy };
+  const minHit = 20;
+  const maxHit = 88;
+
+  const pHit = computeHitChancePercent(p.accuracy, e.evasionRating);
+  if (pHit < minHit) p.accuracy = solveAccuracyForTargetHit(minHit, e.evasionRating);
+  else if (pHit > maxHit) p.accuracy = solveAccuracyForTargetHit(maxHit, e.evasionRating);
+
+  const eHit = computeHitChancePercent(e.accuracy, p.evasionRating);
+  if (eHit < minHit) e.accuracy = solveAccuracyForTargetHit(minHit, p.evasionRating);
+  else if (eHit > maxHit) e.accuracy = solveAccuracyForTargetHit(maxHit, p.evasionRating);
+
+  return { player: p, enemy: e };
+}
+
 export default function BattleDemoPage() {
   const [runKey, setRunKey] = useState(0);
   const [plannerSnapshot, setPlannerSnapshot] = useState<StoredPlannerPayload | null>(null);
@@ -61,6 +149,8 @@ export default function BattleDemoPage() {
   const [playerBuildId, setPlayerBuildId] = useState<string | null>(null);
   const [enemyBuildId, setEnemyBuildId] = useState<string | null>(null);
   const [battleMode, setBattleMode] = useState<BattleMode>("formula_enemy");
+  const [playerBuildScalePct, setPlayerBuildScalePct] = useState<number>(100);
+  const [enemyBuildScalePct, setEnemyBuildScalePct] = useState<number>(100);
   const [enemyModSlots, setEnemyModSlots] = useState<EnemyModSlot[]>(
     () => Array.from({ length: MAX_ENEMY_MODIFIERS }, () => ({ id: null, tier: 1 }))
   );
@@ -158,11 +248,14 @@ export default function BattleDemoPage() {
       chaosDamageMin: Math.max(0, Math.round(chaos?.min ?? 0)),
       chaosDamageMax: Math.max(0, Math.round(chaos?.max ?? 0)),
       aps: Math.max(0.05, Number((s.aps || 0.05).toFixed(3))),
+      useOwnApsOnly: true,
       blockChance: Math.max(0, Math.min(100, s.blockChance)),
       dodgeChance: Math.max(0, Math.min(100, s.dodgeChance)),
       critChance: Math.max(0, Math.min(100, s.critChance)),
       critMultiplier: Math.max(1, s.critMultiplier || 2),
       armourIgnorePercent: Math.max(0, Math.min(100, s.armourIgnorePercent ?? 0)),
+      counterAttackOnBlock: Boolean(s.counterAttackOnBlock),
+      counterAttackFirePctOfPrevented: Math.max(0, s.counterAttackFirePctOfPrevented ?? 0),
       fireResistancePercent: s.fireRes,
       coldResistancePercent: s.coldRes,
       lightningResistancePercent: s.lightningRes,
@@ -225,7 +318,14 @@ export default function BattleDemoPage() {
 
   const activeConfig = useMemo(() => buildConfigFromPayload(plannerSnapshot), [plannerSnapshot]);
 
-  const stats = useMemo(() => computeBuildStats(activeConfig), [activeConfig]);
+  const baseStats = useMemo(() => computeBuildStats(activeConfig), [activeConfig]);
+  const scaledPlayerStats = useMemo(
+    () =>
+      battleMode === "build_vs_build"
+        ? scaleBuildStatsForBattle(baseStats, playerBuildScalePct)
+        : baseStats,
+    [baseStats, battleMode, playerBuildScalePct]
+  );
   const enemyBuildPayload = useMemo(
     () => savedBuilds.find((b) => b.id === enemyBuildId)?.payload ?? null,
     [savedBuilds, enemyBuildId]
@@ -234,10 +334,26 @@ export default function BattleDemoPage() {
     () => savedBuilds.find((b) => b.id === enemyBuildId)?.name ?? "Enemy build",
     [savedBuilds, enemyBuildId]
   );
-  const enemyBuildStats = useMemo(
+  const enemyBuildStatsBase = useMemo(
     () => (enemyBuildPayload ? computeBuildStats(buildConfigFromPayload(enemyBuildPayload)) : null),
     [enemyBuildPayload]
   );
+  const scaledEnemyBuildStats = useMemo(
+    () =>
+      enemyBuildStatsBase
+        ? scaleBuildStatsForBattle(enemyBuildStatsBase, enemyBuildScalePct)
+        : null,
+    [enemyBuildStatsBase, enemyBuildScalePct]
+  );
+  const duelNormalized = useMemo(
+    () =>
+      battleMode === "build_vs_build" && scaledEnemyBuildStats
+        ? normalizeDuelHitBands(scaledPlayerStats, scaledEnemyBuildStats)
+        : null,
+    [battleMode, scaledPlayerStats, scaledEnemyBuildStats]
+  );
+  const stats = duelNormalized?.player ?? scaledPlayerStats;
+  const enemyBuildStats = duelNormalized?.enemy ?? scaledEnemyBuildStats;
 
   const formulaEnemy = useMemo((): DemoEnemyDef => {
     const C = FORMULA_CONSTANTS;
@@ -530,7 +646,7 @@ export default function BattleDemoPage() {
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <div className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Battle setup</div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 text-sm">
             <label className="space-y-1">
               <span className="text-zinc-500 text-xs">Mode</span>
               <select
@@ -591,10 +707,35 @@ export default function BattleDemoPage() {
                 Swap player/enemy builds
               </button>
             </div>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Player build scale %</span>
+              <input
+                type="number"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                disabled={battleMode !== "build_vs_build"}
+                value={playerBuildScalePct}
+                onChange={(e) => setPlayerBuildScalePct(Math.max(0, Number(e.target.value) || 0))}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-zinc-500 text-xs">Enemy build scale %</span>
+              <input
+                type="number"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-2 py-1.5 font-mono"
+                disabled={battleMode !== "build_vs_build"}
+                value={enemyBuildScalePct}
+                onChange={(e) => setEnemyBuildScalePct(Math.max(0, Number(e.target.value) || 0))}
+              />
+            </label>
           </div>
           {battleMode === "build_vs_build" && savedBuilds.length < 2 && (
             <div className="mt-3 text-xs text-amber-300">
               Create at least two saved builds in planner to use build-vs-build mode.
+            </div>
+          )}
+          {battleMode === "build_vs_build" && (
+            <div className="mt-2 text-[11px] text-zinc-500">
+              Scaling is combat-aware: damage scales slower, chance stats are soft-capped, and hit chance stays in a sane duel band.
             </div>
           )}
         </div>

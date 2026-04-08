@@ -505,7 +505,16 @@ function resolvePlayerAttack(
     /** Added to the first strike only (e.g. Siegebreaker counter fire). */
     extraFlatFireDamage?: number
   }
-): { damage: number; damageForAilments: number; outcome: PlayerHitOutcome; anyCrit: boolean; anyDouble: boolean; anyTriple: boolean; anyQuad: boolean } {
+): {
+  damage: number
+  damageForAilments: number
+  outcome: PlayerHitOutcome
+  anyCrit: boolean
+  anyDouble: boolean
+  anyTriple: boolean
+  anyQuad: boolean
+  blockedPreventedTotal: number
+} {
   const isSpellAttack = stats.abilityContribution?.type === 'Spells'
   const enemyEvaForHitCheck = isSpellAttack ? enemy.evasionRating / 2 : enemy.evasionRating
   const evadePct = stats.hitsCannotBeEvaded
@@ -513,7 +522,18 @@ function resolvePlayerAttack(
     // Evasion is half as effective vs spells (enemy evasion treated as halved).
     : computeEvasionChancePercent(stats.accuracy, enemyEvaForHitCheck, 0)
   const miss = Math.random() * 100 < evadePct
-  if (miss) return { damage: 0, damageForAilments: 0, outcome: 'miss', anyCrit: false, anyDouble: false, anyTriple: false, anyQuad: false }
+  if (miss) {
+    return {
+      damage: 0,
+      damageForAilments: 0,
+      outcome: 'miss',
+      anyCrit: false,
+      anyDouble: false,
+      anyTriple: false,
+      anyQuad: false,
+      blockedPreventedTotal: 0,
+    }
+  }
 
   const blk = enemy.blockChance ?? 0
   const zealot = stats.classBonusesActive.includes('zealot')
@@ -527,6 +547,7 @@ function resolvePlayerAttack(
   let anyDouble = false
   let anyTriple = false
   let anyQuad = false
+  let blockedPreventedTotal = 0
   const strikeDetails: any[] = []
 
   for (let s = 0; s < strikes; s++) {
@@ -621,6 +642,19 @@ function resolvePlayerAttack(
       chaos: statefulMoreByType.chaos,
     })
     const mitigatedBeforeProc = mit.total
+    if (blocked) {
+      const unblockedMit = mitigatedPlayerHitVsArmour(
+        enemy,
+        stats,
+        base / DEFAULT_BLOCK_DAMAGE_TAKEN_MULT,
+        extraFire / DEFAULT_BLOCK_DAMAGE_TAKEN_MULT,
+        {
+          fire: statefulMoreByType.fire,
+          chaos: statefulMoreByType.chaos,
+        }
+      )
+      blockedPreventedTotal += Math.max(0, unblockedMit.total - mitigatedBeforeProc)
+    }
     const mitigatedAfterProc = mitigatedBeforeProc * procMult
     total += mitigatedAfterProc
     strikeDetails.push({
@@ -654,6 +688,7 @@ function resolvePlayerAttack(
     anyDouble,
     anyTriple,
     anyQuad,
+    blockedPreventedTotal,
     // @ts-expect-error – extra field for UI drilldown (kept out of public type)
     strikeDetails,
   }
@@ -1429,7 +1464,9 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   }
   let t = 0
   let nextPlayer = 0
-  const apsEnemy = Math.max(0.05, enemy.aps * enemyApsMultiplier(stats))
+  const apsEnemy = enemy.useOwnApsOnly
+    ? Math.max(0.05, enemy.aps)
+    : Math.max(0.05, enemy.aps * enemyApsMultiplier(stats))
   // First enemy swing occurs after one full attack interval.
   let nextEnemy = 1 / Math.max(0.15, apsEnemy)
   const firstHitFlag = { used: false }
@@ -1938,6 +1975,60 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
               enemyState.energyShield = 0
               enemyLife = 0
             }
+          }
+        }
+        if (
+          outcome === 'enemy_blocked'
+          && (enemy.counterAttackOnBlock ?? false)
+          && (enemy.counterAttackFirePctOfPrevented ?? 0) > 0
+          && atk.blockedPreventedTotal > 0
+          && player.life > 0
+        ) {
+          const extraFire = atk.blockedPreventedTotal * ((enemy.counterAttackFirePctOfPrevented ?? 0) / 100)
+          const counterEnemy: DemoEnemyDef = {
+            ...enemy,
+            damageMin: extraFire,
+            damageMax: extraFire,
+            physicalDamageMin: 0,
+            physicalDamageMax: 0,
+            elementalDamageMin: 0,
+            elementalDamageMax: 0,
+            fireDamageMin: extraFire,
+            fireDamageMax: extraFire,
+            coldDamageMin: 0,
+            coldDamageMax: 0,
+            lightningDamageMin: 0,
+            lightningDamageMax: 0,
+            chaosDamageMin: 0,
+            chaosDamageMax: 0,
+          }
+          const rCtr = resolveEnemyAttack(counterEnemy, stats, player, firstHitFlag, runtimeMaxLife)
+          if (rCtr.damageToDisplay > 0 || rCtr.blocked) {
+            const dmgCtr = rCtr.damageToDisplay ?? 0
+            tryLog({
+              t,
+              kind: 'enemy_attack',
+              message:
+                rCtr.damageToDisplay > 0
+                  ? `Enemy counter attack — ${dmgCtr.toFixed(1)}${rCtr.critical ? ' (CRIT)' : ''}${rCtr.blocked ? ' (blocked)' : ''}`
+                  : 'Enemy counter attack blocked',
+              damage: dmgCtr,
+            })
+          } else if (rCtr.evaded || rCtr.dodged) {
+            tryLog({ t, kind: 'enemy_attack', message: `Enemy counter attack ${rCtr.evaded ? 'evaded' : 'dodged'}` })
+          }
+          if (!rCtr.evaded && !rCtr.dodged && rCtr.damageToDisplay > 0) hitsEnemy++
+          totalDamageToPlayerFromEnemyHits += Math.max(0, rCtr.damageToDisplay ?? 0)
+          if (rCtr.damageToDisplay > 0 && (enemyLifeLeechPct > 0 || enemyEsLeechPct > 0)) {
+            const leeched = rCtr.damageToDisplay
+            if (enemyLifeLeechPct > 0) {
+              enemyState.life = Math.min(enemy.maxLife, enemyState.life + leeched * (enemyLifeLeechPct / 100))
+            }
+            if (enemyEsLeechPct > 0) {
+              const maxEs = Math.max(enemyState.energyShield, enemy.maxEnergyShield ?? 0)
+              enemyState.energyShield = Math.min(maxEs, enemyState.energyShield + leeched * (enemyEsLeechPct / 100))
+            }
+            enemyLife = enemyState.life
           }
         }
         // Action bar set after cast (demo: treat our attack as an action)
