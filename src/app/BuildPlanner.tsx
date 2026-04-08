@@ -519,8 +519,20 @@ export default function BuildPlanner() {
       for (let i = 0; i < bytes2.length; i++) binary += String.fromCharCode(bytes2[i]);
       // Use URL-safe base64 (+ → -, / → _) so the URL doesn't need %2B encoding
       const encoded = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-      const url = `${window.location.origin}${window.location.pathname}?build=${encoded}`;
-      await navigator.clipboard.writeText(url);
+      const longUrl = `${window.location.origin}${window.location.pathname}?build=${encoded}`;
+      let shareUrl = longUrl;
+      try {
+        const res = await fetch("/api/shorten", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: longUrl }),
+        });
+        if (res.ok) {
+          const data = await res.json() as { shortUrl?: string };
+          if (data.shortUrl) shareUrl = data.shortUrl;
+        }
+      } catch { /* fall back to long URL */ }
+      await navigator.clipboard.writeText(shareUrl);
       setShareUrlCopied(true);
       setTimeout(() => setShareUrlCopied(false), 2000);
     };
