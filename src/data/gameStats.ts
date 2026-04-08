@@ -3049,11 +3049,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     eq.additionalBaseManaCostPctOfMaxEnergyShieldFromGear
   )
   const additionalBaseManaCostFlat = maxEnergyShield * (additionalBaseManaCostPctOfMaxEnergyShield / 100)
-  let manaCostPerAttack =
-    (BASE_GAME_STATS.baseManaPerAttack + additionalBaseManaCostFlat) *
+  const manaCostMult =
     Math.max(0.05, 1 - classReducedManaCostPercent / 100) *
     Math.max(0.2, 1 - eq.manaCostReductionFromGear / 100) *
     (1 + eq.manaCostIncreasePercentFromGear / 100)
+  let manaCostPerAttack =
+    (BASE_GAME_STATS.baseManaPerAttack + additionalBaseManaCostFlat) * manaCostMult
   // Display and downstream systems expect whole-number mana costs.
   manaCostPerAttack = Math.max(0, Math.round(manaCostPerAttack))
 
@@ -3358,7 +3359,8 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         const scaledDm = attackDamageMultiplierAtAbilityLevel(baseDm, startLvl, level)
         const aspFactor = (def.attackSpeedMultiplierPct ?? 100) / 100
         aps = aps * aspFactor
-        manaCostPerAttack = abilityManaCostAtLevel(baseAbilityMana, startLvl, level)
+        // Ability base mana (scaled by ability level) × global reduced/increased mana costs (Sorcerer/gear/etc).
+        manaCostPerAttack = Math.max(0, Math.round(abilityManaCostAtLevel(baseAbilityMana, startLvl, level) * manaCostMult))
         avgHit = (hitDamageMin + hitDamageMax) / 2
         avgEffectiveDamage = avgHit * (1 + (critChance / 100) * (critMultiplier - 1))
         dps = avgEffectiveDamage * aps

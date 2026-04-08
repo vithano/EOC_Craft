@@ -73,14 +73,6 @@ function applyDamageToEnemyPools(
   return amount - remaining
 }
 
-function roundTo2(n: number): number {
-  return Math.round(n * 100) / 100
-}
-
-function discardBelow001(n: number): number {
-  return n < 0.01 ? 0 : n
-}
-
 function avgHitByDamageType(stats: ComputedBuildStats): {
   physical: number
   fire: number
@@ -153,7 +145,8 @@ function mitigatedPlayerHitVsArmour(
   const baseArmour = enemy.armour
   const elePen = stats.elementalPenetrationPercent ?? 0
   const zone = Math.max(1, Math.floor(enemy.zone ?? 1))
-  const zoneEleResBonus = Math.min(15, Math.max(0, (zone - 1) * 3))
+  const C = FORMULA_CONSTANTS
+  const zoneEleResBonus = Math.min(C.enemyEleResMax, Math.max(0, (zone - 1) * C.enemyEleResPerZone))
 
   // Split raw hit into per-type amounts using current fractions
   const a = avgHitByDamageType(stats)
@@ -606,9 +599,13 @@ function resolvePlayerAttack(
   }
 }
 
-const BASE_BLEED_SEC = 5
-const BASE_POISON_SEC = 4
-const BASE_IGNITE_SEC = 4
+// formulas.csv damaging ailments:
+// - Bleed: 2s duration, DPS = 30% of physical hit damage
+// - Poison: 3s duration, DPS = 15% of combined physical+chaos hit damage (poison damage type = chaos)
+// - Ignite: 2s duration, DPS = 45% of fire hit damage
+const BASE_BLEED_SEC = 2
+const BASE_POISON_SEC = 3
+const BASE_IGNITE_SEC = 2
 const DOT_LOG_INTERVAL = 0.45
 
 function activeShockPct(state: EnemyAilmentRuntime, t: number): number {
@@ -668,6 +665,8 @@ function applyPlayerAilmentsOnHit(
     tryLog({ t, kind: 'ailment', message: msg })
   }
 
+  // Damaging ailments: formulas.csv uses TOTAL_APPLICABLE_DAMAGE before damage reduction.
+  // This demo engine uses mitigated hit portions as the best available proxy in combat logs.
   if (portions.physical > 0.01 && Math.random() * 100 < stats.bleedChance) {
     const dps = ((portions.physical * bleedInherentMult) / BASE_BLEED_SEC) * dotMult
     state.dots.push({
@@ -682,7 +681,8 @@ function applyPlayerAilmentsOnHit(
 
   const poisonChance = (stats.critsAlwaysInflictPoison && hitWasCritical) ? 100 : stats.poisonChance
   if (Math.random() * 100 < poisonChance) {
-    const dps = ((mitigatedDamage * poisonInherentMult) / BASE_POISON_SEC) * dotMult
+    const applicable = Math.max(0, portions.physical + portions.chaos)
+    const dps = ((applicable * poisonInherentMult) / BASE_POISON_SEC) * dotMult
     state.dots.push({
       kind: 'poison',
       dps,
@@ -776,10 +776,9 @@ function applyPlayerAilmentsOnHit(
         1,
         1
       )
-      const effectPct = discardBelow001(roundTo2(effectPctRaw))
       const shockCap = (stats.ignoreMaxShockEffect ?? false) ? Number.POSITIVE_INFINITY : (stats.maxShockEffect ?? 50)
       const shockIncMult = 1 + (stats.increasedShockEffect ?? 0) / 100
-      const computedShock = Math.max(5, effectPct * 1.15 * ndMult * shockIncMult)
+      const computedShock = Math.max(5, effectPctRaw * 1.15 * ndMult * shockIncMult)
       const shockFixed = stats.fixedShockEffectPercent ?? 0
       const shock = shockFixed > 0 ? shockFixed : Math.min(shockCap, computedShock)
       const dur =
@@ -824,14 +823,13 @@ function applyPlayerAilmentsOnHit(
         1,
         C.chillSpecialMult as 0.7
       )
-      const effectPct = discardBelow001(roundTo2(effectPctRaw))
       if (stats.enemiesUnaffectedByChill) {
         // modeled: some uniques make enemies immune to chill
         tryLogAilment(`Ailment — Chill prevented (enemy unaffected by chill)`)
         return
       }
       const chillCap = stats.maxChillEffect ?? 30
-      const chillPct = Math.min(chillCap, Math.max(5, effectPct * 0.85 * ndMult * chillOutMult))
+      const chillPct = Math.min(chillCap, Math.max(5, effectPctRaw * 0.85 * ndMult * chillOutMult))
       const dur = getBaseShockChillDurationSec() * durMult * critAilmentDurMult
       const chillExpiresAt =
         (stats.chillYouInflictInfiniteDuration ?? false) ? Number.POSITIVE_INFINITY : (t + dur)
@@ -1165,11 +1163,16 @@ export function simulateEncounter(ctx: BattleContext): EncounterResult {
   const enemyLifeLeechPct = Math.min(100, deltas.lifeLeechPct)
   const enemyEsLeechPct = Math.min(100, deltas.esLeechPct)
   const refLife = enemyModifierRefLifeForRegen(enemy)
+  const rarityLifeMult = enemy.rarityLifeMult ?? 1
+  const rarityRegenMult = enemy.rarityRegenMult ?? 1
+  // Sheet: rarity regen multiplier is separate from rarity life multiplier. Our raw regen model uses
+  // `raw × maxLife / ref`, so we remove the life rarity scaling and apply the regen rarity scaling.
+  const regenLifeForScaling = rarityLifeMult !== 0 ? enemy.maxLife / rarityLifeMult : enemy.maxLife
   const enemyLifeRegenPerSecond = (deltas.lifeRegenRaw !== 0)
-    ? (deltas.lifeRegenRaw * enemy.maxLife) / refLife
+    ? (deltas.lifeRegenRaw * regenLifeForScaling * rarityRegenMult) / refLife
     : 0
   const enemyEsRegenPerSecond = (deltas.esRegenRaw !== 0)
-    ? (deltas.esRegenRaw * enemy.maxLife) / refLife
+    ? (deltas.esRegenRaw * regenLifeForScaling * rarityRegenMult) / refLife
     : 0
 
   let runtimeMaxLife = stats.maxLife

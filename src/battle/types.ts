@@ -29,6 +29,11 @@ export interface DemoEnemyDef {
   barrierEsFlat?: boolean
   /** Elite/boss life multiplier only (1 = normal). Used for Barrier ES; omit → 1. */
   rarityLifeMult?: number
+  /**
+   * Elite/boss regeneration multiplier only (1 = normal).
+   * Sheet: elite = 1.4, boss = 1.8 for life & ES regeneration.
+   */
+  rarityRegenMult?: number
   /** Anchors for flat mod ratios (e.g. level-100 stats for Nexus); omit → CSV bases. */
   modifierRatioBases?: EnemyModifierRatioBases
   armour: number

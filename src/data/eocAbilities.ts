@@ -116,9 +116,12 @@ export function spellBaseDamageAtAbilityLevel(
 }
 
 /**
- * Mana cost at a given ability level. For skills with a starting level &gt; 0, the sheet
- * adds 5 mana per level above that starting level (matches Bladesurge 42 @ 12 → 67 @ 17).
- * Tier-0 starter skills use the listed mana at all levels until we have sheet data.
+ * Mana cost at a given ability level.
+ *
+ * Sheet formula (per level step):
+ * `COST_next = COST_prev × (1 + 0.3 × 0.92^(ABILITY_LEVEL - 1))`
+ *
+ * CSV `manaCost` is treated as the cost at {@link EocAbilityDefinition.startingAbilityLevel}.
  */
 export function abilityManaCostAtLevel(
   baseMana: number,
@@ -126,19 +129,23 @@ export function abilityManaCostAtLevel(
   abilityLevel: number,
   kind: "attacks" | "spells" = "attacks"
 ): number {
+  void kind; // kept for backwards-compat call sites; mana scaling is shared across ability types.
+  let cost = Math.max(0, baseMana);
   const L = Math.max(0, Math.floor(abilityLevel));
   const S = Math.max(0, Math.floor(startingAbilityLevel));
-  if (S <= 0) return Math.max(0, baseMana);
-  const delta = Math.max(0, L - S);
 
-  // Attacks: sheet-observed +5 mana per level above starting.
-  if (kind === "attacks") {
-    return Math.max(0, Math.round(baseMana + 5 * delta));
+  const stepFactor = (B: number) => 1 + 0.3 * 0.92 ** (B - 1);
+
+  if (L >= S) {
+    for (let B = S + 1; B <= L; B++) cost *= stepFactor(B);
+  } else {
+    for (let B = S; B > L; B--) {
+      const f = stepFactor(B);
+      if (f !== 0) cost /= f;
+    }
   }
 
-  // Spells: much slower scaling (e.g. Blazing Radiance 8 @ 12 → 16 @ 24).
-  // Model as +2 mana per 3 levels above starting (floor).
-  return Math.max(0, Math.round(baseMana + Math.floor((2 * delta) / 3)));
+  return Math.max(0, Math.round(cost));
 }
 
 /** Physical → elemental conversion % from ability line text (e.g. Bladesurge, Consecration). */

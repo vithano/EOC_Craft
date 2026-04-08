@@ -11,6 +11,7 @@
     "generate:abilities": "python3 scripts/generate_eoc_abilities.py",
     "audit:uniques": "tsx scripts/audit_unique_mods.ts",
     "test": "npm run audit:uniques && tsx scripts/test_modeled_uniques.ts",
+    "test:formulas": "tsx scripts/test_formulas_csv_alignment.ts",
     "check": "npm run build && npm run test"
   },
   "dependencies": {

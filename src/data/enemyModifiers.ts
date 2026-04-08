@@ -424,17 +424,17 @@ export function applyEnemyModifierDeltasToScaledEnemy(
   }
 
   // ES: Vital-style life ratio still scales any pre-existing ES pool (`* lifeMult`).
-  // Barrier: scale mod ES along the life curve at refLife (`× refLife / enemyBaseLife`), not × tier-scaled max life.
-  // Elite/boss: multiply by `rarityLifeMult` (same as life row); omit → 1.
+  // Barrier: formulas.csv says enemy life scaling also applies to energy shield. Barrier ES is defined as
+  // "+Δ to base before scaling", so it should scale with the enemy's level/tier life curve (and rarity),
+  // but NOT with Vital-style life modifiers (those change life base, not ES base).
   {
     const k = FORMULA_CONSTANTS;
-    const scaledExistingEs = Math.round((enemy.maxEnergyShield ?? 0) * lifeMult);
-    const rarity = enemy.rarityLifeMult ?? 1;
+    const scaledExistingEs = Math.round(enemy.maxEnergyShield ?? 0);
     const scaledBarrierEsAdd =
       deltas.es !== 0
         ? enemy.barrierEsFlat === true
           ? Math.round(deltas.es)
-          : Math.round((deltas.es * rb.life * rarity) / k.enemyBaseLife)
+          : Math.round((deltas.es * enemy.maxLife) / k.enemyBaseLife)
         : 0;
     const totalEs = scaledExistingEs + scaledBarrierEsAdd;
     if (totalEs > 0 || (enemy.maxEnergyShield ?? 0) > 0 || deltas.es !== 0) {

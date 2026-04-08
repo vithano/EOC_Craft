@@ -79,6 +79,7 @@ export default function BattleDemoPage() {
     const C = FORMULA_CONSTANTS;
     const rarityLifeMult = enemyRarity === "elite" ? C.eliteLifeMult : enemyRarity === "boss" ? C.bossLifeMult : 1;
     const rarityDmgMult = enemyRarity === "elite" ? C.eliteDamageMult : enemyRarity === "boss" ? C.bossDamageMult : 1;
+    const rarityRegenMult = enemyRarity === "elite" ? C.eliteRegenMult : enemyRarity === "boss" ? C.bossRegenMult : 1;
 
     const zone = Math.max(1, Math.floor(enemyZone || 1));
 
@@ -105,6 +106,7 @@ export default function BattleDemoPage() {
         maxLife: Math.max(1, Math.round(row.health * rarityLifeMult)),
         maxEnergyShield: 0,
         rarityLifeMult,
+        rarityRegenMult,
         // For Nexus/Crucible, tier rows already represent the fully scaled stats from formulas.csv.
         // Flat mods (Vital/Plated/…) are defined as "+Δ to CSV base (40 life, 1 armour, …) before scaling",
         // so we intentionally omit `modifierRatioBases` here to fall back to those CSV denominators.
@@ -135,6 +137,7 @@ export default function BattleDemoPage() {
       name: `Enemy L${lvl}${enemyRarity !== "normal" ? ` (${enemyRarity})` : ""}`,
       maxLife: Math.max(1, Math.round(base.life * rarityLifeMult)),
       rarityLifeMult,
+      rarityRegenMult,
       // Level stats are already fully scaled from formulas.csv bases.
       // Flat enemy mods (Vital/Plated/…) are defined as "+Δ to CSV base (40 life, 1 armour, …) before scaling",
       // so we omit `modifierRatioBases` to use those CSV denominators for correct scaling at any level.

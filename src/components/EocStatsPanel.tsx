@@ -742,7 +742,7 @@ export default function EocStatsPanel({
   const poisonChanceCapped = Math.min(100, Math.max(0, stats.poisonChance));
 
   const fireRow = byType.find((r) => r.type === "fire");
-  const BASE_IGNITE_SEC = 4;
+  const BASE_IGNITE_SEC = 2;
   const igniteDotMult =
     (1 + (stats.damageOverTimeMultiplier ?? 0) / 100) * (stats.dotDamageMoreMultiplier ?? 1);
   const igniteDpsMin =

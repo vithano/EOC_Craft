@@ -5,9 +5,6 @@ export default function FormulaViewer() {
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
       <details className="group">
         <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-3 text-zinc-100 font-semibold text-xs uppercase tracking-wider select-none sm:px-3.5 sm:py-3.5 sm:text-sm [&::-webkit-details-marker]:hidden">
-          <span className="shrink-0" aria-hidden>
-            🧮
-          </span>
           <span>Formula Engine</span>
           <span className="ml-auto text-emerald-400/90 text-xs font-bold tracking-widest">EOC CSV</span>
           <span

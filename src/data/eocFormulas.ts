@@ -11,10 +11,18 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
+function roundTo2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function discardBelow001(n: number): number {
+  return n < 0.01 ? 0 : n;
+}
+
 // ---------------------------------------------------------------------------
 // Backward-compat constant exports (callers can migrate to FORMULA_CONSTANTS)
 // ---------------------------------------------------------------------------
-export const BASE_SHOCK_CHILL_DURATION_SEC = 1.8;
+export const BASE_SHOCK_CHILL_DURATION_SEC = 3;
 export const LEVEL_100_PLAYER_ACCURACY = 317;
 export const LEVEL_100_ENEMY_ACCURACY  = 327;
 export const LEVEL_100_ENEMY_EVASION   = 4402;
@@ -108,9 +116,10 @@ export function computeEvasionChancePercent(
   const acc  = Math.max(0, attackerAccuracy);
   const eva  = Math.max(0, defenderEvasion);
   const denom = acc + eva * evasionDivisor;
-  if (denom <= 0) return clamp(flatFinalEvasionChancePercent, 0, evasionCap * 100);
+  // Sheet note: evasion chance is rounded to two decimal places.
+  if (denom <= 0) return roundTo2(clamp(flatFinalEvasionChancePercent, 0, evasionCap * 100));
   const raw = 1 - (acc * evasionAccCoeff) / denom;
-  return clamp(raw * 100 + flatFinalEvasionChancePercent, 0, evasionCap * 100);
+  return roundTo2(clamp(raw * 100 + flatFinalEvasionChancePercent, 0, evasionCap * 100));
 }
 
 export function computeHitChancePercent(
@@ -138,7 +147,10 @@ export function computeNonDamagingAilmentEffectPercent(
   const pool = Math.max(0, lifeDefender) + Math.max(0, energyShieldDefender);
   if (pool <= 0 || damageValidPostMitigation <= 0) return 0;
   const base = Math.sqrt(damageValidPostMitigation / (pool * ailmentPoolDivisor));
-  return base * ailmentMultiplier * extraEffectMultiplier * specialChillMultiplier * 100;
+  // Sheet notes:
+  // - effect is rounded to two decimals
+  // - if effect < 0.01, discard
+  return discardBelow001(roundTo2(base * ailmentMultiplier * extraEffectMultiplier * specialChillMultiplier * 100));
 }
 
 export function computeNonDamagingAilmentEffectFromValidPercentOfLifeEs(
