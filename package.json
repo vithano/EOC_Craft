@@ -10,8 +10,11 @@
     "generate:uniques": "python3 scripts/generate_eoc_uniques.py",
     "generate:abilities": "python3 scripts/generate_eoc_abilities.py",
     "audit:uniques": "tsx scripts/audit_unique_mods.ts",
-    "test": "npm run audit:uniques && tsx scripts/test_modeled_uniques.ts",
+    "test": "npm run audit:uniques && tsx scripts/test_modeled_uniques.ts && tsx scripts/test_calculations.ts && tsx scripts/test_engine.ts && tsx scripts/test_damage_types_and_mods.ts",
+    "test:damage": "tsx scripts/test_damage_types_and_mods.ts",
     "test:formulas": "tsx scripts/test_formulas_csv_alignment.ts",
+    "test:calculations": "tsx scripts/test_calculations.ts",
+    "test:engine": "tsx scripts/test_engine.ts",
     "check": "npm run build && npm run test"
   },
   "dependencies": {
