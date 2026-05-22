@@ -447,7 +447,7 @@ section('applyPhysicalToRandomElements');
   const p = byType(out, 'physical');
   assert(p !== undefined && p.min <= 100 && p.max <= 300,
     'physical remainder ≤ original');
-  assert(p.min >= 0, 'physical min non-negative');
+  assert(p?.min !== undefined && p?.min >= 0, 'physical min non-negative');
 }
 
 // ---------------------------------------------------------------------------
