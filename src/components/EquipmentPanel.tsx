@@ -231,7 +231,7 @@ export default function EquipmentPanel({
     () => EOC_BASE_EQUIPMENT.find((d) => d.id === regBaseId) ?? null,
     [regBaseId, sheetVersion]
   );
-  const regItemType = regBaseDef?.itemType ?? '';
+  const regItemType = regBaseDef?.name ?? '';
   const regBaseItems = useMemo(
     () => getBaseEquipmentForSlot(regSlot),
     [regSlot, sheetVersion]
