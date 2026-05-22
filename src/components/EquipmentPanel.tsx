@@ -231,7 +231,19 @@ export default function EquipmentPanel({
     () => EOC_BASE_EQUIPMENT.find((d) => d.id === regBaseId) ?? null,
     [regBaseId, sheetVersion]
   );
-  const regItemType = regBaseDef?.name ?? '';
+  const regItemType = useMemo(() => {
+    if (!regBaseDef) return '';
+    const specificType = regBaseDef.name.trim();
+    const hasSpecificTypeModifiers =
+      !!specificType &&
+      (getModifiersForItemType(specificType, "prefix").length > 0 ||
+        getModifiersForItemType(specificType, "suffix").length > 0);
+    if (hasSpecificTypeModifiers) return specificType;
+    // Some base items are named specifically (e.g. "Plate Chest"),
+    // while others need their generic item type (e.g. "Dagger").
+    const generalType = regBaseDef.itemType.trim();
+    return generalType || specificType;
+  }, [regBaseDef, sheetVersion]);
   const regBaseItems = useMemo(
     () => getBaseEquipmentForSlot(regSlot),
     [regSlot, sheetVersion]
