@@ -123,6 +123,12 @@ export function isDualWieldingAttackWeapons(mainHandItemId: string, offHandItemI
   return isAttackWeaponItem(mainHandItemId) && isAttackWeaponItem(offHandItemId);
 }
 
+/** Any two one-handed weapon-class items equipped (main + off-hand). */
+export function isDualWieldingOneHandedWeapons(mainHandItemId: string, offHandItemId: string): boolean {
+  if (!mainHandItemId || mainHandItemId === 'none' || !offHandItemId || offHandItemId === 'none') return false;
+  return canEquipWeaponInOffHand(mainHandItemId) && canEquipWeaponInOffHand(offHandItemId);
+}
+
 export function getItemDefinition(slot: string, itemId: string): EquipmentItem | undefined {
   // Uniques + "none" live in the cached map.
   const fromMap = getEquipmentItemsMap()[slot]?.find((i) => i.id === itemId);

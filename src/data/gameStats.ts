@@ -12,7 +12,7 @@ import {
   getEquippedEntry,
   getItemDefinition,
   isAttackWeaponItem,
-  isDualWieldingAttackWeapons,
+  isDualWieldingOneHandedWeapons,
   type EquippedEntry,
   type ItemModifiers,
 } from './equipment'
@@ -2170,15 +2170,15 @@ export function aggregateEquippedToEquipmentModifiers(
   const worn: Record<string, boolean> = {}
   const mainHandEntry = getEquipped('Weapon')
   const offHandEntry = getEquipped('Off-hand')
-  const dualWieldAttack =
-    isDualWieldingAttackWeapons(mainHandEntry?.itemId ?? 'none', offHandEntry?.itemId ?? 'none')
+  const dualWieldOneHandedWeapons =
+    isDualWieldingOneHandedWeapons(mainHandEntry?.itemId ?? 'none', offHandEntry?.itemId ?? 'none')
 
   for (const slot of slots) {
     const entry = getEquipped(slot)
     const itemId = entry?.itemId ?? 'none'
     if (itemId === 'none') continue
-    if (dualWieldAttack && slot === 'Weapon') continue
-    if (dualWieldAttack && slot === 'Off-hand' && isAttackWeaponItem(itemId)) continue
+    if (dualWieldOneHandedWeapons && slot === 'Weapon') continue
+    if (dualWieldOneHandedWeapons && slot === 'Off-hand' && canEquipWeaponInOffHand(itemId)) continue
     worn[slot] = true
 
     if (isUniqueItemId(itemId)) {
@@ -2288,7 +2288,7 @@ export function aggregateEquippedToEquipmentModifiers(
   }
 
   if (
-    dualWieldAttack
+    dualWieldOneHandedWeapons
     && mainHandEntry
     && offHandEntry
     && mainHandEntry.itemId !== 'none'
@@ -4343,7 +4343,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
   const countsAsDualWielding =
     eq.countsAsDualWieldingFromGear
     || (config.equipped
-      ? isDualWieldingAttackWeapons(
+      ? isDualWieldingOneHandedWeapons(
         getEquippedEntry(config.equipped, 'Weapon').itemId,
         getEquippedEntry(config.equipped, 'Off-hand').itemId
       )
