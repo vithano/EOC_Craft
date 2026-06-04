@@ -60,7 +60,9 @@ export async function encodeShareV3(input: {
     ids.push(`upg:${k}`);
   }
 
-  const tokenPlan = chooseTokenWidths(ids);
+  // Important: decode resolves hashes against the full loaded id universe, not just ids
+  // present in this build. So collision planning must also use the full universe.
+  const tokenPlan = chooseTokenWidths(ids, allShareV3TaggedIds());
 
   const out: number[] = [];
   out.push(SHARE_V3_VERSION);
@@ -105,7 +107,7 @@ export async function encodeShareV3(input: {
   }
 
   if (process.env.NODE_ENV !== "production") {
-    assertNoPlannedCollisions(ids, tokenPlan);
+    assertNoPlannedCollisions(ids, tokenPlan, allShareV3TaggedIds());
   }
 
   return base64UrlFromBytes(new Uint8Array(out));
@@ -211,17 +213,17 @@ export function decodeShareV3(buildParam: string): ShareV3Parsed | null {
 }
 
 export function resolveShareV3(parsed: ShareV3Parsed): ShareV3Resolved {
-  const abilityTokMap = buildTokenToIdMap((EOC_ABILITY_DEFINITIONS ?? []).map((a) => `ability:${a.id}`));
-  const itemTokMap = buildTokenToIdMap([
+  const abilityTokMap = buildTokenToIdsMap((EOC_ABILITY_DEFINITIONS ?? []).map((a) => `ability:${a.id}`));
+  const itemTokMap = buildTokenToIdsMap([
     ...(EOC_UNIQUE_DEFINITIONS ?? []).map((u) => `item:${u.id}`),
     ...(EOC_BASE_EQUIPMENT ?? []).map((b) => `item:${b.id}`),
   ]);
-  const modTokMap = buildTokenToIdMap(Object.keys(EOC_MODIFIERS_BY_ID ?? {}).map((id) => `mod:${id}`));
-  const upgTokMap = buildTokenToIdMap(allUpgradeKeys().map((k) => `upg:${k}`));
+  const modTokMap = buildTokenToIdsMap(Object.keys(EOC_MODIFIERS_BY_ID ?? {}).map((id) => `mod:${id}`));
+  const upgTokMap = buildTokenToIdsMap(allUpgradeKeys().map((k) => `upg:${k}`));
 
   const abilityId = (() => {
     if (parsed.ability.value === 0) return null;
-    const tagged = abilityTokMap.get(tokenKey(parsed.ability));
+    const tagged = abilityTokMap.get(tokenKey(parsed.ability))?.[0];
     return tagged ? tagged.slice("ability:".length) : null;
   })();
 
@@ -231,18 +233,14 @@ export function resolveShareV3(parsed: ShareV3Parsed): ShareV3Resolved {
     const row = parsed.equipped[s]!;
     const itemId = (() => {
       if (row.item.value === 0) return "none";
-      const tagged = itemTokMap.get(tokenKey(row.item));
-      return tagged ? tagged.slice("item:".length) : "none";
+      const candidates = (itemTokMap.get(tokenKey(row.item)) ?? [])
+        .map((x) => x.slice("item:".length));
+      const slotFit = candidates.find((id) => shareItemFitsPlannerSlot(id, slot));
+      return slotFit ?? candidates[0] ?? "none";
     })();
 
-    const cpIds = row.craftedPrefixMods
-      .map((t) => modTokMap.get(tokenKey(t)))
-      .filter((x): x is string => !!x)
-      .map((x) => x.slice("mod:".length));
-    const csIds = row.craftedSuffixMods
-      .map((t) => modTokMap.get(tokenKey(t)))
-      .filter((x): x is string => !!x)
-      .map((x) => x.slice("mod:".length));
+    const cpIds = resolveShareCraftedModIds(itemId, row.craftedPrefixMods, modTokMap);
+    const csIds = resolveShareCraftedModIds(itemId, row.craftedSuffixMods, modTokMap);
 
     equipped[slot] = {
       itemId,
@@ -253,7 +251,7 @@ export function resolveShareV3(parsed: ShareV3Parsed): ShareV3Resolved {
 
   const upgradeLevels: Record<string, number> = {};
   for (const u of parsed.upgrades) {
-    const tagged = upgTokMap.get(tokenKey(u.key));
+    const tagged = upgTokMap.get(tokenKey(u.key))?.[0];
     if (!tagged) continue;
     const key = tagged.slice("upg:".length);
     const points = Math.max(0, Math.floor(u.points));
@@ -273,24 +271,75 @@ function allUpgradeKeys(): string[] {
   return out;
 }
 
-function buildTokenToIdMap(taggedIds: string[]): Map<string, string> {
-  const map = new Map<string, string>();
+function buildTokenToIdsMap(taggedIds: string[]): Map<string, string[]> {
+  const map = new Map<string, string[]>();
   for (const tid of taggedIds) {
     if (!tid) continue;
-    map.set(tokenKey({ is32: false, value: fnv1a24(tid) }), tid);
-    map.set(tokenKey({ is32: true, value: fnv1a32(tid) }), tid);
+    const k24 = tokenKey({ is32: false, value: fnv1a24(tid) });
+    const k32 = tokenKey({ is32: true, value: fnv1a32(tid) });
+    map.set(k24, [...(map.get(k24) ?? []), tid]);
+    map.set(k32, [...(map.get(k32) ?? []), tid]);
   }
   return map;
+}
+
+function shareItemFitsPlannerSlot(itemId: string, plannerSlot: string): boolean {
+  if (!itemId || itemId === "none") return false;
+  const base = EOC_BASE_EQUIPMENT_BY_ID[itemId];
+  if (base) {
+    if (plannerSlot === "Ring 1" || plannerSlot === "Ring 2") return base.slot === "Ring";
+    return base.slot === plannerSlot;
+  }
+  const u = EOC_UNIQUE_DEFINITIONS.find((x) => x.id === itemId);
+  if (!u) return false;
+  if (plannerSlot === "Ring 1" || plannerSlot === "Ring 2") return u.slot === "Ring";
+  return u.slot === plannerSlot;
+}
+
+function resolveShareCraftedModIds(
+  itemId: string,
+  tokens: Array<{ is32: boolean; value: number }>,
+  modTokMap: Map<string, string[]>
+): string[] {
+  const out: string[] = [];
+  const itemType = EOC_BASE_EQUIPMENT_BY_ID[itemId]?.itemType;
+  for (const t of tokens) {
+    const candidates = (modTokMap.get(tokenKey(t)) ?? []).map((x) => x.slice("mod:".length));
+    if (!candidates.length) continue;
+    if (itemType) {
+      const fit = candidates.find((id) => getCraftedModifierSpecForItemId(itemId, id) != null);
+      out.push(fit ?? candidates[0]!);
+    } else {
+      out.push(candidates[0]!);
+    }
+  }
+  return out;
+}
+
+function allShareV3TaggedIds(): string[] {
+  return [
+    ...(EOC_ABILITY_DEFINITIONS ?? []).map((a) => `ability:${a.id}`),
+    ...(EOC_UNIQUE_DEFINITIONS ?? []).map((u) => `item:${u.id}`),
+    ...(EOC_BASE_EQUIPMENT ?? []).map((b) => `item:${b.id}`),
+    ...Object.keys(EOC_MODIFIERS_BY_ID ?? {}).map((id) => `mod:${id}`),
+    ...allUpgradeKeys().map((k) => `upg:${k}`),
+  ];
 }
 
 function tokenKey(t: { is32: boolean; value: number }): string {
   return `${t.is32 ? "32" : "24"}:${t.value >>> 0}`;
 }
 
-function chooseTokenWidths(taggedIds: string[]): Map<string, "24" | "32"> {
+function chooseTokenWidths(
+  taggedIds: string[],
+  collisionUniverseTaggedIds: string[] = taggedIds
+): Map<string, "24" | "32"> {
   const plan = new Map<string, "24" | "32">();
   const by24 = new Map<number, string[]>();
-  for (const id of taggedIds) {
+  // Always include ids from the current payload, even when the external
+  // collision universe is temporarily empty (e.g. before sheet data loads).
+  const collisionScanIds = new Set<string>([...collisionUniverseTaggedIds, ...taggedIds]);
+  for (const id of collisionScanIds) {
     const h = fnv1a24(id);
     const arr = by24.get(h) ?? [];
     arr.push(id);
@@ -305,9 +354,14 @@ function chooseTokenWidths(taggedIds: string[]): Map<string, "24" | "32"> {
   return plan;
 }
 
-function assertNoPlannedCollisions(taggedIds: string[], plan: Map<string, "24" | "32">): void {
+function assertNoPlannedCollisions(
+  taggedIds: string[],
+  plan: Map<string, "24" | "32">,
+  collisionUniverseTaggedIds: string[] = taggedIds
+): void {
   const seen = new Map<number, string>();
-  for (const id of taggedIds) {
+  const collisionScanIds = new Set<string>([...collisionUniverseTaggedIds, ...taggedIds]);
+  for (const id of collisionScanIds) {
     if (plan.get(id) !== "24") continue;
     const h = fnv1a24(id);
     const prev = seen.get(h);
@@ -643,19 +697,27 @@ function wireModsToModifierIdList(raw: unknown): string[] | undefined {
   return out.length ? out : undefined;
 }
 
+function getCraftedModifierSpecForItemId(itemId: string, modifierId: string) {
+  const base = EOC_BASE_EQUIPMENT_BY_ID[itemId];
+  const mod = EOC_MODIFIERS_BY_ID[modifierId];
+  if (!base || !mod) return null;
+  const specificType = base.name.trim();
+  const generalType = base.itemType.trim();
+  return (
+    (specificType ? mod.itemTypeValues?.[specificType] : null)
+    ?? (generalType ? mod.itemTypeValues?.[generalType] : null)
+    ?? null
+  );
+}
+
 function buildMaxRolledCraftedMods(itemId: string, modifierIds: string[] | undefined): AppliedModifierWireObject[] | undefined {
   if (!modifierIds?.length) return undefined;
   if (!itemId || itemId === "none") return undefined;
   if (!isCraftedEquipItemId(itemId)) return undefined;
-  const base = EOC_BASE_EQUIPMENT_BY_ID[itemId];
-  const itemType = base?.itemType;
-  if (!itemType) return undefined;
 
   const out: AppliedModifierWireObject[] = [];
   for (const modifierId of modifierIds) {
-    const mod = EOC_MODIFIERS_BY_ID[modifierId];
-    if (!mod) continue;
-    const spec = mod.itemTypeValues?.[itemType];
+    const spec = getCraftedModifierSpecForItemId(itemId, modifierId);
     if (!spec) continue;
     out.push({
       modifierId,
