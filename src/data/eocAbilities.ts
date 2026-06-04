@@ -1,4 +1,5 @@
 import { EOC_UNIQUE_BY_ID, isUniqueItemId } from "./eocUniques";
+import { EOC_BASE_EQUIPMENT_BY_ID, isCraftedEquipItemId } from "./eocBaseEquipment";
 
 export type EocAbilityType = "Melee" | "Ranged" | "Spells";
 
@@ -241,6 +242,11 @@ export function weaponAbilityTagFromItemId(itemId: string): string | null {
     const u = EOC_UNIQUE_BY_ID[itemId];
     if (!u || u.slot !== "Weapon") return null;
     return UNIQUE_ITEM_TYPE_TO_TAG[u.itemType] ?? u.itemType.toLowerCase().replace(/\s+/g, "_");
+  }
+  if (isCraftedEquipItemId(itemId)) {
+    const def = EOC_BASE_EQUIPMENT_BY_ID[itemId];
+    if (!def || def.slot !== "Weapon") return null;
+    return UNIQUE_ITEM_TYPE_TO_TAG[def.itemType] ?? def.itemType.toLowerCase().replace(/\s+/g, "_");
   }
   return BASE_WEAPON_ITEM_TO_TAG[itemId] ?? null;
 }
