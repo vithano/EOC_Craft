@@ -17,6 +17,7 @@ import EocStatsPanel from "../components/EocStatsPanel";
 import EquipmentPanel from "../components/EquipmentPanel";
 import FormulaViewer from "../components/FormulaViewer";
 import {
+  canEquipWeaponInOffHand,
   DEFAULT_INVENTORY,
   EQUIPMENT_SLOTS,
   INVENTORY_MAX_SLOTS,
@@ -116,6 +117,13 @@ function stackIdentityKey(rolls: number[] | undefined, enhancement?: number, cra
   return JSON.stringify({ rolls: rolls ?? [], en: enhancement ?? 0, cp: craftedPrefixes ?? [], cs: craftedSuffixes ?? [] });
 }
 
+function normalizeBagSlot(slot: string, itemId: string): string {
+  // Off-hand one-handed weapons should return to the generic Weapon pool,
+  // so they can be re-equipped in either hand from inventory.
+  if (slot === "Off-hand" && canEquipWeaponInOffHand(itemId)) return "Weapon";
+  return slot;
+}
+
 function addOrMergeStack(
   inv: InventoryStack[],
   slot: string,
@@ -126,13 +134,14 @@ function addOrMergeStack(
   craftedPrefixes?: AppliedModifier[],
   craftedSuffixes?: AppliedModifier[]
 ): InventoryStack[] {
+  const bagSlot = normalizeBagSlot(slot, itemId);
   const en = enhancement !== undefined && enhancement > 0 ? enhancement : undefined;
   // Crafted items always create new stacks (each instance is unique)
   const isCrafted = (craftedPrefixes?.length ?? 0) > 0 || (craftedSuffixes?.length ?? 0) > 0;
   if (!isCrafted) {
     const merge = inv.find(
       (s) =>
-        s.slot === slot &&
+        s.slot === bagSlot &&
         s.itemId === itemId &&
         !s.craftedPrefixes?.length && !s.craftedSuffixes?.length &&
         stackIdentityKey(s.rolls, s.enhancement) === stackIdentityKey(rolls, en)
@@ -145,7 +154,7 @@ function addOrMergeStack(
     typeof crypto !== "undefined" && crypto.randomUUID
       ? `st-${crypto.randomUUID()}`
       : `st-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-  const row: InventoryStack = { id, slot, itemId, qty };
+  const row: InventoryStack = { id, slot: bagSlot, itemId, qty };
   if (rolls?.length) row.rolls = rolls;
   if (en !== undefined) row.enhancement = en;
   if (craftedPrefixes?.length) row.craftedPrefixes = craftedPrefixes;
@@ -450,6 +459,7 @@ export default function BuildPlanner() {
     if (!stack || stack.qty < 1) return;
     const slot = overrides?.targetSlot ?? stack.slot;
     const { itemId } = stack;
+    if (slot === "Off-hand" && stack.slot === "Weapon" && !canEquipWeaponInOffHand(itemId)) return;
     const rolls =
       overrides?.rolls !== undefined
         ? overrides.rolls.length

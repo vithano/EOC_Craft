@@ -5,14 +5,13 @@ import { useGameData } from "../contexts/GameDataContext";
 import type { ComputedBuildStats } from "../data/gameStats";
 import type { AppliedModifier, EquippedEntry, EquipmentFilter, InventoryStack, Rarity } from "../data/equipment";
 import {
+  canEquipWeaponInOffHand,
   EQUIPMENT_SLOTS,
   getEquippedEntry,
   getItemDefinition,
-  isAttackWeaponItem,
   isCraftedEquipItemId,
   INVENTORY_MAX_SLOTS,
   slotCategory,
-  weaponUsesBothHands,
 } from "../data/equipment";
 import {
   EOC_UNIQUE_DEFINITIONS,
@@ -398,7 +397,7 @@ export default function EquipmentPanel({
 
     const mods = item.modifiers ?? {};
     const udef = isUniqueItemId(itemId) ? EOC_UNIQUE_BY_ID[itemId] : undefined;
-    const isWeaponSlotForTooltip = slot === "Weapon" || (slot === "Off-hand" && isAttackWeaponItem(itemId));
+    const isWeaponSlotForTooltip = slot === "Weapon" || (slot === "Off-hand" && canEquipWeaponInOffHand(itemId));
 
     const mutedBtn = "rounded-sm border border-[#5c4d3d] bg-[#1c1814] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[#c9baa8] hover:border-[#8b7355] hover:text-[#e8dcc8]";
 
@@ -624,8 +623,7 @@ export default function EquipmentPanel({
                     Equip
                   </button>
                   {effectiveDetail.stack.slot === "Weapon" &&
-                    isAttackWeaponItem(itemId) &&
-                    !weaponUsesBothHands(itemId) && (
+                    canEquipWeaponInOffHand(itemId) && (
                     <button
                       type="button"
                       className={brassBtn}
@@ -693,8 +691,7 @@ export default function EquipmentPanel({
                   Equip
                 </button>
                 {effectiveDetail.stack.slot === "Weapon" &&
-                  isAttackWeaponItem(itemId) &&
-                  !weaponUsesBothHands(itemId) && (
+                  canEquipWeaponInOffHand(itemId) && (
                   <button
                     type="button"
                     className={brassBtn}
@@ -960,8 +957,7 @@ export default function EquipmentPanel({
                 onEquipStack(effectiveDetail.stack.id, { rolls, enhancement: detailEnhancement });
               }}>Equip</button>
               {effectiveDetail.stack.slot === "Weapon" &&
-                isAttackWeaponItem(itemId) &&
-                !weaponUsesBothHands(itemId) && (
+                canEquipWeaponInOffHand(itemId) && (
                 <button
                   type="button"
                   className={brassBtn}

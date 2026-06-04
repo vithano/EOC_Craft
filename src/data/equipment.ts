@@ -103,6 +103,19 @@ export function isAttackWeaponItem(itemId: string): boolean {
   return false;
 }
 
+/** True when an item is a weapon-class item that can be equipped in off-hand. */
+export function canEquipWeaponInOffHand(itemId: string): boolean {
+  if (!itemId || itemId === 'none') return false;
+  if (weaponUsesBothHands(itemId)) return false;
+  if (isUniqueItemId(itemId)) {
+    return EOC_UNIQUE_BY_ID[itemId]?.slot === 'Weapon';
+  }
+  if (isCraftedEquipItemId(itemId)) {
+    return EOC_BASE_EQUIPMENT_BY_ID[itemId]?.slot === 'Weapon';
+  }
+  return getEquipmentItemsMap().Weapon?.some((i) => i.id === itemId) ?? false;
+}
+
 /** Two one-handed attack weapons equipped (main + off-hand). */
 export function isDualWieldingAttackWeapons(mainHandItemId: string, offHandItemId: string): boolean {
   if (!mainHandItemId || mainHandItemId === 'none' || !offHandItemId || offHandItemId === 'none') return false;

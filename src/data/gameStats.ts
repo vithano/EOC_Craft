@@ -7,6 +7,7 @@ import {
   isClassBonusActive,
 } from './gameClasses'
 import {
+  canEquipWeaponInOffHand,
   EQUIPMENT_SLOTS,
   getEquippedEntry,
   getItemDefinition,
@@ -2184,7 +2185,7 @@ export function aggregateEquippedToEquipmentModifiers(
         entry?.enhancement ?? 0
       )
       const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
-      const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && isAttackWeaponItem(itemId))
+      const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && canEquipWeaponInOffHand(itemId))
       const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
 
       if (isWeapon) {
@@ -2236,7 +2237,7 @@ export function aggregateEquippedToEquipmentModifiers(
       const prefixes = entry?.craftedPrefixes ?? []
       const suffixes = entry?.craftedSuffixes ?? []
       const texts = craftedEquipStatParseTexts(def, prefixes, suffixes, entry?.enhancement ?? 0)
-      const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && isAttackWeaponItem(itemId))
+      const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && canEquipWeaponInOffHand(itemId))
       const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
       applyExtraCraftedModPatterns(patch, texts)
 
@@ -2718,7 +2719,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         if (!def) continue
         const { innateText, lineTexts } = resolveUniqueMods(def, ent.rolls, ent.enhancement ?? 0)
         const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
-        const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && isAttackWeaponItem(itemId))
+        const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && canEquipWeaponInOffHand(itemId))
         const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
 
         if (isWeapon) {
@@ -2757,7 +2758,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         const prefixes = ent.craftedPrefixes ?? []
         const suffixes = ent.craftedSuffixes ?? []
         const texts = craftedEquipStatParseTexts(def, prefixes, suffixes, ent.enhancement ?? 0)
-        const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && isAttackWeaponItem(itemId))
+        const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && canEquipWeaponInOffHand(itemId))
         const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
         applyExtraCraftedModPatterns(patch, texts)
 
