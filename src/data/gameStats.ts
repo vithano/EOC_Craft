@@ -705,6 +705,7 @@ export interface EquipmentModifiers {
   critMultiPctPerItemQuantityPctFromGear: number
   critMultiPctPer20AccuracyFromGear: number
   additionalAbilityLevelsAllFromGear: number
+  additionalAbilityLevelsPhysicalFromGear: number
   additionalAbilityLevelsColdFromGear: number
 
   maxShockEffectBonusFromGear: number
@@ -1300,6 +1301,7 @@ export function emptyEquipmentModifiers(): EquipmentModifiers {
     critMultiPctPerItemQuantityPctFromGear: 0,
     critMultiPctPer20AccuracyFromGear: 0,
     additionalAbilityLevelsAllFromGear: 0,
+    additionalAbilityLevelsPhysicalFromGear: 0,
     additionalAbilityLevelsColdFromGear: 0,
     maxShockEffectBonusFromGear: 0,
     maxChillEffectBonusFromGear: 0,
@@ -1887,6 +1889,9 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
   if (p.additionalAbilityLevelsAllFromGear !== undefined) {
     addNum('additionalAbilityLevelsAllFromGear', p.additionalAbilityLevelsAllFromGear)
+  }
+  if (p.additionalAbilityLevelsPhysicalFromGear !== undefined) {
+    addNum('additionalAbilityLevelsPhysicalFromGear', p.additionalAbilityLevelsPhysicalFromGear)
   }
   if (p.additionalAbilityLevelsColdFromGear !== undefined) {
     addNum('additionalAbilityLevelsColdFromGear', p.additionalAbilityLevelsColdFromGear)
@@ -3378,10 +3383,12 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     // Requirement: increased ability levels should NOT affect mana cost scaling.
     const naturalAbilityLevel = Math.max(0, Math.floor(sel.abilityLevel))
     const baseLevel = Math.max(0, naturalAbilityLevel + classBonusAbilityLevelAdd)
+    const isPhysicalAbility = def?.spellHit?.element?.toLowerCase?.() === 'physical'
     const isColdAbility = def?.spellHit?.element?.toLowerCase?.() === 'cold'
     const level =
       baseLevel
       + eq.additionalAbilityLevelsAllFromGear
+      + (isPhysicalAbility ? eq.additionalAbilityLevelsPhysicalFromGear : 0)
       + (isColdAbility ? eq.additionalAbilityLevelsColdFromGear : 0)
     if (def && abilityMatchesWeapon(def, weaponTag)) {
       const attPctRaw = Math.min(100, Math.max(0, Number(sel.attunementPct) || 0))

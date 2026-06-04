@@ -404,6 +404,8 @@ export interface UniqueGearStatPatch {
 
   /** +N to the level of all abilities. */
   additionalAbilityLevelsAllFromGear?: number;
+  /** +N to the level of physical abilities. */
+  additionalAbilityLevelsPhysicalFromGear?: number;
   /** +N to the level of cold abilities. */
   additionalAbilityLevelsColdFromGear?: number;
 
@@ -881,6 +883,11 @@ export function equipmentModifiersFromUniqueTexts(
 
     m = l.match(/\+\(?([\d.-]+)\)?\s+to\s+the\s+level\s+of\s+all\s+abilities\b/i);
     if (m) add({ additionalAbilityLevelsAllFromGear: num(m)! });
+
+    m = l.match(/\+\(?([\d.-]+)\)?\s+to\s+the\s+level\s+of\s+physical\s+abilities\b/i);
+    if (m) add({ additionalAbilityLevelsPhysicalFromGear: num(m)! });
+    m = l.match(/\+\(([\d.]+)\s+to\s+([\d.]+)\)\s+to\s+the\s+level\s+of\s+physical\s+abilities\b/i);
+    if (m) add({ additionalAbilityLevelsPhysicalFromGear: pctFromParenOrSingle(m) });
 
     m = l.match(/\+\(?([\d.-]+)\)?\s+to\s+the\s+level\s+of\s+cold\s+abilities\b/i);
     if (m) add({ additionalAbilityLevelsColdFromGear: num(m)! });
