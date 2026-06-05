@@ -1192,7 +1192,10 @@ export function equipmentModifiersFromUniqueTexts(
     if (/^when you block/i.test(low)) mark();
     m = l.match(/take\s+chaos\s+damage\s+equal\s+to\s+([\d.]+)%\s+of\s+ability\s+cost\s+when\s+you\s+cast\s+a\s+spell\b/i)
     if (m) add({ takeChaosDamageEqualToPctOfAbilityCostOnSpellCastFromGear: num(m)! })
-    if (/local damage of your weapons applies to spells/i.test(low)) {
+    if (
+      /local\s+damage\s+(?:of|from)\s+your\s+weapon(?:s)?\s+appl(?:y|ies)\s+to\s+spells(?:\s+as\s+well)?/i.test(low)
+      || /spells\s+(?:also\s+)?use\s+the\s+local\s+damage\s+of\s+your\s+weapon(?:s)?/i.test(low)
+    ) {
       acc.weaponLocalDamageAppliesToSpellsFromGear = true;
       mark();
     }

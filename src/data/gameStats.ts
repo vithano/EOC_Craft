@@ -1957,6 +1957,32 @@ function mergeUniqueGearPatch(eq: EquipmentModifiers, p: UniqueGearStatPatch) {
   }
 }
 
+function applyKnownUniquePatchFallbacks(itemId: string, p: UniqueGearStatPatch): void {
+  // Data fallback: some bundled datasets omit Soulpierce's line
+  // "The local damage of your weapons applies to spells as well".
+  if (itemId === 'unique_soulpierce') p.weaponLocalDamageAppliesToSpellsFromGear = true
+}
+
+function applyKnownWeaponLocalBaseFallbackForSpells(eq: EquipmentModifiers, itemId: string): void {
+  if (!itemId || itemId === 'none') return
+  const fromBase = EOC_BASE_EQUIPMENT_BY_ID[itemId]
+  const fromUnique = isUniqueItemId(itemId) ? EOC_UNIQUE_BY_ID[itemId] : undefined
+  const itemType = fromBase?.itemType ?? fromUnique?.itemType ?? ''
+  const baseMin = fromBase?.baseDamageMin ?? fromUnique?.baseDamageMin ?? null
+  const baseMax = fromBase?.baseDamageMax ?? fromUnique?.baseDamageMax ?? null
+  // Data fallback: wand base physical can be blank in sheet snapshots.
+  // Use conservative in-game baseline so Soulpierce local-weapon-to-spells behaves.
+  if (itemType === 'Wand' && baseMin == null && baseMax == null) {
+    eq.flatDamageMin += 7
+    // Crafted wands (e.g. Sprig) use the slightly higher top roll.
+    eq.flatDamageMax += isCraftedEquipItemId(itemId) ? 16 : 15
+  }
+}
+
+function localFlatDamageRangeNoRound(flatMinStored: number, flatMaxStored: number): { min: number; max: number } {
+  return { min: flatMinStored * 2, max: flatMaxStored }
+}
+
 /**
  * Uniques with "While you have at least N strength/dexterity/intelligence …" need final attributes;
  * merge their bonuses into `eq` after Str/Dex/Int are rounded.
@@ -2057,6 +2083,7 @@ function accumulateEquippedWeaponInto(
     const { innateText, lineTexts } = resolveUniqueMods(def, entry.rolls, entry.enhancement ?? 0)
     const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
     const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon: true })
+    applyKnownUniquePatchFallbacks(itemId, patch)
 
     const baseDmgMin = def.baseDamageMin ?? 0
     const baseDmgMax = def.baseDamageMax ?? 0
@@ -2134,16 +2161,18 @@ function mergeDualWieldWeaponEquipment(
   merged.flatLightningMax = avg(w1.flatLightningMax, w2.flatLightningMax)
   merged.flatChaosMin = avg(w1.flatChaosMin, w2.flatChaosMin)
   merged.flatChaosMax = avg(w1.flatChaosMax, w2.flatChaosMax)
-  merged.flatSpellDamageMin = avg(w1.flatSpellDamageMin, w2.flatSpellDamageMin)
-  merged.flatSpellDamageMax = avg(w1.flatSpellDamageMax, w2.flatSpellDamageMax)
-  merged.flatSpellFireMin = avg(w1.flatSpellFireMin, w2.flatSpellFireMin)
-  merged.flatSpellFireMax = avg(w1.flatSpellFireMax, w2.flatSpellFireMax)
-  merged.flatSpellColdMin = avg(w1.flatSpellColdMin, w2.flatSpellColdMin)
-  merged.flatSpellColdMax = avg(w1.flatSpellColdMax, w2.flatSpellColdMax)
-  merged.flatSpellLightningMin = avg(w1.flatSpellLightningMin, w2.flatSpellLightningMin)
-  merged.flatSpellLightningMax = avg(w1.flatSpellLightningMax, w2.flatSpellLightningMax)
-  merged.flatSpellChaosMin = avg(w1.flatSpellChaosMin, w2.flatSpellChaosMin)
-  merged.flatSpellChaosMax = avg(w1.flatSpellChaosMax, w2.flatSpellChaosMax)
+  // Spell-added flat damage from gear stacks additively across both equipped weapons.
+  // Averaging here underestimates values (e.g. one weapon with +spell cold, one without).
+  merged.flatSpellDamageMin = w1.flatSpellDamageMin + w2.flatSpellDamageMin
+  merged.flatSpellDamageMax = w1.flatSpellDamageMax + w2.flatSpellDamageMax
+  merged.flatSpellFireMin = w1.flatSpellFireMin + w2.flatSpellFireMin
+  merged.flatSpellFireMax = w1.flatSpellFireMax + w2.flatSpellFireMax
+  merged.flatSpellColdMin = w1.flatSpellColdMin + w2.flatSpellColdMin
+  merged.flatSpellColdMax = w1.flatSpellColdMax + w2.flatSpellColdMax
+  merged.flatSpellLightningMin = w1.flatSpellLightningMin + w2.flatSpellLightningMin
+  merged.flatSpellLightningMax = w1.flatSpellLightningMax + w2.flatSpellLightningMax
+  merged.flatSpellChaosMin = w1.flatSpellChaosMin + w2.flatSpellChaosMin
+  merged.flatSpellChaosMax = w1.flatSpellChaosMax + w2.flatSpellChaosMax
   merged.flatStrikesPerAttack = avg(w1.flatStrikesPerAttack, w2.flatStrikesPerAttack)
 
   const aps1 = w1.weaponEffectiveAps ?? BASE_GAME_STATS.baseAps
@@ -2192,6 +2221,7 @@ export function aggregateEquippedToEquipmentModifiers(
       const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
       const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && canEquipWeaponInOffHand(itemId))
       const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
+      applyKnownUniquePatchFallbacks(itemId, patch)
 
       if (isWeapon) {
         // Apply weapon base physical damage scaled by local physical damage %
@@ -2726,6 +2756,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
         const texts = [innateText, ...lineTexts].filter((t) => t.length > 0)
         const isWeapon = slot === 'Weapon' || (slot === 'Off-hand' && canEquipWeaponInOffHand(itemId))
         const patch = equipmentModifiersFromUniqueTexts(texts, { isWeapon })
+        applyKnownUniquePatchFallbacks(itemId, patch)
 
         if (isWeapon) {
           const baseDmgMin = def.baseDamageMin ?? 0
@@ -3156,7 +3187,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     + u('increasedElementalDamageWithAttacks')
     + eq.increasedElementalDamageFromGear
   // Occultist class bonus: 1% increased damage per 100 maximum energy shield
-  const occultistDmgFromEsPct   = bonus('occultist') ? maxEnergyShield / 100 : 0
+  const occultistDmgFromEsPct   = bonus('occultist') ? Math.floor(maxEnergyShield / 100) : 0
   const damageIncFromCombinedAttrsGear =
     Math.floor((str + dex + int_) / 10) * eq.damageIncPctPer10CombinedAttrsFromGear
   const increasedDamage         =
@@ -3522,6 +3553,18 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             eq.increasedDamageFromGear,
             (x) => x.increasedDamageFromGear
           )
+          if (occultistDmgFromEsPct !== 0) {
+            increasedDamagePercentSources.push({
+              label: 'Occultist: increased damage per 100 maximum energy shield',
+              value: occultistDmgFromEsPct,
+            })
+          }
+          if (damageIncFromCombinedAttrsGear !== 0) {
+            increasedDamagePercentSources.push({
+              label: 'Gear: increased damage per 10 combined Str, Dex, and Int',
+              value: damageIncFromCombinedAttrsGear,
+            })
+          }
           if (levelPctIncreasedDamage !== 0) {
             increasedDamagePercentSources.push({
               label: 'Per level above 1: increased damage',
@@ -3660,34 +3703,38 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             lightning: localFlatDamageDisplayRange(eq.flatSpellLightningMin, eq.flatSpellLightningMax),
             chaos: localFlatDamageDisplayRange(eq.flatSpellChaosMin, eq.flatSpellChaosMax),
           };
-          if (eq.weaponLocalDamageAppliesToSpellsFromGear) {
-            const add = (a: { min: number; max: number }, b: { min: number; max: number }) => ({
-              min: a.min + b.min,
-              max: a.max + b.max,
+          const localWeaponSpellRanges = (() => {
+            if (!eq.weaponLocalDamageAppliesToSpellsFromGear) return null
+            if (!config.equipped) {
+              return {
+                physical: localFlatDamageRangeNoRound(eq.flatDamageMin, eq.flatDamageMax),
+                fire: localFlatDamageRangeNoRound(eq.flatFireMin, eq.flatFireMax),
+                cold: localFlatDamageRangeNoRound(eq.flatColdMin, eq.flatColdMax),
+                lightning: localFlatDamageRangeNoRound(eq.flatLightningMin, eq.flatLightningMax),
+                chaos: localFlatDamageRangeNoRound(eq.flatChaosMin, eq.flatChaosMax),
+              }
+            }
+            const entries = [
+              getEquippedEntry(config.equipped, 'Weapon'),
+              getEquippedEntry(config.equipped, 'Off-hand'),
+            ].filter((e) => e.itemId !== 'none' && canEquipWeaponInOffHand(e.itemId))
+            if (entries.length === 0) return null
+            const parts = entries.map((entry) => {
+              const part = emptyEquipmentModifiers()
+              accumulateEquippedWeaponInto(part, entry)
+              applyKnownWeaponLocalBaseFallbackForSpells(part, entry.itemId)
+              return part
             })
-            // Note: `flat*` ranges are attack-side "local damage" contributions (incl. weapon base + local mods).
-            // This unique makes those weapon-local ranges also contribute to spell hits.
-            spellFlatRanges.physical = add(
-              spellFlatRanges.physical,
-              localFlatDamageDisplayRange(eq.flatDamageMin, eq.flatDamageMax)
-            )
-            spellFlatRanges.fire = add(
-              spellFlatRanges.fire,
-              localFlatDamageDisplayRange(eq.flatFireMin, eq.flatFireMax)
-            )
-            spellFlatRanges.cold = add(
-              spellFlatRanges.cold,
-              localFlatDamageDisplayRange(eq.flatColdMin, eq.flatColdMax)
-            )
-            spellFlatRanges.lightning = add(
-              spellFlatRanges.lightning,
-              localFlatDamageDisplayRange(eq.flatLightningMin, eq.flatLightningMax)
-            )
-            spellFlatRanges.chaos = add(
-              spellFlatRanges.chaos,
-              localFlatDamageDisplayRange(eq.flatChaosMin, eq.flatChaosMax)
-            )
-          }
+            const avg = (pick: (x: EquipmentModifiers) => number) =>
+              parts.reduce((sum, p) => sum + pick(p), 0) / parts.length
+            return {
+              physical: localFlatDamageRangeNoRound(avg((x) => x.flatDamageMin), avg((x) => x.flatDamageMax)),
+              fire: localFlatDamageRangeNoRound(avg((x) => x.flatFireMin), avg((x) => x.flatFireMax)),
+              cold: localFlatDamageRangeNoRound(avg((x) => x.flatColdMin), avg((x) => x.flatColdMax)),
+              lightning: localFlatDamageRangeNoRound(avg((x) => x.flatLightningMin), avg((x) => x.flatLightningMax)),
+              chaos: localFlatDamageRangeNoRound(avg((x) => x.flatChaosMin), avg((x) => x.flatChaosMax)),
+            }
+          })()
 
           // Base spell hit
           const baseAdded =
@@ -3697,18 +3744,15 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
               : baseType === "lightning" ? spellFlatRanges.lightning
               : /* chaos */ spellFlatRanges.chaos;
           // "Added damage multiplier" applies to added flat damage (gear), not the spell's own base hit.
-          const baseMin = scaledHit.min + baseAdded.min * added;
-          const baseMax = scaledHit.max + baseAdded.max * added;
+          // In-game behavior floors scaled added-flat fragments before they are merged into the hit.
+          const baseMin = scaledHit.min + Math.floor(baseAdded.min * added);
+          const baseMax = scaledHit.max + Math.floor(baseAdded.max * added);
           const baseTypeMore = baseType === "fire" ? blazingRadianceMoreFireMult : 1
           const incFracBase = incFracForType(baseType)
           spellRows.push({
             type: baseType,
-            min: roundDamageNearest(
-              baseMin * (1 + incFracBase) * enemyDamageTakenIncreasedMult * spellMoreMult * baseTypeMore
-            ),
-            max: roundDamageNearest(
-              baseMax * (1 + incFracBase) * enemyDamageTakenIncreasedMult * spellMoreMult * baseTypeMore
-            ),
+            min: baseMin * (1 + incFracBase) * spellMoreMult * baseTypeMore,
+            max: baseMax * (1 + incFracBase) * spellMoreMult * baseTypeMore,
           });
 
           // Additional spell-only flat types (non-base elements)
@@ -3718,14 +3762,50 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
             if (!r || (r.min === 0 && r.max === 0)) continue;
             const more = t === "fire" ? blazingRadianceMoreFireMult : 1
             const incFracT = incFracForType(t)
+            const addedMin = Math.floor(r.min * added)
+            const addedMax = Math.floor(r.max * added)
+            if (addedMin === 0 && addedMax === 0) continue
             spellRows.push({
               type: t,
-              min: roundDamageNearest(r.min * added * (1 + incFracT) * enemyDamageTakenIncreasedMult * spellMoreMult * more),
-              max: roundDamageNearest(r.max * added * (1 + incFracT) * enemyDamageTakenIncreasedMult * spellMoreMult * more),
+              min: addedMin * (1 + incFracT) * spellMoreMult * more,
+              max: addedMax * (1 + incFracT) * spellMoreMult * more,
             });
           }
 
-          hitDamageByType = buildHitDamageByType(spellRows);
+          // Unique effect: local weapon damage contributes to spells directly (not via added-damage multiplier).
+          if (localWeaponSpellRanges) {
+            for (const t of ["physical", "fire", "cold", "lightning", "chaos"] as const) {
+              const r = localWeaponSpellRanges[t]
+              if (!r || (r.min === 0 && r.max === 0)) continue
+              const more = t === "fire" ? blazingRadianceMoreFireMult : 1
+              const incFracT = incFracForType(t)
+              spellRows.push({
+                type: t,
+                min: r.min * (1 + incFracT) * spellMoreMult * more,
+                max: r.max * (1 + incFracT) * spellMoreMult * more,
+              })
+            }
+          }
+
+          const mergedSpellRows = (() => {
+            const map = new Map<HitDamageTypeRow['type'], { min: number; max: number }>()
+            for (const r of spellRows) {
+              if (r.min === 0 && r.max === 0) continue
+              const cur = map.get(r.type) ?? { min: 0, max: 0 }
+              cur.min += r.min
+              cur.max += r.max
+              map.set(r.type, cur)
+            }
+            const order: HitDamageTypeRow['type'][] = ['physical', 'fire', 'cold', 'lightning', 'chaos']
+            return order
+              .map((t) => {
+                const v = map.get(t)
+                if (!v) return null
+                return { type: t, min: v.min, max: v.max } as HitDamageTypeRow
+              })
+              .filter((x): x is HitDamageTypeRow => x != null)
+          })()
+          hitDamageByType = buildHitDamageByType(mergedSpellRows);
           hitSum = sumHitDamageRange(hitDamageByType)
           hitDamageMin = hitSum.min
           hitDamageMax = hitSum.max
@@ -3762,13 +3842,33 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
               ].filter((r) => r.min !== 0 || r.max !== 0)
               if (rows.length) out.push({ sourceLabel: s.label, rows })
             }
-            if (eq.weaponLocalDamageAppliesToSpellsFromGear) {
+            if (localWeaponSpellRanges) {
               const rows = [
-                { type: 'physical' as const, ...localFlatDamageDisplayRange(eq.flatDamageMin, eq.flatDamageMax) },
-                { type: 'fire' as const, ...localFlatDamageDisplayRange(eq.flatFireMin, eq.flatFireMax) },
-                { type: 'cold' as const, ...localFlatDamageDisplayRange(eq.flatColdMin, eq.flatColdMax) },
-                { type: 'lightning' as const, ...localFlatDamageDisplayRange(eq.flatLightningMin, eq.flatLightningMax) },
-                { type: 'chaos' as const, ...localFlatDamageDisplayRange(eq.flatChaosMin, eq.flatChaosMax) },
+                {
+                  type: 'physical' as const,
+                  min: roundDamageNearest(localWeaponSpellRanges.physical.min),
+                  max: roundDamageNearest(localWeaponSpellRanges.physical.max),
+                },
+                {
+                  type: 'fire' as const,
+                  min: roundDamageNearest(localWeaponSpellRanges.fire.min),
+                  max: roundDamageNearest(localWeaponSpellRanges.fire.max),
+                },
+                {
+                  type: 'cold' as const,
+                  min: roundDamageNearest(localWeaponSpellRanges.cold.min),
+                  max: roundDamageNearest(localWeaponSpellRanges.cold.max),
+                },
+                {
+                  type: 'lightning' as const,
+                  min: roundDamageNearest(localWeaponSpellRanges.lightning.min),
+                  max: roundDamageNearest(localWeaponSpellRanges.lightning.max),
+                },
+                {
+                  type: 'chaos' as const,
+                  min: roundDamageNearest(localWeaponSpellRanges.chaos.min),
+                  max: roundDamageNearest(localWeaponSpellRanges.chaos.max),
+                },
               ].filter((r) => r.min !== 0 || r.max !== 0)
               if (rows.length) {
                 out.push({ sourceLabel: 'Gear effect: weapon local damage applies to spells', rows })
@@ -3819,7 +3919,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
               totalPercent: enemyDamageTakenIncreasedTotalPct,
               multiplier: enemyDamageTakenIncreasedMult,
             },
-            afterIncreasedByType: spellRows,
+            afterIncreasedByType: hitDamageByType,
             avgHit,
             critical: {
               critChance,
@@ -3860,7 +3960,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
               strikesPerCast: Math.max(0, hitsPerCast),
               notes: [
                 enemyDamageTakenIncreasedTotalPct !== 0
-                  ? `Enemies take +${enemyDamageTakenIncreasedTotalPct.toFixed(1)}% increased damage (gear + Trickster): ×${enemyDamageTakenIncreasedMult.toFixed(4)} on spell hit (included).`
+                  ? `Enemies take +${enemyDamageTakenIncreasedTotalPct.toFixed(1)}% increased damage (gear + Trickster) is tracked separately and not included in spell tooltip hit.`
                   : 'No “enemies take increased damage” from gear or Trickster.',
               ],
             },
@@ -5159,7 +5259,7 @@ export function computeBuildStats(config: BuildConfig): ComputedBuildStats {
     ]),
     increasedDamage: blk([
       { label: 'Upgrades', value: u('increasedDamage') },
-      { label: 'Occultist (per 100 ES)', value: bonus('occultist') ? maxEnergyShield / 100 : 0 },
+      { label: 'Occultist (per 100 ES)', value: occultistDmgFromEsPct },
       { label: 'Gear', value: eq.increasedDamageFromGear },
       { label: 'Per level above 1', value: levelPctIncreasedDamage },
       { label: 'Gear: per 10 combined attributes', value: damageIncFromCombinedAttrsGear },
